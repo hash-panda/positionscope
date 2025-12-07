@@ -36,4 +36,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   getPositionOrder: () =>
     ipcRenderer.invoke('get-position-order'),
+
+  getFuturesAccountInfo: () =>
+    ipcRenderer.invoke('get-futures-account-info'),
 });

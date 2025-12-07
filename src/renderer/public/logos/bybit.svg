@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+  <defs>
+    <linearGradient id="bybit-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F7A600;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFC700;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <circle cx="120" cy="120" r="120" fill="url(#bybit-gradient)"/>
+  <path d="M80 70h80v20H80zm0 30h80v20H80zm0 30h80v20H80zm0 30h80v20H80z" fill="#FFFFFF" opacity="0.9"/>
+  <path d="M160 85l15 15-15 15zm0 30l15 15-15 15zm0 30l15 15-15 15z" fill="#FFFFFF"/>
+</svg>

@@ -1,11 +1,25 @@
 import { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage } from 'electron';
 import * as path from 'path';
-import { BinanceService, FuturesPosition } from './services/binance';
+import { ExchangeManager } from './services/exchangeManager';
 import { SettingsManager } from './settings';
+import { Position, ExchangeType } from './types/exchange';
+
+// Global error handlers to prevent crashes from EPIPE and other errors
+process.on('uncaughtException', (error) => {
+  // Ignore EPIPE errors which occur when writing to closed streams
+  if (error.message.includes('EPIPE')) {
+    return;
+  }
+  console.error('[Main] Uncaught exception:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Main] Unhandled rejection at:', promise, 'reason:', reason);
+});
 
 let tray: Tray | null = null;
 let window: BrowserWindow | null = null;
-const binanceService = new BinanceService();
+const exchangeManager = new ExchangeManager();
 let settingsManager: SettingsManager;
 let refreshInterval: NodeJS.Timeout | null = null;
 let maxDisplayCount: number = 2; // 菜单栏最多显示的持仓数（默认2个）
@@ -78,7 +92,7 @@ interface PositionDisplayData {
   isProfit: boolean;
 }
 
-function formatPositionData(position: FuturesPosition): PositionDisplayData {
+function formatPositionData(position: Position): PositionDisplayData {
   const symbol = position.symbol.replace('USDT', '').replace('BUSD', '');
   const price = parseFloat(position.markPrice);
   const pnl = parseFloat(position.unRealizedProfit);
@@ -114,7 +128,7 @@ function formatPositionsAsText(positions: PositionDisplayData[]): string {
 
 // 更新菜单栏显示
 async function updateTrayTitle() {
-  if (!tray || !settingsManager.hasCredentials()) {
+  if (!tray || !exchangeManager.hasAnyCredentials()) {
     if (tray) {
       tray.setTitle('--');
       console.log('[Tray] Set title to: -- (no credentials)');
@@ -123,7 +137,7 @@ async function updateTrayTitle() {
   }
 
   try {
-    const positions = await binanceService.getFuturesPositions();
+    const positions = await exchangeManager.getAllFuturesPositions();
 
     if (!positions || positions.length === 0) {
       tray.setTitle('无持仓');
@@ -131,10 +145,8 @@ async function updateTrayTitle() {
       return;
     }
 
-    // 过滤出有持仓的合约
-    const activePositions = positions.filter((p: FuturesPosition) => parseFloat(p.positionAmt) !== 0);
-
-    if (activePositions.length === 0) {
+    // 持仓已经过滤过了，只包含有持仓的合约
+    if (positions.length === 0) {
       tray.setTitle('无持仓');
       console.log('[Tray] Set title to: 无持仓 (no active positions)');
       return;
@@ -142,12 +154,12 @@ async function updateTrayTitle() {
 
     // 获取用户自定义的顺序
     const customOrder = settingsManager.getPositionOrder();
-    let sortedPositions: FuturesPosition[] = [];
+    let sortedPositions: Position[] = [];
 
     if (customOrder.length > 0) {
       // 使用自定义顺序
-      const symbolMap = new Map<string, FuturesPosition>();
-      activePositions.forEach(p => symbolMap.set(p.symbol, p));
+      const symbolMap = new Map<string, Position>();
+      positions.forEach(p => symbolMap.set(p.symbol, p));
 
       // 按自定义顺序添加
       customOrder.forEach(symbol => {
@@ -162,7 +174,7 @@ async function updateTrayTitle() {
       symbolMap.forEach(pos => sortedPositions.push(pos));
     } else {
       // 没有自定义顺序，按收益绝对值排序
-      sortedPositions = activePositions.sort((a: FuturesPosition, b: FuturesPosition) => {
+      sortedPositions = positions.sort((a: Position, b: Position) => {
         return Math.abs(parseFloat(b.unRealizedProfit)) - Math.abs(parseFloat(a.unRealizedProfit));
       });
     }
@@ -171,7 +183,7 @@ async function updateTrayTitle() {
     const displayPositions = sortedPositions.slice(0, maxDisplayCount);
 
     // 格式化为显示数据
-    const displayData = displayPositions.map((p: FuturesPosition) => formatPositionData(p));
+    const displayData = displayPositions.map((p: Position) => formatPositionData(p));
 
     // 使用文字模式（纯文本，无颜色）
     const titleText = formatPositionsAsText(displayData);
@@ -252,7 +264,13 @@ app.whenReady().then(() => {
   // 加载保存的设置
   const credentials = settingsManager.getCredentials();
   if (credentials) {
-    binanceService.setCredentials(credentials.apiKey, credentials.apiSecret, credentials.proxyUrl);
+    // 为币安交易所设置凭证（向后兼容）
+    exchangeManager.setCredentials({
+      exchange: ExchangeType.BINANCE,
+      apiKey: credentials.apiKey,
+      apiSecret: credentials.apiSecret,
+      proxyUrl: credentials.proxyUrl,
+    });
   }
 
   const displaySettings = settingsManager.getDisplaySettings();
@@ -274,7 +292,13 @@ app.on('window-all-closed', (e: Event) => {
 
 // IPC handlers
 ipcMain.handle('save-api-keys', async (_, apiKey: string, apiSecret: string, proxyUrl?: string) => {
-  binanceService.setCredentials(apiKey, apiSecret, proxyUrl);
+  // 为币安设置凭证（向后兼容）
+  exchangeManager.setCredentials({
+    exchange: ExchangeType.BINANCE,
+    apiKey,
+    apiSecret,
+    proxyUrl,
+  });
   // 保存到持久化存储
   settingsManager.setCredentials(apiKey, apiSecret, proxyUrl);
   // 启动自动刷新
@@ -284,7 +308,7 @@ ipcMain.handle('save-api-keys', async (_, apiKey: string, apiSecret: string, pro
 
 ipcMain.handle('get-spot-positions', async () => {
   try {
-    return await binanceService.getSpotBalances();
+    return await exchangeManager.getAllSpotBalances();
   } catch (error: any) {
     return { error: error.message };
   }
@@ -292,7 +316,7 @@ ipcMain.handle('get-spot-positions', async () => {
 
 ipcMain.handle('get-futures-positions', async () => {
   try {
-    const positions = await binanceService.getFuturesPositions();
+    const positions = await exchangeManager.getAllFuturesPositions();
     // 每次获取数据后更新菜单栏
     updateTrayTitle();
     return positions;
@@ -302,7 +326,7 @@ ipcMain.handle('get-futures-positions', async () => {
 });
 
 ipcMain.handle('has-credentials', async () => {
-  const hasCredentials = settingsManager.hasCredentials();
+  const hasCredentials = exchangeManager.hasAnyCredentials();
   // 如果有凭证，启动自动刷新
   if (hasCredentials) {
     startAutoRefresh();
@@ -363,4 +387,13 @@ ipcMain.handle('save-position-order', async (_, order: string[]) => {
 // 获取持仓顺序
 ipcMain.handle('get-position-order', async () => {
   return settingsManager.getPositionOrder();
+});
+
+// 获取合约账户信息
+ipcMain.handle('get-futures-account-info', async () => {
+  try {
+    return await exchangeManager.getAllAccountInfo();
+  } catch (error: any) {
+    return { error: error.message };
+  }
 });

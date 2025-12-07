@@ -189,7 +189,83 @@
       </div>
 
       <div v-else class="positions-list">
-        <div v-if="sortedPositions.length > 0">
+        <!-- 账户资产整体容器 -->
+        <div v-if="accountInfoList.length > 0 && !isEditMode" class="assets-wrapper">
+          <!-- 总资产卡片 - 新设计 -->
+          <div class="total-assets-card-new">
+            <div class="total-card-header">
+              <span class="total-card-label">总资产</span>
+              <Info :size="14" class="info-icon" />
+            </div>
+            <div class="total-card-amount">
+              {{ totalAssets.totalUnrealizedProfit >= 0 ? '+' : '' }}{{ formatNumber(totalAssets.totalMarginBalance, 2) }}
+              <span class="total-card-currency">USDT</span>
+            </div>
+            <div class="total-card-stats">
+              <div class="stat-item">
+                <span class="stat-label">未实现盈亏</span>
+                <span class="stat-value" :class="{
+                  'profit': totalAssets.totalUnrealizedProfit > 0,
+                  'loss': totalAssets.totalUnrealizedProfit < 0
+                }">
+                  {{ totalAssets.totalUnrealizedProfit >= 0 ? '+' : '' }}{{ formatNumber(totalAssets.totalUnrealizedProfit, 2) }} USDT
+                </span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">可用余额</span>
+                <span class="stat-value">
+                  +{{ formatNumber(totalAssets.availableBalance, 2) }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 各交易所资产卡片 - 新设计 -->
+          <div v-if="accountInfoList.length > 0" class="exchanges-grid">
+            <div
+              v-for="accountInfo in accountInfoList"
+              :key="accountInfo.exchange"
+              class="exchange-card-new"
+            >
+              <div class="exchange-card-top">
+                <div class="exchange-identity">
+                  <ExchangeLogo :exchange="accountInfo.exchange" size="medium" />
+                  <span class="exchange-card-name">{{ ExchangeNames[accountInfo.exchange] }}</span>
+                </div>
+              </div>
+              <div class="exchange-card-body">
+                <div class="exchange-stat">
+                  <span class="exchange-stat-label">总计</span>
+                  <span class="exchange-stat-value">
+                    +{{ formatNumber(accountInfo.totalMarginBalance, 2) }}
+                  </span>
+                </div>
+                <div class="exchange-stat">
+                  <span class="exchange-stat-label">可用余额</span>
+                  <span class="exchange-stat-value">
+                    +{{ formatNumber(accountInfo.availableBalance, 2) }}
+                  </span>
+                </div>
+                <div class="exchange-stat">
+                  <span class="exchange-stat-label">PNL</span>
+                  <span class="exchange-stat-value" :class="{
+                    'profit': accountInfo.totalUnrealizedProfit > 0,
+                    'loss': accountInfo.totalUnrealizedProfit < 0
+                  }">
+                    {{ accountInfo.totalUnrealizedProfit >= 0 ? '+' : '' }}{{ formatNumber(accountInfo.totalUnrealizedProfit, 2) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 持仓列表区域 -->
+        <div v-if="sortedPositions.length > 0" class="positions-section">
+          <div class="positions-section-header">
+            <span class="positions-section-title">持仓列表</span>
+            <span class="positions-count">{{ sortedPositions.length }}</span>
+          </div>
           <div
             v-for="(position, index) in sortedPositions"
             :key="position.symbol"
@@ -234,6 +310,7 @@
             <template v-else>
               <div class="card-header">
                 <div class="symbol-info">
+                  <ExchangeLogo :exchange="position.exchange" size="small" />
                   <span class="symbol-name">{{ formatSymbol(position.symbol) }}</span>
                   <span class="tag tag-leverage">{{ position.leverage }}x</span>
                   <span class="tag tag-side" :class="parseFloat(position.positionAmt) > 0 ? 'long' : 'short'">
@@ -303,8 +380,34 @@ import {
   Save,
   X
 } from 'lucide-vue-next';
+import ExchangeLogo from './components/ExchangeLogo.vue';
+
+// 交易所类型
+enum ExchangeType {
+  BINANCE = 'binance',
+  BYBIT = 'bybit',
+  OKX = 'okx',
+  HYPERLIQUID = 'hyperliquid',
+}
+
+// 交易所名称映射
+const ExchangeNames: Record<ExchangeType, string> = {
+  [ExchangeType.BINANCE]: '币安',
+  [ExchangeType.BYBIT]: 'Bybit',
+  [ExchangeType.OKX]: 'OKX',
+  [ExchangeType.HYPERLIQUID]: 'Hyperliquid',
+};
+
+// 交易所颜色标识
+const ExchangeColors: Record<ExchangeType, string> = {
+  [ExchangeType.BINANCE]: '#F3BA2F',
+  [ExchangeType.BYBIT]: '#F7A600',
+  [ExchangeType.OKX]: '#000000',
+  [ExchangeType.HYPERLIQUID]: '#00D4AA',
+};
 
 interface FuturesPosition {
+  exchange: ExchangeType;
   symbol: string;
   positionAmt: string;
   entryPrice: string;
@@ -313,6 +416,15 @@ interface FuturesPosition {
   marginType: string;
   isolatedMargin: string;
   leverage: string;
+}
+
+interface AccountInfo {
+  exchange: ExchangeType;
+  totalWalletBalance: number;
+  totalUnrealizedProfit: number;
+  totalMarginBalance: number;
+  availableBalance: number;
+  maxWithdrawAmount: number;
 }
 
 // State
@@ -327,6 +439,7 @@ const loading = ref(false);
 const error = ref('');
 const hasCredentials = ref(false);
 const futuresPositions = ref<FuturesPosition[]>([]);
+const accountInfoList = ref<AccountInfo[]>([]); // 账户信息列表（多个交易所）
 const customPositionOrder = ref<string[]>([]); // 用户自定义的持仓顺序（symbol数组）
 const showQuitConfirm = ref(false); // 显示退出确认对话框
 const isEditMode = ref(false); // 是否处于编辑模式
@@ -338,6 +451,26 @@ const totalPnL = computed(() => {
   return futuresPositions.value.reduce((sum, position) => {
     return sum + parseFloat(position.unRealizedProfit);
   }, 0);
+});
+
+// 计算所有交易所的总资产
+const totalAssets = computed(() => {
+  if (accountInfoList.value.length === 0) {
+    return {
+      totalMarginBalance: 0,
+      availableBalance: 0,
+      totalUnrealizedProfit: 0,
+    };
+  }
+
+  return accountInfoList.value.reduce(
+    (acc, account) => ({
+      totalMarginBalance: acc.totalMarginBalance + account.totalMarginBalance,
+      availableBalance: acc.availableBalance + account.availableBalance,
+      totalUnrealizedProfit: acc.totalUnrealizedProfit + account.totalUnrealizedProfit,
+    }),
+    { totalMarginBalance: 0, availableBalance: 0, totalUnrealizedProfit: 0 }
+  );
 });
 
 // 按自定义顺序排序的持仓列表
@@ -616,12 +749,23 @@ const fetchData = async () => {
   error.value = '';
 
   try {
-    const futuresData = await (window as any).electronAPI.getFuturesPositions();
+    // 并行获取持仓和账户信息
+    const [futuresData, accountData] = await Promise.all([
+      (window as any).electronAPI.getFuturesPositions(),
+      (window as any).electronAPI.getFuturesAccountInfo(),
+    ]);
 
     if (futuresData.error) {
       error.value = '合约数据获取失败: ' + futuresData.error;
     } else {
       futuresPositions.value = futuresData;
+    }
+
+    if (accountData.error) {
+      console.error('账户信息获取失败:', accountData.error);
+    } else {
+      // accountData 现在是一个数组
+      accountInfoList.value = Array.isArray(accountData) ? accountData : [];
     }
   } catch (err: any) {
     error.value = '数据获取失败: ' + err.message;
@@ -1310,7 +1454,224 @@ input:checked + .toggle-slider:before {
 .positions-list {
   flex: 1;
   overflow-y: auto;
-  padding: 14px;
+  padding: 12px;
+}
+
+/* ========== 账户信息区域 - 新设计 ========== */
+/* 资产整体容器 */
+.assets-wrapper {
+  background: linear-gradient(135deg, rgba(25, 30, 40, 0.95) 0%, rgba(15, 20, 30, 0.98) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.app:not(.dark-mode) .assets-wrapper {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(245, 247, 250, 0.98) 100%);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* 总资产卡片 - 新设计 */
+.total-assets-card-new {
+  background: transparent;
+  padding: 16px 0;
+  margin-bottom: 16px;
+  border: none;
+  box-shadow: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.app:not(.dark-mode) .total-assets-card-new {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.total-card-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.total-card-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  opacity: 0.7;
+}
+
+.info-icon {
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.total-card-amount {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'Roboto Mono', 'SF Mono', 'Monaco', 'Courier New', monospace;
+  margin-bottom: 16px;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+}
+
+.total-card-currency {
+  font-size: 18px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin-left: 8px;
+  opacity: 0.8;
+}
+
+.total-card-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+.stat-value {
+  font-size: 15px;
+  color: var(--text-primary);
+  font-family: 'Roboto Mono', 'SF Mono', 'Monaco', 'Courier New', monospace;
+  font-weight: 600;
+}
+
+.stat-value.profit {
+  color: var(--color-profit-text);
+}
+
+.stat-value.loss {
+  color: var(--color-loss-text);
+}
+
+/* 交易所卡片网格 */
+.exchanges-grid {
+  display: grid;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+/* 交易所卡片 - 新设计 */
+.exchange-card-new {
+  background: rgba(40, 45, 55, 0.5);
+  border-radius: 10px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  transition: all 0.2s ease;
+}
+
+.app:not(.dark-mode) .exchange-card-new {
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.exchange-card-new:hover {
+  background: rgba(50, 55, 65, 0.6);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.app:not(.dark-mode) .exchange-card-new:hover {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.exchange-card-top {
+  margin-bottom: 12px;
+}
+
+.exchange-identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.exchange-card-name {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.exchange-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.exchange-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.exchange-stat-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+.exchange-stat-value {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-family: 'Roboto Mono', 'SF Mono', 'Monaco', 'Courier New', monospace;
+  font-weight: 600;
+}
+
+.exchange-stat-value.profit {
+  color: var(--color-profit-text);
+}
+
+.exchange-stat-value.loss {
+  color: var(--color-loss-text);
+}
+
+
+/* ========== 持仓列表区域 ========== */
+.positions-section {
+  margin-top: 8px;
+}
+
+.positions-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 2px 12px 2px;
+}
+
+.positions-section-title {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.positions-count {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  background: var(--bg-tertiary);
+  padding: 3px 8px;
+  border-radius: 10px;
+  opacity: 0.8;
 }
 
 /* Edit Mode Indicator */
@@ -1320,9 +1681,9 @@ input:checked + .toggle-slider:before {
 
 .position-card {
   background: var(--card-bg);
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 12px;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
   border: 1px solid var(--border-color);
   border-left: 3px solid transparent;
   transition: all 0.2s;
@@ -1441,21 +1802,21 @@ input:checked + .toggle-slider:before {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .symbol-info {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 
 .symbol-name {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 /* 标签通用样式 */
@@ -1491,14 +1852,14 @@ input:checked + .toggle-slider:before {
 }
 
 .pnl-amount {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   display: block;
   margin-bottom: 2px;
 }
 
 .pnl-percent {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   opacity: 0.9;
 }
@@ -1520,23 +1881,23 @@ input:checked + .toggle-slider:before {
 .card-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1.2fr;
-  gap: 8px;
+  gap: 6px;
 }
 
 .data-item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .data-label {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary);
   font-weight: 400;
 }
 
 .data-value {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-primary);
   font-family: 'Roboto Mono', 'SF Mono', 'Monaco', 'Courier New', monospace;
   font-weight: 500;

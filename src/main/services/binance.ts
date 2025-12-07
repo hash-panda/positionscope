@@ -1,31 +1,22 @@
 import axios, { AxiosInstance } from 'axios';
 import * as crypto from 'crypto';
+import { logger } from '../utils/logger';
+import {
+  IExchangeService,
+  ExchangeType,
+  ExchangeCredentials,
+  Position,
+  AccountInfo,
+  SpotBalance,
+} from '../types/exchange';
 
-export interface SpotBalance {
-  asset: string;
-  free: string;
-  locked: string;
-  total: number;
-  usdValue?: number;
-}
-
-export interface FuturesPosition {
-  symbol: string;
-  positionAmt: string;
-  entryPrice: string;
-  markPrice: string;
-  unRealizedProfit: string;
-  marginType: string;
-  isolatedMargin: string;
-  leverage: string;
-}
-
-export class BinanceService {
+export class BinanceService implements IExchangeService {
   private apiKey: string = '';
   private apiSecret: string = '';
   private spotClient: AxiosInstance;
   private futuresClient: AxiosInstance;
   private proxyUrl: string = '';
+  private readonly exchangeType = ExchangeType.BINANCE;
 
   constructor() {
     // 初始创建不带代理的客户端
@@ -46,35 +37,53 @@ export class BinanceService {
   private addInterceptors() {
     this.futuresClient.interceptors.response.use(
       response => {
-        console.log('[BinanceService] Response received successfully');
+        logger.log('[BinanceService] Response received successfully');
         return response;
       },
       error => {
-        console.error('[BinanceService] Request failed');
+        logger.error('[BinanceService] Request failed');
         return Promise.reject(error);
       }
     );
 
     this.spotClient.interceptors.response.use(
       response => {
-        console.log('[BinanceService] Response received successfully');
+        logger.log('[BinanceService] Response received successfully');
         return response;
       },
       error => {
-        console.error('[BinanceService] Request failed');
+        logger.error('[BinanceService] Request failed');
         return Promise.reject(error);
       }
     );
   }
 
-  setCredentials(apiKey: string, apiSecret: string, proxyUrl?: string) {
-    this.apiKey = apiKey;
-    this.apiSecret = apiSecret;
-    console.log('[BinanceService] Credentials set - API Key:', apiKey.substring(0, 8) + '...');
+  getExchangeType(): ExchangeType {
+    return this.exchangeType;
+  }
 
-    // 设置代理
-    if (proxyUrl && proxyUrl.trim()) {
-      this.setProxy(proxyUrl.trim());
+  setCredentials(credentials: ExchangeCredentials): void;
+  setCredentials(apiKey: string, apiSecret: string, proxyUrl?: string): void;
+  setCredentials(credentialsOrApiKey: ExchangeCredentials | string, apiSecret?: string, proxyUrl?: string): void {
+    if (typeof credentialsOrApiKey === 'string') {
+      // 旧的调用方式（向后兼容）
+      this.apiKey = credentialsOrApiKey;
+      this.apiSecret = apiSecret || '';
+      logger.log('[BinanceService] Credentials set - API Key:', credentialsOrApiKey.substring(0, 8) + '...');
+
+      if (proxyUrl && proxyUrl.trim()) {
+        this.setProxy(proxyUrl.trim());
+      }
+    } else {
+      // 新的调用方式
+      const credentials = credentialsOrApiKey;
+      this.apiKey = credentials.apiKey;
+      this.apiSecret = credentials.apiSecret;
+      logger.log('[BinanceService] Credentials set - API Key:', credentials.apiKey.substring(0, 8) + '...');
+
+      if (credentials.proxyUrl && credentials.proxyUrl.trim()) {
+        this.setProxy(credentials.proxyUrl.trim());
+      }
     }
   }
 
@@ -83,7 +92,7 @@ export class BinanceService {
     let proxyConfig: any = false;
 
     if (proxyUrl) {
-      console.log('[BinanceService] Setting proxy:', proxyUrl);
+      logger.log('[BinanceService] Setting proxy:', proxyUrl);
       try {
         // 解析代理 URL
         const url = new URL(proxyUrl);
@@ -92,13 +101,13 @@ export class BinanceService {
           port: parseInt(url.port),
           protocol: url.protocol.replace(':', ''),
         };
-        console.log('[BinanceService] Proxy config:', proxyConfig);
+        logger.log('[BinanceService] Proxy config:', proxyConfig);
       } catch (error) {
-        console.error('[BinanceService] Invalid proxy URL:', error);
+        logger.error('[BinanceService] Invalid proxy URL:', error);
         return;
       }
     } else {
-      console.log('[BinanceService] No proxy configured');
+      logger.log('[BinanceService] No proxy configured');
     }
 
     // 重新创建客户端
@@ -134,14 +143,14 @@ export class BinanceService {
   }
 
   async getSpotBalances(): Promise<SpotBalance[]> {
-    console.log('[BinanceService] Getting spot balances...');
+    logger.log('[BinanceService] Getting spot balances...');
     const timestamp = Date.now();
     const params = { timestamp };
     const signature = this.sign(params);
 
-    console.log('[BinanceService] Request URL:', this.spotClient.defaults.baseURL + '/api/v3/account');
-    console.log('[BinanceService] Request params:', { ...params, signature: signature.substring(0, 10) + '...' });
-    console.log('[BinanceService] API Key:', this.apiKey.substring(0, 8) + '...');
+    logger.log('[BinanceService] Request URL:', this.spotClient.defaults.baseURL + '/api/v3/account');
+    logger.log('[BinanceService] Request params:', { ...params, signature: signature.substring(0, 10) + '...' });
+    logger.log('[BinanceService] API Key:', this.apiKey.substring(0, 8) + '...');
 
     try {
       const response = await this.spotClient.get('/api/v3/account', {
@@ -149,20 +158,21 @@ export class BinanceService {
         headers: { 'X-MBX-APIKEY': this.apiKey },
       });
 
-      console.log('[BinanceService] Spot balances response status:', response.status);
-      console.log('[BinanceService] Spot balances count:', response.data.balances?.length);
+      logger.log('[BinanceService] Spot balances response status:', response.status);
+      logger.log('[BinanceService] Spot balances count:', response.data.balances?.length);
 
       // 只返回余额大于 0 的资产
       const balances: SpotBalance[] = response.data.balances
         .filter((b: any) => parseFloat(b.free) > 0 || parseFloat(b.locked) > 0)
         .map((b: any) => ({
+          exchange: this.exchangeType,
           asset: b.asset,
           free: b.free,
           locked: b.locked,
           total: parseFloat(b.free) + parseFloat(b.locked),
         }));
 
-      console.log('[BinanceService] Filtered balances count:', balances.length);
+      logger.log('[BinanceService] Filtered balances count:', balances.length);
 
       // 获取价格用于计算 USD 价值
       if (balances.length > 0) {
@@ -171,11 +181,11 @@ export class BinanceService {
 
       return balances.sort((a, b) => (b.usdValue || 0) - (a.usdValue || 0));
     } catch (error: any) {
-      console.error('[BinanceService] Error getting spot balances:');
-      console.error('[BinanceService] Error message:', error.message);
-      console.error('[BinanceService] Error response:', error.response?.data);
-      console.error('[BinanceService] Error status:', error.response?.status);
-      console.error('[BinanceService] Error code:', error.code);
+      logger.error('[BinanceService] Error getting spot balances:');
+      logger.error('[BinanceService] Error message:', error.message);
+      logger.error('[BinanceService] Error response:', error.response?.data);
+      logger.error('[BinanceService] Error status:', error.response?.status);
+      logger.error('[BinanceService] Error code:', error.code);
       throw error;
     }
   }
@@ -200,19 +210,19 @@ export class BinanceService {
         }
       });
     } catch (error) {
-      console.error('Error fetching prices:', error);
+      logger.error('Error fetching prices:', error);
     }
   }
 
-  async getFuturesPositions(): Promise<FuturesPosition[]> {
-    console.log('[BinanceService] Getting futures positions...');
+  async getFuturesPositions(): Promise<Position[]> {
+    logger.log('[BinanceService] Getting futures positions...');
     const timestamp = Date.now();
     const params = { timestamp };
     const signature = this.sign(params);
 
-    console.log('[BinanceService] Request URL:', this.futuresClient.defaults.baseURL + '/fapi/v2/positionRisk');
-    console.log('[BinanceService] Request params:', { ...params, signature: signature.substring(0, 10) + '...' });
-    console.log('[BinanceService] API Key:', this.apiKey.substring(0, 8) + '...');
+    logger.log('[BinanceService] Request URL:', this.futuresClient.defaults.baseURL + '/fapi/v2/positionRisk');
+    logger.log('[BinanceService] Request params:', { ...params, signature: signature.substring(0, 10) + '...' });
+    logger.log('[BinanceService] API Key:', this.apiKey.substring(0, 8) + '...');
 
     try {
       const response = await this.futuresClient.get('/fapi/v2/positionRisk', {
@@ -220,34 +230,86 @@ export class BinanceService {
         headers: { 'X-MBX-APIKEY': this.apiKey },
       });
 
-      console.log('[BinanceService] Futures positions response status:', response.status);
-      console.log('[BinanceService] Futures positions count:', response.data?.length);
+      logger.log('[BinanceService] Futures positions response status:', response.status);
+      logger.log('[BinanceService] Futures positions count:', response.data?.length);
 
-      // 只返回有持仓的合约
-      const positions = response.data.filter((p: any) => parseFloat(p.positionAmt) !== 0);
-      console.log('[BinanceService] Active positions count:', positions.length);
+      // 只返回有持仓的合约，并添加交易所标识
+      const positions: Position[] = response.data
+        .filter((p: any) => parseFloat(p.positionAmt) !== 0)
+        .map((p: any) => ({
+          exchange: this.exchangeType,
+          symbol: p.symbol,
+          positionAmt: p.positionAmt,
+          entryPrice: p.entryPrice,
+          markPrice: p.markPrice,
+          unRealizedProfit: p.unRealizedProfit,
+          marginType: p.marginType,
+          isolatedMargin: p.isolatedMargin,
+          leverage: p.leverage,
+        }));
+
+      logger.log('[BinanceService] Active positions count:', positions.length);
 
       return positions;
     } catch (error: any) {
-      console.error('[BinanceService] Error getting futures positions:');
-      console.error('[BinanceService] Error message:', error.message);
-      console.error('[BinanceService] Error response:', error.response?.data);
-      console.error('[BinanceService] Error status:', error.response?.status);
-      console.error('[BinanceService] Error code:', error.code);
+      logger.error('[BinanceService] Error getting futures positions:');
+      logger.error('[BinanceService] Error message:', error.message);
+      logger.error('[BinanceService] Error response:', error.response?.data);
+      logger.error('[BinanceService] Error status:', error.response?.status);
+      logger.error('[BinanceService] Error code:', error.code);
       throw error;
     }
   }
 
   async getAccountBalance(): Promise<any> {
+    logger.log('[BinanceService] Getting account balance...');
     const timestamp = Date.now();
     const params = { timestamp };
     const signature = this.sign(params);
 
-    const response = await this.futuresClient.get('/fapi/v2/balance', {
-      params: { ...params, signature },
-      headers: { 'X-MBX-APIKEY': this.apiKey },
-    });
+    try {
+      const response = await this.futuresClient.get('/fapi/v2/balance', {
+        params: { ...params, signature },
+        headers: { 'X-MBX-APIKEY': this.apiKey },
+      });
 
-    return response.data;
+      logger.log('[BinanceService] Account balance retrieved successfully');
+      return response.data;
+    } catch (error: any) {
+      logger.error('[BinanceService] Error getting account balance:', error.message);
+      throw error;
+    }
+  }
+
+  // 获取合约账户信息（包括总余额、可用余额、未实现盈亏等）
+  async getFuturesAccountInfo(): Promise<AccountInfo> {
+    logger.log('[BinanceService] Getting futures account info...');
+    const timestamp = Date.now();
+    const params = { timestamp };
+    const signature = this.sign(params);
+
+    try {
+      const response = await this.futuresClient.get('/fapi/v2/account', {
+        params: { ...params, signature },
+        headers: { 'X-MBX-APIKEY': this.apiKey },
+      });
+
+      logger.log('[BinanceService] Futures account info retrieved successfully');
+
+      // 提取关键信息
+      const accountInfo: AccountInfo = {
+        exchange: this.exchangeType,
+        totalWalletBalance: parseFloat(response.data.totalWalletBalance || '0'),
+        totalUnrealizedProfit: parseFloat(response.data.totalUnrealizedProfit || '0'),
+        totalMarginBalance: parseFloat(response.data.totalMarginBalance || '0'),
+        availableBalance: parseFloat(response.data.availableBalance || '0'),
+        maxWithdrawAmount: parseFloat(response.data.maxWithdrawAmount || '0'),
+      };
+
+      return accountInfo;
+    } catch (error: any) {
+      logger.error('[BinanceService] Error getting futures account info:', error.message);
+      throw error;
+    }
   }
 }
