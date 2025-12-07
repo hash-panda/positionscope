@@ -13,6 +13,12 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
+// 直接import SVG文件，让Vite处理路径
+import binanceLogo from '../../public/logos/binance.svg';
+import bybitLogo from '../../public/logos/bybit.svg';
+import okxLogo from '../../public/logos/okx.svg';
+import hyperliquidLogo from '../../public/logos/hyperliquid.svg';
+
 interface Props {
   exchange: 'binance' | 'bybit' | 'okx' | 'hyperliquid';
   size?: 'small' | 'medium' | 'large';
@@ -29,11 +35,17 @@ const exchangeNames: Record<string, string> = {
   hyperliquid: 'Hyperliquid',
 };
 
+const logoMap: Record<string, string> = {
+  binance: binanceLogo,
+  bybit: bybitLogo,
+  okx: okxLogo,
+  hyperliquid: hyperliquidLogo,
+};
+
 const exchangeName = computed(() => exchangeNames[props.exchange] || props.exchange);
 
 const logoUrl = computed(() => {
-  // Vite会自动处理public目录中的文件
-  return `/logos/${props.exchange}.svg`;
+  return logoMap[props.exchange] || binanceLogo;
 });
 
 const sizeClass = computed(() => `size-${props.size}`);

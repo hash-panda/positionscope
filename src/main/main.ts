@@ -47,6 +47,15 @@ function createWindow() {
   console.log('NODE_ENV:', process.env.NODE_ENV);
   console.log('app.isPackaged:', app.isPackaged);
 
+  // 窗口准备好显示时应用透明度
+  window.once('ready-to-show', () => {
+    if (window && settingsManager) {
+      const opacity = settingsManager.getWindowOpacity();
+      window.setOpacity(opacity);
+      console.log('[Window] Initial opacity set to:', opacity);
+    }
+  });
+
   if (isDev) {
     window.loadURL('http://localhost:3000');
     // 开发模式下打开 DevTools
@@ -58,8 +67,6 @@ function createWindow() {
     });
   } else {
     window.loadFile(path.join(__dirname, '../renderer/index.html'));
-    // 临时：在生产模式下也打开 DevTools 以便调试
-    window.webContents.openDevTools({ mode: 'detach' });
     window.show();
   }
 
@@ -407,4 +414,42 @@ ipcMain.handle('save-hide-amounts', async (_, hide: boolean) => {
 // 获取隐藏金额设置
 ipcMain.handle('get-hide-amounts', async () => {
   return settingsManager.getHideAmounts();
+});
+
+// 保存调试模式设置
+ipcMain.handle('save-debug-mode', async (_, debug: boolean) => {
+  settingsManager.setDebugMode(debug);
+
+  // 根据设置打开或关闭 DevTools
+  if (window) {
+    if (debug) {
+      window.webContents.openDevTools({ mode: 'detach' });
+    } else {
+      window.webContents.closeDevTools();
+    }
+  }
+
+  return { success: true };
+});
+
+// 获取调试模式设置
+ipcMain.handle('get-debug-mode', async () => {
+  return settingsManager.getDebugMode();
+});
+
+// 保存窗口透明度设置
+ipcMain.handle('save-window-opacity', async (_, opacity: number) => {
+  settingsManager.setWindowOpacity(opacity);
+
+  // 应用透明度到窗口
+  if (window) {
+    window.setOpacity(opacity);
+  }
+
+  return { success: true };
+});
+
+// 获取窗口透明度设置
+ipcMain.handle('get-window-opacity', async () => {
+  return settingsManager.getWindowOpacity();
 });

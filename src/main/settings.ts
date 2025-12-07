@@ -11,6 +11,8 @@ interface AppSettings {
   theme?: 'light' | 'dark' | 'auto';
   positionOrder?: string[]; // 用户自定义的持仓顺序
   hideAmounts?: boolean; // 是否隐藏金额
+  debugMode?: boolean; // 是否开启调试模式
+  windowOpacity?: number; // 窗口透明度 (0.1 - 1.0)
 }
 
 export class SettingsManager {
@@ -118,6 +120,28 @@ export class SettingsManager {
 
   getHideAmounts(): boolean {
     return this.settings.hideAmounts || false;
+  }
+
+  // 调试模式设置
+  setDebugMode(debug: boolean) {
+    this.settings.debugMode = debug;
+    this.saveSettings();
+  }
+
+  getDebugMode(): boolean {
+    return this.settings.debugMode || false;
+  }
+
+  // 窗口透明度设置
+  setWindowOpacity(opacity: number) {
+    // 限制范围在 0.3 - 1.0 之间
+    const clampedOpacity = Math.max(0.3, Math.min(1.0, opacity));
+    this.settings.windowOpacity = clampedOpacity;
+    this.saveSettings();
+  }
+
+  getWindowOpacity(): number {
+    return this.settings.windowOpacity || 1.0;
   }
 
   // 清除所有设置

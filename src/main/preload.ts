@@ -45,4 +45,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   getHideAmounts: () =>
     ipcRenderer.invoke('get-hide-amounts'),
+
+  saveDebugMode: (debug: boolean) =>
+    ipcRenderer.invoke('save-debug-mode', debug),
+
+  getDebugMode: () =>
+    ipcRenderer.invoke('get-debug-mode'),
+
+  saveWindowOpacity: (opacity: number) =>
+    ipcRenderer.invoke('save-window-opacity', opacity),
+
+  getWindowOpacity: () =>
+    ipcRenderer.invoke('get-window-opacity'),
 });

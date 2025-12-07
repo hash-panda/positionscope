@@ -46,6 +46,44 @@
               <span class="toggle-slider"></span>
             </label>
           </div>
+          <div class="setting-item column">
+            <div class="setting-label-row">
+              <label class="input-label">窗口透明度</label>
+              <span class="opacity-value">{{ Math.round(windowOpacity * 100) }}%</span>
+            </div>
+            <input
+              type="range"
+              v-model.number="windowOpacity"
+              @input="updateWindowOpacity"
+              min="0.3"
+              max="1.0"
+              step="0.05"
+              class="opacity-slider"
+            />
+          </div>
+          <div class="setting-notice">
+            <Info :size="16" class="notice-icon-svg" />
+            <span>调整窗口透明度</span>
+          </div>
+        </div>
+
+        <!-- Debug Mode -->
+        <div class="settings-section">
+          <div class="section-header">开发者</div>
+          <div class="setting-item">
+            <div class="setting-label">
+              <Settings :size="18" class="setting-icon-svg" />
+              <span>调试模式</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" v-model="debugMode" @change="toggleDebugMode">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="setting-notice">
+            <Info :size="16" class="notice-icon-svg" />
+            <span>开启后将显示开发者工具（DevTools）</span>
+          </div>
         </div>
 
         <!-- API Settings -->
@@ -456,6 +494,8 @@ const showQuitConfirm = ref(false); // 显示退出确认对话框
 const isEditMode = ref(false); // 是否处于编辑模式
 const editingOrder = ref<string[]>([]); // 编辑中的临时顺序
 const hideAmounts = ref(false); // 是否隐藏金额数字
+const debugMode = ref(false); // 是否开启调试模式
+const windowOpacity = ref(1.0); // 窗口透明度
 let panelRefreshInterval: NodeJS.Timeout | null = null;
 
 // Computed
@@ -645,6 +685,20 @@ const toggleTheme = async () => {
 
   if ((window as any).electronAPI) {
     await (window as any).electronAPI.saveTheme(theme);
+  }
+};
+
+// Debug Mode
+const toggleDebugMode = async () => {
+  if ((window as any).electronAPI) {
+    await (window as any).electronAPI.saveDebugMode(debugMode.value);
+  }
+};
+
+// Window Opacity
+const updateWindowOpacity = async () => {
+  if ((window as any).electronAPI) {
+    await (window as any).electronAPI.saveWindowOpacity(windowOpacity.value);
   }
 };
 
@@ -859,6 +913,24 @@ onMounted(async () => {
     console.log('[Hide Amounts] Loaded:', savedHideAmounts);
   } catch (err) {
     console.error('Failed to load hide amounts setting:', err);
+  }
+
+  // 加载调试模式设置
+  try {
+    const savedDebugMode = await (window as any).electronAPI.getDebugMode();
+    debugMode.value = savedDebugMode;
+    console.log('[Debug Mode] Loaded:', savedDebugMode);
+  } catch (err) {
+    console.error('Failed to load debug mode setting:', err);
+  }
+
+  // 加载窗口透明度设置
+  try {
+    const savedOpacity = await (window as any).electronAPI.getWindowOpacity();
+    windowOpacity.value = savedOpacity;
+    console.log('[Window Opacity] Loaded:', savedOpacity);
+  } catch (err) {
+    console.error('Failed to load window opacity setting:', err);
   }
 
   // 加载持仓顺序
@@ -1224,6 +1296,59 @@ input:checked + .toggle-slider {
 
 input:checked + .toggle-slider:before {
   transform: translateX(20px);
+}
+
+.setting-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.opacity-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-blue);
+}
+
+.opacity-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-tertiary);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.opacity-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.opacity-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+.opacity-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.opacity-slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
 }
 
 .setting-notice {
