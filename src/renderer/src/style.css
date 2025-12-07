@@ -92,30 +92,8 @@ body {
   cursor: not-allowed;
 }
 
-.settings-btn,
-.save-btn {
-  background: #21262d;
-  border: 1px solid #30363d;
-  color: #c9d1d9;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s;
-}
-
 .settings-btn:hover {
   background: #30363d;
-}
-
-.save-btn {
-  background: #238636;
-  border-color: #238636;
-  color: #fff;
-}
-
-.save-btn:hover {
-  background: #2ea043;
 }
 
 .position-card {

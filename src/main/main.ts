@@ -1,10 +1,15 @@
 import { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage } from 'electron';
 import * as path from 'path';
-import { BinanceService } from './services/binance';
+import { BinanceService, FuturesPosition } from './services/binance';
+import { SettingsManager } from './settings';
 
 let tray: Tray | null = null;
 let window: BrowserWindow | null = null;
 const binanceService = new BinanceService();
+let settingsManager: SettingsManager;
+let refreshInterval: NodeJS.Timeout | null = null;
+let maxDisplayCount: number = 2; // 菜单栏最多显示的持仓数（默认2个）
+let refreshIntervalSeconds: number = 5; // 刷新间隔（秒），默认5秒
 
 function createWindow() {
   // 判断是否为开发模式
@@ -39,6 +44,9 @@ function createWindow() {
     });
   } else {
     window.loadFile(path.join(__dirname, '../renderer/index.html'));
+    // 临时：在生产模式下也打开 DevTools 以便调试
+    window.webContents.openDevTools({ mode: 'detach' });
+    window.show();
   }
 
   // 开发模式下不自动隐藏窗口，方便调试
@@ -51,15 +59,166 @@ function createWindow() {
   }
 }
 
+// 格式化价格 - 动态小数位
+function formatPrice(price: number): string {
+  if (price >= 1000) return price.toFixed(0);      // 大于1000: 整数
+  if (price >= 100) return price.toFixed(1);       // 100-1000: 1位小数
+  if (price >= 1) return price.toFixed(2);         // 1-100: 2位小数
+  if (price >= 0.01) return price.toFixed(4);      // 0.01-1: 4位小数
+  return price.toFixed(6);                          // 小于0.01: 6位小数
+}
+
+// 格式化持仓数据（用于绘制）
+interface PositionDisplayData {
+  symbol: string;
+  price: string;
+  pnl: number;
+  pnlText: string;
+  percentText: string;
+  isProfit: boolean;
+}
+
+function formatPositionData(position: FuturesPosition): PositionDisplayData {
+  const symbol = position.symbol.replace('USDT', '').replace('BUSD', '');
+  const price = parseFloat(position.markPrice);
+  const pnl = parseFloat(position.unRealizedProfit);
+  const entry = parseFloat(position.entryPrice);
+  const posAmt = parseFloat(position.positionAmt);
+
+  // 计算收益率
+  const pnlPercent = posAmt > 0
+    ? ((price - entry) / entry) * 100
+    : ((entry - price) / entry) * 100;
+
+  const sign = pnl >= 0 ? '+' : '';
+  const isProfit = pnl >= 0;
+
+  return {
+    symbol,
+    price: formatPrice(price),
+    pnl,
+    pnlText: `${sign}${pnl.toFixed(0)}`,
+    percentText: `${sign}${pnlPercent.toFixed(1)}%`,
+    isProfit
+  };
+}
+
+// 文字模式：格式化持仓为纯文本（无颜色）
+function formatPositionsAsText(positions: PositionDisplayData[]): string {
+  const textParts: string[] = [];
+  positions.forEach(pos => {
+    textParts.push(`${pos.symbol} ${pos.price} ${pos.pnlText} ${pos.percentText}`);
+  });
+  return textParts.join(' | ');
+}
+
+// 更新菜单栏显示
+async function updateTrayTitle() {
+  if (!tray || !settingsManager.hasCredentials()) {
+    if (tray) {
+      tray.setTitle('--');
+      console.log('[Tray] Set title to: -- (no credentials)');
+    }
+    return;
+  }
+
+  try {
+    const positions = await binanceService.getFuturesPositions();
+
+    if (!positions || positions.length === 0) {
+      tray.setTitle('无持仓');
+      console.log('[Tray] Set title to: 无持仓 (no positions)');
+      return;
+    }
+
+    // 过滤出有持仓的合约
+    const activePositions = positions.filter((p: FuturesPosition) => parseFloat(p.positionAmt) !== 0);
+
+    if (activePositions.length === 0) {
+      tray.setTitle('无持仓');
+      console.log('[Tray] Set title to: 无持仓 (no active positions)');
+      return;
+    }
+
+    // 获取用户自定义的顺序
+    const customOrder = settingsManager.getPositionOrder();
+    let sortedPositions: FuturesPosition[] = [];
+
+    if (customOrder.length > 0) {
+      // 使用自定义顺序
+      const symbolMap = new Map<string, FuturesPosition>();
+      activePositions.forEach(p => symbolMap.set(p.symbol, p));
+
+      // 按自定义顺序添加
+      customOrder.forEach(symbol => {
+        const pos = symbolMap.get(symbol);
+        if (pos) {
+          sortedPositions.push(pos);
+          symbolMap.delete(symbol);
+        }
+      });
+
+      // 添加新的持仓（不在自定义顺序中的）
+      symbolMap.forEach(pos => sortedPositions.push(pos));
+    } else {
+      // 没有自定义顺序，按收益绝对值排序
+      sortedPositions = activePositions.sort((a: FuturesPosition, b: FuturesPosition) => {
+        return Math.abs(parseFloat(b.unRealizedProfit)) - Math.abs(parseFloat(a.unRealizedProfit));
+      });
+    }
+
+    // 取前N个显示
+    const displayPositions = sortedPositions.slice(0, maxDisplayCount);
+
+    // 格式化为显示数据
+    const displayData = displayPositions.map((p: FuturesPosition) => formatPositionData(p));
+
+    // 使用文字模式（纯文本，无颜色）
+    const titleText = formatPositionsAsText(displayData);
+    tray.setTitle(titleText);
+    console.log('[Tray] Updated with text for', displayData.length, 'positions');
+  } catch (error) {
+    console.error('[Main] Error updating tray:', error);
+    tray.setTitle('错误');
+  }
+}
+
+// 启动定时刷新
+function startAutoRefresh() {
+  // 立即更新一次
+  updateTrayTitle();
+
+  // 根据设置的刷新间隔刷新
+  if (refreshInterval) {
+    clearInterval(refreshInterval);
+  }
+  refreshInterval = setInterval(() => {
+    updateTrayTitle();
+  }, refreshIntervalSeconds * 1000); // 转换为毫秒
+
+  console.log(`[Main] Auto refresh started with interval: ${refreshIntervalSeconds}s`);
+}
+
+// 停止定时刷新
+function stopAutoRefresh() {
+  if (refreshInterval) {
+    clearInterval(refreshInterval);
+    refreshInterval = null;
+  }
+}
+
 function createTray() {
-  // 创建一个简单的图标（可以后续替换为实际图标）
-  const icon = nativeImage.createFromDataURL(
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAAdgAAAHYBTnsmCAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAFJSURBVDiNpdM9S8NAGAfwX5pqW7Sg4KR0cHBycnRxcBIXQRBBBEEQBD+Ai+Dg4OYgODk5OOgi+AHcRBcHQRDBVxQUi1J8qbZp0+RyuVwuuYuTD5S73P+55+45gP8sNptNwrZtTw4A0+k0Go0GKpUKarUaqtUqNE1Dp9OB4ziYz+dIp9NYLFZ4X/3w+/1otVqoVCooFAqQZRn5fB7JZBKxWAzhcBiKoqDZbELTNBiGAdu28S1YFMVP4XQ6jVAohGg0ilgshkQigXQ6jWQyCUmSEAwGoaoqFovFB3hnwGw2w3a7xWazwXq9xmq1wmq1wnK5hGEYWC6X7/d+g90J/H4/AoEAJElCMBiEKIoQBAGCIEAURQiCAFEU3/d+g90JdF2HrutYLpfQdR2maf4IbNuGZVkwDAO6rn+A3Qk0TYNlWTBNE5Zl/Qg+/h9/AtBHj+r3pKPrAAAAAElFTkSuQmCC'
-  );
+  // 文字模式：使用空图标，只显示文字
+  // 创建一个小的透明图标，让菜单栏只显示文字
+  const icon = nativeImage.createEmpty();
 
   tray = new Tray(icon);
-  tray.setToolTip('Binance Positions');
+  tray.setToolTip('Binance 合约持仓');
+  tray.setTitle('--'); // 初始显示
 
+  console.log('[Tray] Created with text-only mode (no icon)');
+
+  // 点击托盘图标显示/隐藏窗口
   tray.on('click', () => {
     if (window) {
       if (window.isVisible()) {
@@ -74,18 +233,39 @@ function createTray() {
     }
   });
 
-  const contextMenu = Menu.buildFromTemplate([
-    { label: '刷新', click: () => window?.webContents.send('refresh-data') },
-    { type: 'separator' },
-    { label: '退出', click: () => app.quit() },
-  ]);
-
-  tray.setContextMenu(contextMenu);
+  // 不设置右键菜单，避免遮挡显示
 }
 
 app.whenReady().then(() => {
+  // 设置应用名称，方便在系统设置中识别
+  app.setName('Binance Menubar');
+
+  // macOS 上隐藏 Dock 图标，让应用只在菜单栏显示
+  // 这样系统会将应用识别为菜单栏应用
+  if (process.platform === 'darwin') {
+    app.dock.hide();
+  }
+
+  // 初始化设置管理器
+  settingsManager = new SettingsManager();
+
+  // 加载保存的设置
+  const credentials = settingsManager.getCredentials();
+  if (credentials) {
+    binanceService.setCredentials(credentials.apiKey, credentials.apiSecret, credentials.proxyUrl);
+  }
+
+  const displaySettings = settingsManager.getDisplaySettings();
+  maxDisplayCount = displaySettings.maxDisplayCount;
+  refreshIntervalSeconds = displaySettings.refreshInterval;
+
   createTray();
   createWindow();
+
+  // 如果有凭证，启动自动刷新
+  if (credentials) {
+    startAutoRefresh();
+  }
 });
 
 app.on('window-all-closed', (e: Event) => {
@@ -93,8 +273,12 @@ app.on('window-all-closed', (e: Event) => {
 });
 
 // IPC handlers
-ipcMain.handle('save-api-keys', async (_, apiKey: string, apiSecret: string) => {
-  binanceService.setCredentials(apiKey, apiSecret);
+ipcMain.handle('save-api-keys', async (_, apiKey: string, apiSecret: string, proxyUrl?: string) => {
+  binanceService.setCredentials(apiKey, apiSecret, proxyUrl);
+  // 保存到持久化存储
+  settingsManager.setCredentials(apiKey, apiSecret, proxyUrl);
+  // 启动自动刷新
+  startAutoRefresh();
   return { success: true };
 });
 
@@ -108,12 +292,75 @@ ipcMain.handle('get-spot-positions', async () => {
 
 ipcMain.handle('get-futures-positions', async () => {
   try {
-    return await binanceService.getFuturesPositions();
+    const positions = await binanceService.getFuturesPositions();
+    // 每次获取数据后更新菜单栏
+    updateTrayTitle();
+    return positions;
   } catch (error: any) {
     return { error: error.message };
   }
 });
 
 ipcMain.handle('has-credentials', async () => {
-  return binanceService.hasCredentials();
+  const hasCredentials = settingsManager.hasCredentials();
+  // 如果有凭证，启动自动刷新
+  if (hasCredentials) {
+    startAutoRefresh();
+  }
+  return hasCredentials;
+});
+
+// 保存显示设置
+ipcMain.handle('save-display-settings', async (_, settings: {
+  maxDisplayCount: number,
+  refreshInterval: number
+}) => {
+  maxDisplayCount = settings.maxDisplayCount;
+  refreshIntervalSeconds = settings.refreshInterval;
+
+  // 保存到持久化存储
+  settingsManager.setDisplaySettings(settings.maxDisplayCount, settings.refreshInterval);
+
+  // 更新显示
+  updateTrayTitle();
+
+  // 重启自动刷新以应用新的刷新间隔
+  if (settingsManager.hasCredentials()) {
+    startAutoRefresh();
+  }
+
+  return { success: true };
+});
+
+// 获取显示设置
+ipcMain.handle('get-display-settings', async () => {
+  return settingsManager.getDisplaySettings();
+});
+
+// 保存主题设置
+ipcMain.handle('save-theme', async (_, theme: 'light' | 'dark' | 'auto') => {
+  settingsManager.setTheme(theme);
+});
+
+// 获取主题设置
+ipcMain.handle('get-theme', async () => {
+  return settingsManager.getTheme();
+});
+
+// 退出应用
+ipcMain.handle('quit-app', async () => {
+  app.quit();
+});
+
+// 保存持仓顺序
+ipcMain.handle('save-position-order', async (_, order: string[]) => {
+  settingsManager.setPositionOrder(order);
+  // 更新菜单栏显示以应用新顺序
+  updateTrayTitle();
+  return { success: true };
+});
+
+// 获取持仓顺序
+ipcMain.handle('get-position-order', async () => {
+  return settingsManager.getPositionOrder();
 });

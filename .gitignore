@@ -27,6 +27,7 @@ dist-ssr
 # Build output
 dist/
 build/
+release/
 
 # Environment variables
 .env
@@ -35,3 +36,26 @@ build/
 
 # macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+
+# Electron
+out/
+
+# TypeScript compiled files
+src/main/*.js
+src/main/*.d.ts
+src/preload/*.js
+src/preload/*.d.ts
+
+# Local settings and test files
+.claude/settings.local.json
+test-*.js
+test-*.ts
+
+# Assets (temporary/local files)
+assets/
+
+# pnpm
+pnpm-lock.yaml
+pnpm-workspace.yaml

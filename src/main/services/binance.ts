@@ -25,41 +25,25 @@ export class BinanceService {
   private apiSecret: string = '';
   private spotClient: AxiosInstance;
   private futuresClient: AxiosInstance;
+  private proxyUrl: string = '';
 
   constructor() {
-    // 检查是否设置了代理
-    const proxyUrl = process.env.HTTP_PROXY || process.env.HTTPS_PROXY || process.env.http_proxy || process.env.https_proxy;
-
-    let proxyConfig: any = false;
-    if (proxyUrl) {
-      console.log('[BinanceService] Using proxy:', proxyUrl);
-      // 解析代理 URL
-      const url = new URL(proxyUrl);
-      proxyConfig = {
-        host: url.hostname,
-        port: parseInt(url.port),
-        protocol: url.protocol.replace(':', ''),
-      };
-    } else {
-      console.log('[BinanceService] No proxy configured. If you experience connection issues, set HTTP_PROXY environment variable.');
-    }
-
-    const clientConfig = {
-      timeout: 30000, // 增加到 30 秒
-      proxy: proxyConfig, // 正确设置代理配置
-    };
-
+    // 初始创建不带代理的客户端
     this.spotClient = axios.create({
-      ...clientConfig,
       baseURL: 'https://api.binance.com',
+      timeout: 30000,
     });
 
     this.futuresClient = axios.create({
-      ...clientConfig,
       baseURL: 'https://fapi.binance.com',
+      timeout: 30000,
     });
 
-    // 添加响应拦截器用于日志
+    // 初始添加拦截器
+    this.addInterceptors();
+  }
+
+  private addInterceptors() {
     this.futuresClient.interceptors.response.use(
       response => {
         console.log('[BinanceService] Response received successfully');
@@ -83,10 +67,55 @@ export class BinanceService {
     );
   }
 
-  setCredentials(apiKey: string, apiSecret: string) {
+  setCredentials(apiKey: string, apiSecret: string, proxyUrl?: string) {
     this.apiKey = apiKey;
     this.apiSecret = apiSecret;
     console.log('[BinanceService] Credentials set - API Key:', apiKey.substring(0, 8) + '...');
+
+    // 设置代理
+    if (proxyUrl && proxyUrl.trim()) {
+      this.setProxy(proxyUrl.trim());
+    }
+  }
+
+  setProxy(proxyUrl: string) {
+    this.proxyUrl = proxyUrl;
+    let proxyConfig: any = false;
+
+    if (proxyUrl) {
+      console.log('[BinanceService] Setting proxy:', proxyUrl);
+      try {
+        // 解析代理 URL
+        const url = new URL(proxyUrl);
+        proxyConfig = {
+          host: url.hostname,
+          port: parseInt(url.port),
+          protocol: url.protocol.replace(':', ''),
+        };
+        console.log('[BinanceService] Proxy config:', proxyConfig);
+      } catch (error) {
+        console.error('[BinanceService] Invalid proxy URL:', error);
+        return;
+      }
+    } else {
+      console.log('[BinanceService] No proxy configured');
+    }
+
+    // 重新创建客户端
+    this.spotClient = axios.create({
+      baseURL: 'https://api.binance.com',
+      timeout: 30000,
+      proxy: proxyConfig,
+    });
+
+    this.futuresClient = axios.create({
+      baseURL: 'https://fapi.binance.com',
+      timeout: 30000,
+      proxy: proxyConfig,
+    });
+
+    // 重新添加拦截器
+    this.addInterceptors();
   }
 
   hasCredentials(): boolean {
