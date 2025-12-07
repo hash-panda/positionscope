@@ -31,7 +31,7 @@ function createWindow() {
   const isDev = !app.isPackaged;
 
   window = new BrowserWindow({
-    width: 400,
+    width: 480,
     height: 600,
     show: isDev, // 开发模式下默认显示窗口
     frame: false,
@@ -237,7 +237,7 @@ function createTray() {
         window.hide();
       } else {
         const bounds = tray!.getBounds();
-        const x = Math.round(bounds.x + bounds.width / 2 - 200);
+        const x = Math.round(bounds.x + bounds.width / 2 - 240);
         const y = Math.round(bounds.y + bounds.height);
         window.setPosition(x, y);
         window.show();
@@ -396,4 +396,15 @@ ipcMain.handle('get-futures-account-info', async () => {
   } catch (error: any) {
     return { error: error.message };
   }
+});
+
+// 保存隐藏金额设置
+ipcMain.handle('save-hide-amounts', async (_, hide: boolean) => {
+  settingsManager.setHideAmounts(hide);
+  return { success: true };
+});
+
+// 获取隐藏金额设置
+ipcMain.handle('get-hide-amounts', async () => {
+  return settingsManager.getHideAmounts();
 });

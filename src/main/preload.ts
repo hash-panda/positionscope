@@ -39,4 +39,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   getFuturesAccountInfo: () =>
     ipcRenderer.invoke('get-futures-account-info'),
+
+  saveHideAmounts: (hide: boolean) =>
+    ipcRenderer.invoke('save-hide-amounts', hide),
+
+  getHideAmounts: () =>
+    ipcRenderer.invoke('get-hide-amounts'),
 });

@@ -10,6 +10,7 @@ interface AppSettings {
   refreshInterval?: number;
   theme?: 'light' | 'dark' | 'auto';
   positionOrder?: string[]; // 用户自定义的持仓顺序
+  hideAmounts?: boolean; // 是否隐藏金额
 }
 
 export class SettingsManager {
@@ -107,6 +108,16 @@ export class SettingsManager {
 
   getPositionOrder(): string[] {
     return this.settings.positionOrder || [];
+  }
+
+  // 隐藏金额设置
+  setHideAmounts(hide: boolean) {
+    this.settings.hideAmounts = hide;
+    this.saveSettings();
+  }
+
+  getHideAmounts(): boolean {
+    return this.settings.hideAmounts || false;
   }
 
   // 清除所有设置

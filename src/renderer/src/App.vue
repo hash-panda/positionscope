@@ -134,14 +134,14 @@
     <div v-else class="main-panel">
       <div class="main-header">
         <div class="header-left">
-          <h1 class="app-title">合约持仓</h1>
+          <h1 class="app-title">持仓盈亏</h1>
           <span
             :class="[
               'total-pnl',
               totalPnL > 0 ? 'profit' : totalPnL < 0 ? 'loss' : 'neutral'
             ]"
           >
-            {{ totalPnL >= 0 ? '+' : '' }}{{ formatNumber(totalPnL, 2) }} USDT
+            {{ maskAmount((totalPnL >= 0 ? '+' : '') + formatNumber(totalPnL, 2) + ' USDT') }}
           </span>
         </div>
         <div class="header-actions">
@@ -194,11 +194,20 @@
           <!-- 总资产卡片 - 新设计 -->
           <div class="total-assets-card-new">
             <div class="total-card-header">
+              <ExchangeLogo
+                v-if="accountInfoList.length === 1"
+                :exchange="accountInfoList[0].exchange"
+                size="small"
+                class="total-card-exchange-logo"
+              />
               <span class="total-card-label">总资产</span>
-              <Info :size="14" class="info-icon" />
+              <button class="toggle-visibility-btn" @click="toggleAmountVisibility" title="隐藏/显示金额">
+                <Eye v-if="!hideAmounts" :size="14" />
+                <EyeOff v-else :size="14" />
+              </button>
             </div>
             <div class="total-card-amount">
-              {{ totalAssets.totalUnrealizedProfit >= 0 ? '+' : '' }}{{ formatNumber(totalAssets.totalMarginBalance, 2) }}
+              {{ maskAmount((totalAssets.totalUnrealizedProfit >= 0 ? '+' : '') + formatNumber(totalAssets.totalMarginBalance, 2)) }}
               <span class="total-card-currency">USDT</span>
             </div>
             <div class="total-card-stats">
@@ -208,20 +217,20 @@
                   'profit': totalAssets.totalUnrealizedProfit > 0,
                   'loss': totalAssets.totalUnrealizedProfit < 0
                 }">
-                  {{ totalAssets.totalUnrealizedProfit >= 0 ? '+' : '' }}{{ formatNumber(totalAssets.totalUnrealizedProfit, 2) }} USDT
+                  {{ maskAmount((totalAssets.totalUnrealizedProfit >= 0 ? '+' : '') + formatNumber(totalAssets.totalUnrealizedProfit, 2) + ' USDT') }}
                 </span>
               </div>
               <div class="stat-item">
                 <span class="stat-label">可用余额</span>
                 <span class="stat-value">
-                  +{{ formatNumber(totalAssets.availableBalance, 2) }}
+                  {{ maskAmount('+' + formatNumber(totalAssets.availableBalance, 2)) }}
                 </span>
               </div>
             </div>
           </div>
 
-          <!-- 各交易所资产卡片 - 新设计 -->
-          <div v-if="accountInfoList.length > 0" class="exchanges-grid">
+          <!-- 各交易所资产卡片 - 新设计 (只在多个交易所时显示) -->
+          <div v-if="accountInfoList.length > 1" class="exchanges-grid">
             <div
               v-for="accountInfo in accountInfoList"
               :key="accountInfo.exchange"
@@ -323,7 +332,7 @@
                     'text-red': parseFloat(position.unRealizedProfit) < 0,
                     'text-gray': parseFloat(position.unRealizedProfit) === 0
                   }">
-                    {{ parseFloat(position.unRealizedProfit) >= 0 ? '+' : '' }}{{ formatNumber(parseFloat(position.unRealizedProfit), 2) }} USDT
+                    {{ maskAmount((parseFloat(position.unRealizedProfit) >= 0 ? '+' : '') + formatNumber(parseFloat(position.unRealizedProfit), 2) + ' USDT') }}
                   </span>
                   <span class="pnl-percent" :class="{
                     'text-green': parseFloat(position.unRealizedProfit) > 0,
@@ -378,7 +387,9 @@ import {
   ChevronDown,
   Edit,
   Save,
-  X
+  X,
+  Eye,
+  EyeOff
 } from 'lucide-vue-next';
 import ExchangeLogo from './components/ExchangeLogo.vue';
 
@@ -444,6 +455,7 @@ const customPositionOrder = ref<string[]>([]); // 用户自定义的持仓顺序
 const showQuitConfirm = ref(false); // 显示退出确认对话框
 const isEditMode = ref(false); // 是否处于编辑模式
 const editingOrder = ref<string[]>([]); // 编辑中的临时顺序
+const hideAmounts = ref(false); // 是否隐藏金额数字
 let panelRefreshInterval: NodeJS.Timeout | null = null;
 
 // Computed
@@ -524,6 +536,21 @@ const formatPrice = (priceStr: string) => {
 // 格式化数字
 const formatNumber = (num: number, decimals: number = 2) => {
   return num.toFixed(decimals);
+};
+
+// 隐藏金额（显示为星号）
+const maskAmount = (amount: string) => {
+  if (!hideAmounts.value) return amount;
+  return '****';
+};
+
+// 切换金额显示/隐藏
+const toggleAmountVisibility = async () => {
+  hideAmounts.value = !hideAmounts.value;
+
+  if ((window as any).electronAPI) {
+    await (window as any).electronAPI.saveHideAmounts(hideAmounts.value);
+  }
 };
 
 // 计算持仓价值（USDT）
@@ -825,6 +852,15 @@ onMounted(async () => {
     console.error('Failed to load display settings:', err);
   }
 
+  // 加载金额隐藏设置
+  try {
+    const savedHideAmounts = await (window as any).electronAPI.getHideAmounts();
+    hideAmounts.value = savedHideAmounts;
+    console.log('[Hide Amounts] Loaded:', savedHideAmounts);
+  } catch (err) {
+    console.error('Failed to load hide amounts setting:', err);
+  }
+
   // 加载持仓顺序
   try {
     const savedOrder = await (window as any).electronAPI.getPositionOrder();
@@ -940,7 +976,7 @@ onUnmounted(() => {
 
 .app {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
-  width: 400px;
+  width: 480px;
   height: 600px;
   background: var(--bg-primary);
   color: var(--text-primary);
@@ -1464,7 +1500,7 @@ input:checked + .toggle-slider:before {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-radius: 16px;
-  padding: 16px;
+  padding: 12px 16px 16px 16px;
   margin-bottom: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
@@ -1479,8 +1515,8 @@ input:checked + .toggle-slider:before {
 /* 总资产卡片 - 新设计 */
 .total-assets-card-new {
   background: transparent;
-  padding: 16px 0;
-  margin-bottom: 16px;
+  padding: 0 0 10px;
+  margin-bottom: 12px;
   border: none;
   box-shadow: none;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -1494,7 +1530,11 @@ input:checked + .toggle-slider:before {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+}
+
+.total-card-exchange-logo {
+  opacity: 0.8;
 }
 
 .total-card-label {
@@ -1506,23 +1546,41 @@ input:checked + .toggle-slider:before {
   opacity: 0.7;
 }
 
-.info-icon {
+.toggle-visibility-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
   color: var(--text-secondary);
-  opacity: 0.5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+  opacity: 0.6;
+}
+
+.toggle-visibility-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  opacity: 1;
+}
+
+.app.dark-mode .toggle-visibility-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .total-card-amount {
-  font-size: 32px;
+  font-size: 26px;
   font-weight: 700;
   color: var(--text-primary);
   font-family: 'Roboto Mono', 'SF Mono', 'Monaco', 'Courier New', monospace;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
   line-height: 1.1;
   letter-spacing: -0.5px;
 }
 
 .total-card-currency {
-  font-size: 18px;
+  font-size: 16px;
   color: var(--text-secondary);
   font-weight: 600;
   margin-left: 8px;
@@ -1532,24 +1590,24 @@ input:checked + .toggle-slider:before {
 .total-card-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 12px;
 }
 
 .stat-item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .stat-label {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-secondary);
   font-weight: 500;
   opacity: 0.7;
 }
 
 .stat-value {
-  font-size: 15px;
+  font-size: 14px;
   color: var(--text-primary);
   font-family: 'Roboto Mono', 'SF Mono', 'Monaco', 'Courier New', monospace;
   font-weight: 600;
@@ -1880,20 +1938,22 @@ input:checked + .toggle-slider:before {
 /* 卡片数据网格 */
 .card-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1.2fr;
-  gap: 6px;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px 10px;
 }
 
 .data-item {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
 }
 
 .data-label {
   font-size: 11px;
   color: var(--text-secondary);
   font-weight: 400;
+  white-space: nowrap;
 }
 
 .data-value {
