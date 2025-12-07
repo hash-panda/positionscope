@@ -20,6 +20,33 @@
       </div>
     </div>
 
+    <!-- Delete Confirmation Dialog -->
+    <div v-if="showDeleteConfirm" class="modal-overlay" @click="showDeleteConfirm = false">
+      <div class="modal-dialog" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">⚠️ 确认删除所有数据</h3>
+        </div>
+        <div class="modal-body">
+          <p style="margin-bottom: 12px; font-weight: 600; color: var(--accent-red);">此操作不可恢复！</p>
+          <p style="margin-bottom: 8px;">将删除以下内容：</p>
+          <ul style="margin-left: 20px; line-height: 1.8;">
+            <li>API Key 和 API Secret</li>
+            <li>所有设置选项</li>
+            <li>持仓顺序</li>
+            <li>代理配置</li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn modal-btn-cancel" @click="showDeleteConfirm = false">
+            取消
+          </button>
+          <button class="modal-btn modal-btn-confirm" @click="confirmDeleteAll">
+            确认删除
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Settings Panel -->
     <div v-if="showSettings" class="settings-panel">
       <div class="settings-header">
@@ -33,9 +60,88 @@
       </div>
 
       <div class="settings-content">
-        <!-- Theme Toggle -->
+        <!-- API Configuration - Most Important -->
         <div class="settings-section">
-          <div class="section-header">外观</div>
+          <div class="section-header">🔑 API 配置</div>
+          <div class="setting-item column">
+            <label class="input-label">
+              <span class="exchange-badge binance">Binance</span>
+              API Key
+            </label>
+            <input
+              v-model="apiKey"
+              type="text"
+              class="text-input"
+              placeholder="输入 Binance API Key"
+              @blur="saveApiCredentials"
+            />
+          </div>
+          <div class="setting-item column">
+            <label class="input-label">
+              <span class="exchange-badge binance">Binance</span>
+              API Secret
+            </label>
+            <input
+              v-model="apiSecret"
+              type="password"
+              class="text-input"
+              placeholder="输入 Binance API Secret"
+              @blur="saveApiCredentials"
+            />
+          </div>
+          <div class="setting-notice">
+            <AlertTriangle :size="16" class="notice-icon-svg" />
+            <span>请确保 API Key 仅开启查询权限，不要开启交易权限</span>
+          </div>
+          <!-- Future: More Exchanges -->
+          <!-- <div class="add-exchange-btn">+ 添加其他交易所</div> -->
+        </div>
+
+        <!-- Display Settings - Frequently Used -->
+        <div class="settings-section">
+          <div class="section-header">📊 显示设置</div>
+          <div class="setting-item">
+            <div class="setting-label">
+              <Hash :size="18" class="setting-icon-svg" />
+              <span>菜单栏显示数量</span>
+            </div>
+            <select v-model="maxDisplayCount" class="select-input" @change="saveDisplaySettings">
+              <option :value="1">1 个</option>
+              <option :value="2">2 个</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <div class="setting-label">
+              <Clock :size="18" class="setting-icon-svg" />
+              <span>刷新间隔</span>
+            </div>
+            <select v-model="refreshInterval" class="select-input" @change="saveDisplaySettings">
+              <option :value="3">3 秒</option>
+              <option :value="5">5 秒</option>
+              <option :value="10">10 秒</option>
+              <option :value="30">30 秒</option>
+              <option :value="60">1 分钟</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <div class="setting-label">
+              <Eye :size="18" class="setting-icon-svg" />
+              <span>隐藏金额</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" v-model="hideAmounts" @change="toggleAmountVisibility">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="setting-notice">
+            <Info :size="16" class="notice-icon-svg" />
+            <span>在菜单栏显示持仓信息（币种 价格 收益 收益率）</span>
+          </div>
+        </div>
+
+        <!-- Appearance -->
+        <div class="settings-section">
+          <div class="section-header">🎨 外观</div>
           <div class="setting-item">
             <div class="setting-label">
               <Moon :size="18" class="setting-icon-svg" />
@@ -61,15 +167,40 @@
               class="opacity-slider"
             />
           </div>
+        </div>
+
+        <!-- System Settings -->
+        <div class="settings-section">
+          <div class="section-header">⚙️ 系统</div>
+          <div class="setting-item">
+            <div class="setting-label">
+              <Settings :size="18" class="setting-icon-svg" />
+              <span>开机自动启动</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" v-model="autoLaunch" @change="toggleAutoLaunch">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="setting-item column">
+            <label class="input-label">网络代理（可选）</label>
+            <input
+              v-model="proxyUrl"
+              type="text"
+              class="text-input"
+              placeholder="例如: http://127.0.0.1:7890"
+              @blur="saveProxySettings"
+            />
+          </div>
           <div class="setting-notice">
             <Info :size="16" class="notice-icon-svg" />
-            <span>调整窗口透明度</span>
+            <span>留空则不使用代理。ClashX 默认端口为 7890</span>
           </div>
         </div>
 
-        <!-- Debug Mode -->
+        <!-- Developer Settings -->
         <div class="settings-section">
-          <div class="section-header">开发者</div>
+          <div class="section-header">🛠️ 开发者</div>
           <div class="setting-item">
             <div class="setting-label">
               <Settings :size="18" class="setting-icon-svg" />
@@ -86,83 +217,55 @@
           </div>
         </div>
 
-        <!-- API Settings -->
+        <!-- About & Data Management -->
         <div class="settings-section">
-          <div class="section-header">API 配置</div>
+          <div class="section-header">ℹ️ 关于</div>
           <div class="setting-item column">
-            <label class="input-label">API Key</label>
-            <input
-              v-model="apiKey"
-              type="text"
-              class="text-input"
-              placeholder="输入 Binance API Key"
-              @blur="saveApiCredentials"
-            />
-          </div>
-          <div class="setting-item column">
-            <label class="input-label">API Secret</label>
-            <input
-              v-model="apiSecret"
-              type="password"
-              class="text-input"
-              placeholder="输入 Binance API Secret"
-              @blur="saveApiCredentials"
-            />
-          </div>
-          <div class="setting-notice">
-            <AlertTriangle :size="16" class="notice-icon-svg" />
-            <span>请确保 API Key 仅开启查询权限，不要开启交易权限</span>
-          </div>
-        </div>
-
-        <!-- Proxy Settings -->
-        <div class="settings-section">
-          <div class="section-header">网络代理</div>
-          <div class="setting-item column">
-            <label class="input-label">代理地址（可选）</label>
-            <input
-              v-model="proxyUrl"
-              type="text"
-              class="text-input"
-              placeholder="例如: http://127.0.0.1:7890"
-              @blur="saveProxySettings"
-            />
-          </div>
-          <div class="setting-notice">
-            <Info :size="16" class="notice-icon-svg" />
-            <span>留空则不使用代理。ClashX 默认端口为 7890</span>
-          </div>
-        </div>
-
-        <!-- Menu Bar Display Settings -->
-        <div class="settings-section">
-          <div class="section-header">菜单栏显示</div>
-          <div class="setting-item">
-            <div class="setting-label">
-              <Hash :size="18" class="setting-icon-svg" />
-              <span>显示数量</span>
+            <div class="about-info">
+              <div class="about-row">
+                <span class="about-label">应用名称</span>
+                <span class="about-value">Trade Realtime View</span>
+              </div>
+              <div class="about-row">
+                <span class="about-label">版本号</span>
+                <span class="about-value">v{{ appVersion }}</span>
+              </div>
+              <div class="about-row">
+                <span class="about-label">作者</span>
+                <span class="about-value">Wang</span>
+              </div>
             </div>
-            <select v-model="maxDisplayCount" class="select-input" @change="saveDisplaySettings">
-              <option :value="1">1 个</option>
-              <option :value="2">2 个</option>
-            </select>
           </div>
-          <div class="setting-item">
-            <div class="setting-label">
-              <Clock :size="18" class="setting-icon-svg" />
-              <span>刷新间隔</span>
+
+          <!-- Donate Section -->
+          <div class="setting-item column">
+            <label class="input-label">⭐ 打赏支持</label>
+            <div class="donate-section">
+              <div class="donate-address">
+                <code class="eth-address">{{ ethAddress }}</code>
+                <button class="copy-btn" @click="copyEthAddress" title="复制地址">
+                  <span v-if="!copied">复制</span>
+                  <span v-else>已复制 ✓</span>
+                </button>
+              </div>
+              <div class="setting-notice">
+                <Info :size="16" class="notice-icon-svg" />
+                <span>ETH 主网地址，感谢您的支持</span>
+              </div>
             </div>
-            <select v-model="refreshInterval" class="select-input" @change="saveDisplaySettings">
-              <option :value="3">3 秒</option>
-              <option :value="5">5 秒</option>
-              <option :value="10">10 秒</option>
-              <option :value="30">30 秒</option>
-              <option :value="60">1 分钟</option>
-            </select>
           </div>
-          <div class="setting-notice">
-            <Info :size="16" class="notice-icon-svg" />
-            <span>使用文字模式在菜单栏显示持仓信息（币种 价格 收益 收益率）</span>
+
+          <!-- Action Buttons -->
+          <div class="setting-item column">
+            <label class="input-label">数据管理</label>
+            <div class="action-buttons">
+              <button class="action-button secondary" @click="handleResetToDefaults">
+                恢复默认设置
+              </button>
+              <button class="action-button danger" @click="showDeleteConfirm = true">
+                删除所有数据
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -496,6 +599,11 @@ const editingOrder = ref<string[]>([]); // 编辑中的临时顺序
 const hideAmounts = ref(false); // 是否隐藏金额数字
 const debugMode = ref(false); // 是否开启调试模式
 const windowOpacity = ref(1.0); // 窗口透明度
+const autoLaunch = ref(false); // 是否开机自动启动
+const appVersion = ref('1.0.0'); // 应用版本号
+const ethAddress = ref('0xC471515aa7B64832c0550814C230bEA1376cbbD3'); // ETH 打赏地址
+const copied = ref(false); // 是否已复制地址
+const showDeleteConfirm = ref(false); // 显示删除所有数据确认对话框
 let panelRefreshInterval: NodeJS.Timeout | null = null;
 
 // Computed
@@ -699,6 +807,92 @@ const toggleDebugMode = async () => {
 const updateWindowOpacity = async () => {
   if ((window as any).electronAPI) {
     await (window as any).electronAPI.saveWindowOpacity(windowOpacity.value);
+  }
+};
+
+// Auto Launch
+const toggleAutoLaunch = async () => {
+  if ((window as any).electronAPI) {
+    await (window as any).electronAPI.saveAutoLaunch(autoLaunch.value);
+  }
+};
+
+// Copy ETH Address
+const copyEthAddress = async () => {
+  try {
+    await navigator.clipboard.writeText(ethAddress.value);
+    copied.value = true;
+    setTimeout(() => {
+      copied.value = false;
+    }, 2000);
+  } catch (err) {
+    console.error('Failed to copy address:', err);
+  }
+};
+
+// Reset to Defaults
+const handleResetToDefaults = async () => {
+  if (!(window as any).electronAPI) {
+    return;
+  }
+
+  try {
+    await (window as any).electronAPI.resetToDefaults();
+
+    // 重新加载所有设置
+    const settings = await (window as any).electronAPI.getDisplaySettings();
+    if (settings) {
+      maxDisplayCount.value = settings.maxDisplayCount || 2;
+      refreshInterval.value = settings.refreshInterval || 5;
+    }
+
+    const theme = await (window as any).electronAPI.getTheme();
+    if (theme === 'dark') {
+      isDarkMode.value = true;
+    } else if (theme === 'light') {
+      isDarkMode.value = false;
+    }
+
+    const savedHideAmounts = await (window as any).electronAPI.getHideAmounts();
+    hideAmounts.value = savedHideAmounts;
+
+    const savedDebugMode = await (window as any).electronAPI.getDebugMode();
+    debugMode.value = savedDebugMode;
+
+    const savedOpacity = await (window as any).electronAPI.getWindowOpacity();
+    windowOpacity.value = savedOpacity;
+
+    const savedAutoLaunch = await (window as any).electronAPI.getAutoLaunch();
+    autoLaunch.value = savedAutoLaunch;
+
+    console.log('[Settings] Reset to defaults completed');
+  } catch (err: any) {
+    error.value = '恢复默认设置失败: ' + err.message;
+  }
+};
+
+// Confirm Delete All Data
+const confirmDeleteAll = async () => {
+  if (!(window as any).electronAPI) {
+    return;
+  }
+
+  try {
+    await (window as any).electronAPI.deleteAllData();
+    showDeleteConfirm.value = false;
+
+    // 清空所有本地状态
+    apiKey.value = '';
+    apiSecret.value = '';
+    proxyUrl.value = '';
+    hasCredentials.value = false;
+    futuresPositions.value = [];
+    accountInfoList.value = [];
+    customPositionOrder.value = [];
+
+    console.log('[Settings] All data deleted');
+  } catch (err: any) {
+    error.value = '删除数据失败: ' + err.message;
   }
 };
 
@@ -933,6 +1127,24 @@ onMounted(async () => {
     console.error('Failed to load window opacity setting:', err);
   }
 
+  // 加载开机自动启动设置
+  try {
+    const savedAutoLaunch = await (window as any).electronAPI.getAutoLaunch();
+    autoLaunch.value = savedAutoLaunch;
+    console.log('[Auto Launch] Loaded:', savedAutoLaunch);
+  } catch (err) {
+    console.error('Failed to load auto-launch setting:', err);
+  }
+
+  // 加载应用版本
+  try {
+    const version = await (window as any).electronAPI.getAppVersion();
+    appVersion.value = version;
+    console.log('[App Version] Loaded:', version);
+  } catch (err) {
+    console.error('Failed to load app version:', err);
+  }
+
   // 加载持仓顺序
   try {
     const savedOrder = await (window as any).electronAPI.getPositionOrder();
@@ -1136,13 +1348,15 @@ onUnmounted(() => {
 }
 
 .section-header {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  margin-bottom: 10px;
+  color: var(--text-primary);
+  letter-spacing: 0.3px;
+  margin-bottom: 12px;
   padding-left: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .setting-item {
@@ -1189,6 +1403,61 @@ onUnmounted(() => {
   font-size: 13px;
   color: var(--text-secondary);
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Exchange Badge */
+.exchange-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.exchange-badge.binance {
+  background: rgba(243, 186, 47, 0.15);
+  color: #F3BA2F;
+}
+
+.app.dark-mode .exchange-badge.binance {
+  background: rgba(243, 186, 47, 0.2);
+  color: #F3BA2F;
+}
+
+.exchange-badge.bybit {
+  background: rgba(247, 166, 0, 0.15);
+  color: #F7A600;
+}
+
+.app.dark-mode .exchange-badge.bybit {
+  background: rgba(247, 166, 0, 0.2);
+  color: #F7A600;
+}
+
+.exchange-badge.okx {
+  background: rgba(0, 0, 0, 0.1);
+  color: #000000;
+}
+
+.app.dark-mode .exchange-badge.okx {
+  background: rgba(255, 255, 255, 0.15);
+  color: #FFFFFF;
+}
+
+.exchange-badge.hyperliquid {
+  background: rgba(0, 212, 170, 0.15);
+  color: #00D4AA;
+}
+
+.app.dark-mode .exchange-badge.hyperliquid {
+  background: rgba(0, 212, 170, 0.2);
+  color: #00D4AA;
 }
 
 .text-input {
@@ -2198,6 +2467,154 @@ input:checked + .toggle-slider:before {
 }
 
 .modal-btn:active {
+  transform: scale(0.98);
+}
+
+/* About Section */
+.about-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.about-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.about-row:last-child {
+  border-bottom: none;
+}
+
+.about-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.about-value {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* Donation Section */
+.donate-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.donate-address {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-primary);
+  border: 1.5px solid var(--border-color);
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.donate-address:hover {
+  border-color: var(--text-tertiary);
+}
+
+.eth-address {
+  flex: 1;
+  font-size: 12px;
+  font-family: 'Roboto Mono', 'SF Mono', 'Monaco', 'Courier New', monospace;
+  color: var(--text-primary);
+  background: transparent;
+  padding: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.copy-btn {
+  padding: 6px 12px;
+  background: var(--accent-blue);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.copy-btn:hover {
+  opacity: 0.9;
+}
+
+.copy-btn:active {
+  transform: scale(0.95);
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.action-button {
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  text-align: center;
+}
+
+.action-button.secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.action-button.secondary:hover {
+  background: var(--bg-primary);
+  border-color: var(--text-tertiary);
+}
+
+.action-button.danger {
+  background: var(--accent-red);
+  color: white;
+}
+
+.app:not(.dark-mode) .action-button.danger {
+  box-shadow: 0 2px 8px rgba(255, 59, 48, 0.2);
+}
+
+.app.dark-mode .action-button.danger {
+  box-shadow: 0 2px 8px rgba(255, 69, 58, 0.25);
+}
+
+.action-button.danger:hover {
+  opacity: 0.9;
+}
+
+.app:not(.dark-mode) .action-button.danger:hover {
+  box-shadow: 0 4px 12px rgba(255, 59, 48, 0.3);
+}
+
+.app.dark-mode .action-button.danger:hover {
+  box-shadow: 0 4px 12px rgba(255, 69, 58, 0.35);
+}
+
+.action-button:active {
   transform: scale(0.98);
 }
 </style>

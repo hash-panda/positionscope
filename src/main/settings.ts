@@ -13,6 +13,7 @@ interface AppSettings {
   hideAmounts?: boolean; // 是否隐藏金额
   debugMode?: boolean; // 是否开启调试模式
   windowOpacity?: number; // 窗口透明度 (0.1 - 1.0)
+  autoLaunch?: boolean; // 是否开机自动启动
 }
 
 export class SettingsManager {
@@ -144,9 +145,51 @@ export class SettingsManager {
     return this.settings.windowOpacity || 1.0;
   }
 
+  // 开机自动启动设置
+  setAutoLaunch(autoLaunch: boolean) {
+    this.settings.autoLaunch = autoLaunch;
+    this.saveSettings();
+
+    // 应用到系统
+    app.setLoginItemSettings({
+      openAtLogin: autoLaunch,
+      openAsHidden: false,
+    });
+  }
+
+  getAutoLaunch(): boolean {
+    return this.settings.autoLaunch || false;
+  }
+
   // 清除所有设置
   clearSettings() {
     this.settings = {};
     this.saveSettings();
+  }
+
+  // 重置为默认设置
+  resetToDefaults() {
+    const apiKey = this.settings.apiKey;
+    const apiSecret = this.settings.apiSecret;
+
+    this.settings = {
+      apiKey,
+      apiSecret,
+      maxDisplayCount: 2,
+      refreshInterval: 5,
+      theme: 'dark',
+      hideAmounts: false,
+      debugMode: false,
+      windowOpacity: 1.0,
+      autoLaunch: false,
+      positionOrder: [],
+    };
+    this.saveSettings();
+
+    // 重置开机启动
+    app.setLoginItemSettings({
+      openAtLogin: false,
+      openAsHidden: false,
+    });
   }
 }

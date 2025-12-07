@@ -57,4 +57,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   getWindowOpacity: () =>
     ipcRenderer.invoke('get-window-opacity'),
+
+  saveAutoLaunch: (autoLaunch: boolean) =>
+    ipcRenderer.invoke('save-auto-launch', autoLaunch),
+
+  getAutoLaunch: () =>
+    ipcRenderer.invoke('get-auto-launch'),
+
+  getAppVersion: () =>
+    ipcRenderer.invoke('get-app-version'),
+
+  resetToDefaults: () =>
+    ipcRenderer.invoke('reset-to-defaults'),
+
+  deleteAllData: () =>
+    ipcRenderer.invoke('delete-all-data'),
 });

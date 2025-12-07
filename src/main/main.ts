@@ -453,3 +453,31 @@ ipcMain.handle('save-window-opacity', async (_, opacity: number) => {
 ipcMain.handle('get-window-opacity', async () => {
   return settingsManager.getWindowOpacity();
 });
+
+// 保存开机自动启动设置
+ipcMain.handle('save-auto-launch', async (_, autoLaunch: boolean) => {
+  settingsManager.setAutoLaunch(autoLaunch);
+  return { success: true };
+});
+
+// 获取开机自动启动设置
+ipcMain.handle('get-auto-launch', async () => {
+  return settingsManager.getAutoLaunch();
+});
+
+// 获取应用版本
+ipcMain.handle('get-app-version', async () => {
+  return app.getVersion();
+});
+
+// 重置所有设置为默认值
+ipcMain.handle('reset-to-defaults', async () => {
+  settingsManager.resetToDefaults();
+  return { success: true };
+});
+
+// 删除所有数据（包括API凭证）
+ipcMain.handle('delete-all-data', async () => {
+  settingsManager.clearSettings();
+  return { success: true };
+});
