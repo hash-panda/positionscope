@@ -1,0 +1,302 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #0d1117;
+  color: #c9d1d9;
+  overflow: hidden;
+}
+
+#app {
+  width: 100vw;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #484f58;
+}
+
+.container {
+  padding: 12px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #21262d;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.total-pnl {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.icon-btn {
+  background: transparent;
+  border: 1px solid #30363d;
+  color: #c9d1d9;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn:hover {
+  background: #21262d;
+  border-color: #484f58;
+}
+
+.icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.settings-btn,
+.save-btn {
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #c9d1d9;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.settings-btn:hover {
+  background: #30363d;
+}
+
+.save-btn {
+  background: #238636;
+  border-color: #238636;
+  color: #fff;
+}
+
+.save-btn:hover {
+  background: #2ea043;
+}
+
+.position-card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  padding: 10px;
+  transition: all 0.2s;
+}
+
+.position-card:hover {
+  border-color: #484f58;
+  box-shadow: 0 0 0 1px #484f58;
+}
+
+.position-card.profit {
+  border-left: 3px solid #238636;
+}
+
+.position-card.loss {
+  border-left: 3px solid #da3633;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.symbol-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.symbol-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #58a6ff;
+}
+
+.leverage-badge {
+  background: #21262d;
+  color: #8b949e;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.position-side {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.position-side.long {
+  background: #238636;
+  color: #fff;
+}
+
+.position-side.short {
+  background: #da3633;
+  color: #fff;
+}
+
+.pnl-section {
+  text-align: right;
+}
+
+.pnl-amount {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.profit .pnl-amount {
+  color: #3fb950;
+}
+
+.loss .pnl-amount {
+  color: #f85149;
+}
+
+.pnl-percent {
+  font-size: 11px;
+  color: #8b949e;
+  margin-top: 2px;
+}
+
+.card-body {
+  padding-top: 8px;
+  border-top: 1px solid #21262d;
+}
+
+.price-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.price-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.price-item .label {
+  font-size: 10px;
+  color: #8b949e;
+}
+
+.price-item .value {
+  font-size: 12px;
+  font-weight: 500;
+  color: #c9d1d9;
+}
+
+.profit-positive {
+  color: #3fb950;
+}
+
+.profit-negative {
+  color: #f85149;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #8b949e;
+  font-size: 12px;
+}
+
+.error {
+  background: #da3633;
+  color: #fff;
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  font-size: 11px;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-label {
+  font-size: 12px;
+  color: #8b949e;
+  font-weight: 500;
+}
+
+.form-input {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  color: #c9d1d9;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #58a6ff;
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+}
+
+.empty-state {
+  text-align: center;
+  color: #8b949e;
+  padding: 30px 20px;
+  font-size: 12px;
+}

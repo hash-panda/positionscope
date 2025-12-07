@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# 设置 ClashX 代理
+export HTTP_PROXY=http://127.0.0.1:7890
+export HTTPS_PROXY=http://127.0.0.1:7890
+
+echo "🔨 Building main process..."
+npm run build:main
+
+echo "🚀 Starting application..."
+echo "   - Using proxy: $HTTP_PROXY"
+NODE_ENV=development npm start

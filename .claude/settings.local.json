@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(chmod:*)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm approve-builds:*)",
+      "Bash(pkill:*)",
+      "Bash(pnpm build:main:*)",
+      "Bash(pnpm rebuild:*)",
+      "Bash(node install.js)",
+      "Bash(export ELECTRON_MIRROR=\"https://npmmirror.com/mirrors/electron/\")",
+      "Bash(npm run build:main:*)",
+      "Bash(cat:*)",
+      "Bash(curl:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
