@@ -13,11 +13,25 @@ import {
 import { logger } from '../utils/logger';
 
 /**
+ * 交易所错误信息
+ */
+export interface ExchangeError {
+  exchange: ExchangeType;
+  errorCode: string;           // ECONNREFUSED, ETIMEDOUT, UNAUTHORIZED 等
+  errorMessage: string;         // 完整的错误消息
+  timestamp: number;            // 错误发生时间
+  consecutiveFailures: number;  // 连续失败次数
+  suggestion: string;           // 给用户的建议
+}
+
+/**
  * 交易所管理器
  * 负责管理所有已配置的交易所服务
  */
 export class ExchangeManager {
   private exchanges: Map<ExchangeType, IExchangeService> = new Map();
+  private errorStates: Map<ExchangeType, ExchangeError> = new Map();
+  private readonly MAX_CONSECUTIVE_FAILURES = 3; // 最大连续失败次数
 
   constructor() {
     // 初始化支持的所有交易所
@@ -59,7 +73,40 @@ export class ExchangeManager {
       apiKey: '',
       apiSecret: '',
     });
+
+    // 同时清除错误状态
+    this.errorStates.delete(exchangeType);
+
     logger.log(`[ExchangeManager] Credentials removed for ${exchangeType}`);
+  }
+
+  /**
+   * 删除所有交易所的凭证
+   */
+  removeAllCredentials(): void {
+    // 遍历所有交易所类型
+    const exchangeTypes = [
+      ExchangeType.BINANCE,
+      ExchangeType.BYBIT,
+      ExchangeType.OKX,
+      ExchangeType.HYPERLIQUID,
+    ];
+
+    exchangeTypes.forEach(exchangeType => {
+      const exchange = this.exchanges.get(exchangeType);
+      if (exchange) {
+        exchange.setCredentials({
+          exchange: exchangeType,
+          apiKey: '',
+          apiSecret: '',
+        });
+      }
+    });
+
+    // 清除所有错误状态
+    this.errorStates.clear();
+
+    logger.log('[ExchangeManager] All credentials removed');
   }
 
   /**
@@ -75,6 +122,104 @@ export class ExchangeManager {
   hasCredentials(exchangeType: ExchangeType): boolean {
     const exchange = this.exchanges.get(exchangeType);
     return exchange ? exchange.hasCredentials() : false;
+  }
+
+  /**
+   * 根据错误代码生成建议
+   */
+  private getSuggestionForError(errorCode: string, errorMessage: string): string {
+    if (errorCode === 'ECONNREFUSED' || errorCode === 'ECONNABORTED' || errorMessage.includes('timeout')) {
+      return '网络连接失败，请检查：\n1. 网络连接是否正常\n2. 是否需要配置代理（设置 → 系统 → 网络代理）\n3. 防火墙是否阻止了连接';
+    }
+    if (errorCode === 'ETIMEDOUT' || errorMessage.includes('timeout')) {
+      return '请求超时，可能原因：\n1. 网络速度较慢\n2. 需要配置代理访问交易所API\n3. 交易所服务暂时不可用';
+    }
+    if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+      return 'API认证失败，请检查：\n1. API Key是否正确\n2. API Secret是否正确\n3. API权限是否开启（仅需查询权限）';
+    }
+    if (errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
+      return 'API权限不足，请检查：\n1. IP是否在白名单中\n2. API是否有查询权限\n3. API是否已过期';
+    }
+    if (errorMessage.includes('429') || errorMessage.includes('Too Many Requests')) {
+      return 'API请求频率过高，请稍后再试';
+    }
+    return '未知错误，请检查网络连接和API配置';
+  }
+
+  /**
+   * 记录错误状态
+   */
+  private recordError(exchangeType: ExchangeType, error: any): void {
+    const errorCode = error.code || 'UNKNOWN';
+    const errorMessage = error.message || String(error);
+    const suggestion = this.getSuggestionForError(errorCode, errorMessage);
+
+    const existingError = this.errorStates.get(exchangeType);
+    const consecutiveFailures = existingError ? existingError.consecutiveFailures + 1 : 1;
+
+    const errorState: ExchangeError = {
+      exchange: exchangeType,
+      errorCode,
+      errorMessage,
+      timestamp: Date.now(),
+      consecutiveFailures,
+      suggestion,
+    };
+
+    this.errorStates.set(exchangeType, errorState);
+
+    logger.error(
+      `[ExchangeManager] ${exchangeType} error (${consecutiveFailures}/${this.MAX_CONSECUTIVE_FAILURES}):`,
+      errorMessage
+    );
+
+    if (consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES) {
+      logger.error(`[ExchangeManager] ${exchangeType} has failed ${consecutiveFailures} times consecutively. Auto-refresh may be paused.`);
+    }
+  }
+
+  /**
+   * 清除错误状态（成功调用后）
+   */
+  private clearError(exchangeType: ExchangeType): void {
+    if (this.errorStates.has(exchangeType)) {
+      logger.log(`[ExchangeManager] ${exchangeType} error cleared after successful call`);
+      this.errorStates.delete(exchangeType);
+    }
+  }
+
+  /**
+   * 检查交易所是否处于错误状态（连续失败超过阈值）
+   */
+  isInErrorState(exchangeType: ExchangeType): boolean {
+    const error = this.errorStates.get(exchangeType);
+    return error ? error.consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES : false;
+  }
+
+  /**
+   * 检查是否有任何交易所处于错误状态
+   */
+  hasAnyErrors(): boolean {
+    return Array.from(this.errorStates.values()).some(
+      error => error.consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES
+    );
+  }
+
+  /**
+   * 获取所有错误状态
+   */
+  getAllErrors(): ExchangeError[] {
+    return Array.from(this.errorStates.values()).filter(
+      error => error.consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES
+    );
+  }
+
+  /**
+   * 清除所有错误状态
+   */
+  clearAllErrors(): void {
+    this.errorStates.clear();
+    logger.log('[ExchangeManager] All errors cleared');
   }
 
   /**
@@ -111,12 +256,26 @@ export class ExchangeManager {
       const exchange = this.exchanges.get(exchangeType);
       if (!exchange) return [];
 
+      // 如果交易所已经处于错误状态，跳过调用
+      if (this.isInErrorState(exchangeType)) {
+        logger.log(`[ExchangeManager] Skipping ${exchangeType} due to error state`);
+        return [];
+      }
+
       try {
         const positions = await exchange.getFuturesPositions();
         logger.log(`[ExchangeManager] Got ${positions.length} positions from ${exchangeType}`);
+
+        // 成功调用，清除错误状态
+        this.clearError(exchangeType);
+
         return positions;
       } catch (error: any) {
         logger.error(`[ExchangeManager] Error fetching positions from ${exchangeType}:`, error.message);
+
+        // 记录错误
+        this.recordError(exchangeType, error);
+
         return [];
       }
     });
@@ -144,12 +303,26 @@ export class ExchangeManager {
       const exchange = this.exchanges.get(exchangeType);
       if (!exchange) return null;
 
+      // 如果交易所已经处于错误状态，跳过调用
+      if (this.isInErrorState(exchangeType)) {
+        logger.log(`[ExchangeManager] Skipping ${exchangeType} due to error state`);
+        return null;
+      }
+
       try {
         const accountInfo = await exchange.getFuturesAccountInfo();
         logger.log(`[ExchangeManager] Got account info from ${exchangeType}`);
+
+        // 成功调用，清除错误状态
+        this.clearError(exchangeType);
+
         return accountInfo;
       } catch (error: any) {
         logger.error(`[ExchangeManager] Error fetching account info from ${exchangeType}:`, error.message);
+
+        // 记录错误
+        this.recordError(exchangeType, error);
+
         return null;
       }
     });

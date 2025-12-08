@@ -93,4 +93,48 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   deleteAllData: () =>
     ipcRenderer.invoke('delete-all-data'),
+
+  // AI 相关 API
+  getAISettings: () =>
+    ipcRenderer.invoke('get-ai-settings'),
+
+  saveAISettings: (settings: any) =>
+    ipcRenderer.invoke('save-ai-settings', settings),
+
+  aiAnalyzeHealth: (positions: any, accountInfo: any, provider?: string) =>
+    ipcRenderer.invoke('ai-analyze-health', positions, accountInfo, provider),
+
+  aiChat: (message: string, context?: any, provider?: string) =>
+    ipcRenderer.invoke('ai-chat', message, context, provider),
+
+  aiClearConversation: () =>
+    ipcRenderer.invoke('ai-clear-conversation'),
+
+  aiIsAvailable: () =>
+    ipcRenderer.invoke('ai-is-available'),
+
+  aiGetProviders: () =>
+    ipcRenderer.invoke('ai-get-providers'),
+
+  // 错误处理相关 API
+  getExchangeErrors: () =>
+    ipcRenderer.invoke('get-exchange-errors'),
+
+  clearExchangeErrors: () =>
+    ipcRenderer.invoke('clear-exchange-errors'),
+
+  onExchangeErrors: (callback: (errors: any[]) => void) =>
+    ipcRenderer.on('exchange-errors', (_event, errors) => callback(errors)),
+
+  // 工具函数
+  openExternal: (url: string) =>
+    ipcRenderer.invoke('open-external', url),
+
+  // 窗口控制
+  minimizeWindow: () =>
+    ipcRenderer.invoke('minimize-window'),
+
+  // 代理设置
+  saveProxySettings: (proxyUrl: string) =>
+    ipcRenderer.invoke('save-proxy-settings', proxyUrl),
 });

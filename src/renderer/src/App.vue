@@ -1,5 +1,8 @@
 <template>
   <div class="app" :class="{ 'dark-mode': isDarkMode }">
+    <!-- Notification Center -->
+    <NotificationCenter ref="notificationCenter" />
+
     <!-- Quit Confirmation Dialog -->
     <div v-if="showQuitConfirm" class="modal-overlay" @click="cancelQuit">
       <div class="modal-dialog" @click.stop>
@@ -47,6 +50,98 @@
       </div>
     </div>
 
+    <!-- Health Analysis Dialog -->
+    <div v-if="showHealthAnalysis && healthScore" class="modal-overlay" @click="showHealthAnalysis = false">
+      <div class="health-dialog" @click.stop>
+        <div class="health-header">
+          <div class="health-title">
+            <Sparkles :size="20" class="title-icon" />
+            <h3>AI 持仓健康度分析</h3>
+          </div>
+          <button class="close-btn" @click="showHealthAnalysis = false">
+            <X :size="20" />
+          </button>
+        </div>
+
+        <div class="health-body">
+          <!-- 总体评分 -->
+          <div class="health-score-section">
+            <div class="score-label">总体评分</div>
+            <div class="score-circle" :class="getScoreClass(healthScore.overallScore)">
+              <span class="score-value">{{ healthScore.overallScore }}</span>
+              <span class="score-max">/100</span>
+            </div>
+          </div>
+
+          <!-- 详细评分 -->
+          <div class="health-metrics">
+            <div class="metric-item">
+              <span class="metric-label">分散度</span>
+              <div class="metric-bar-container">
+                <div class="metric-bar" :style="{ width: healthScore.diversification + '%' }"></div>
+              </div>
+              <span class="metric-value">{{ healthScore.diversification }}</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">杠杆合理性</span>
+              <div class="metric-bar-container">
+                <div class="metric-bar" :style="{ width: healthScore.leverage + '%' }"></div>
+              </div>
+              <span class="metric-value">{{ healthScore.leverage }}</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">风险敞口</span>
+              <div class="metric-bar-container">
+                <div class="metric-bar" :style="{ width: healthScore.riskExposure + '%' }"></div>
+              </div>
+              <span class="metric-value">{{ healthScore.riskExposure }}</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">盈亏比</span>
+              <div class="metric-bar-container">
+                <div class="metric-bar" :style="{ width: healthScore.profitabilityRatio + '%' }"></div>
+              </div>
+              <span class="metric-value">{{ healthScore.profitabilityRatio }}</span>
+            </div>
+          </div>
+
+          <!-- 总结 -->
+          <div v-if="healthScore.summary" class="health-summary">
+            <h4 class="section-title">总结</h4>
+            <p class="summary-text">{{ healthScore.summary }}</p>
+          </div>
+
+          <!-- 警告 -->
+          <div v-if="healthScore.warnings && healthScore.warnings.length > 0" class="health-warnings">
+            <h4 class="section-title">
+              <AlertTriangle :size="16" class="section-icon" />
+              风险警告
+            </h4>
+            <ul class="warnings-list">
+              <li v-for="(warning, index) in healthScore.warnings" :key="index">{{ warning }}</li>
+            </ul>
+          </div>
+
+          <!-- 建议 -->
+          <div v-if="healthScore.suggestions && healthScore.suggestions.length > 0" class="health-suggestions">
+            <h4 class="section-title">
+              <Info :size="16" class="section-icon" />
+              优化建议
+            </h4>
+            <ul class="suggestions-list">
+              <li v-for="(suggestion, index) in healthScore.suggestions" :key="index">{{ suggestion }}</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="health-footer">
+          <button class="modal-btn modal-btn-cancel" @click="showHealthAnalysis = false">
+            关闭
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Settings Panel -->
     <div v-if="showSettings" class="settings-panel">
       <div class="settings-header">
@@ -54,9 +149,14 @@
           <ChevronLeft :size="24" />
         </button>
         <h2 class="settings-title">设置</h2>
-        <button class="quit-button-header" @click="showQuitConfirmDialog" title="退出应用">
-          <Power :size="18" />
-        </button>
+        <div class="header-actions">
+          <button class="header-button" @click="minimizeWindow" title="最小化">
+            <ChevronDown :size="18" />
+          </button>
+          <button class="quit-button-header" @click="showQuitConfirmDialog" title="退出应用">
+            <Power :size="18" />
+          </button>
+        </div>
       </div>
 
       <div class="settings-content">
@@ -343,6 +443,86 @@
         </div>
 
         <!-- Developer Settings -->
+        <!-- AI Settings -->
+        <div class="settings-section">
+          <div class="section-header">
+            <Sparkles :size="16" class="section-icon" />
+            AI 分析
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-label">
+              <Bot :size="18" class="setting-icon-svg" />
+              <span>启用 AI 功能</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" v-model="aiEnabled" @change="toggleAI">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div v-if="aiEnabled" class="ai-settings-content">
+            <div class="setting-item">
+              <label class="input-label">
+                <Cpu :size="14" class="label-icon" />
+                默认 AI 模型
+              </label>
+              <select v-model="defaultAIProvider" @change="saveAISettings" class="input-field">
+                <option value="anthropic">Claude (Anthropic)</option>
+                <option value="openai">ChatGPT (OpenAI)</option>
+                <option value="deepseek">DeepSeek</option>
+                <option value="qwen">千问 (Qwen)</option>
+                <option value="grok">Grok (xAI)</option>
+                <option value="gemini">Gemini (Google)</option>
+              </select>
+            </div>
+
+            <div class="setting-item">
+              <div class="setting-label">
+                <Key :size="18" class="setting-icon-svg" />
+                <span>使用自定义 API Key</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" v-model="useCustomAIKeys" @change="saveAISettings">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div v-if="useCustomAIKeys" class="ai-providers-config">
+              <div class="setting-notice info-notice">
+                <Info :size="16" class="notice-icon-svg" />
+                <div class="notice-content">
+                  <div>配置您的 API Key 以使用 AI 分析功能</div>
+                  <div class="notice-links">
+                    <span>获取 API Key：</span>
+                    <a href="#" @click.prevent="openURL('https://console.anthropic.com/')">Anthropic</a> |
+                    <a href="#" @click.prevent="openURL('https://platform.openai.com/api-keys')">OpenAI</a> |
+                    <a href="#" @click.prevent="openURL('https://platform.deepseek.com/')">DeepSeek</a>
+                  </div>
+                </div>
+              </div>
+
+              <div class="provider-config" v-for="provider in aiProviders" :key="provider.id">
+                <label class="input-label">
+                  {{ provider.name }}
+                </label>
+                <input
+                  v-model="aiAPIKeys[provider.id]"
+                  type="password"
+                  :placeholder="`输入 ${provider.name} API Key`"
+                  class="input-field"
+                  @blur="saveAISettings"
+                />
+              </div>
+            </div>
+
+            <div v-else class="setting-notice">
+              <Info :size="16" class="notice-icon-svg" />
+              <span>未配置任何 API Key，请启用"使用自定义 API Key"并配置</span>
+            </div>
+          </div>
+        </div>
+
         <div class="settings-section">
           <div class="section-header">
             <Wrench :size="16" class="section-icon" />
@@ -448,14 +628,39 @@
             </button>
           </template>
           <template v-else>
-            <button class="action-btn" @click="enterEditMode" :disabled="!futuresPositions.length" title="编辑顺序">
+            <button
+              v-if="aiEnabled && hasCredentials && futuresPositions.length > 0"
+              class="action-btn ai-btn"
+              @click="analyzeHealth"
+              :disabled="analyzingHealth || loading"
+              title="AI 分析"
+            >
+              <Sparkles :size="18" :class="{ 'rotating': analyzingHealth }" />
+            </button>
+            <button
+              class="action-btn"
+              @click="enterEditMode"
+              :disabled="!hasCredentials || !futuresPositions.length"
+              title="编辑顺序"
+            >
               <Edit :size="18" />
             </button>
-            <button class="action-btn" @click="fetchData" :disabled="loading" title="刷新">
+            <button
+              class="action-btn"
+              @click="fetchData"
+              :disabled="!hasCredentials || loading"
+              title="刷新"
+            >
               <RefreshCw :size="18" :class="{ 'rotating': loading }" />
             </button>
             <button class="action-btn" @click="showSettings = true" title="设置">
               <Settings :size="18" />
+            </button>
+            <button class="action-btn" @click="minimizeWindow" title="最小化">
+              <ChevronDown :size="18" />
+            </button>
+            <button class="action-btn quit-btn" @click="showQuitConfirmDialog" title="退出应用">
+              <Power :size="18" />
             </button>
           </template>
         </div>
@@ -463,15 +668,42 @@
 
       <div v-if="error" class="error-message">{{ error }}</div>
 
+      <!-- Exchange Errors Banner -->
+      <div v-if="exchangeErrors.length > 0 && !isEditMode" class="exchange-errors-banner">
+        <div v-for="(exchangeError, index) in exchangeErrors" :key="index" class="exchange-error-item">
+          <div class="error-header">
+            <AlertTriangle :size="18" class="error-icon" />
+            <h4 class="error-title">{{ exchangeError.exchange.toUpperCase() }} 连接失败</h4>
+            <button class="close-error-btn" @click="exchangeErrors.splice(index, 1)" title="关闭">
+              <X :size="16" />
+            </button>
+          </div>
+          <div class="error-details">
+            <p class="error-code">错误代码: {{ exchangeError.errorCode }}</p>
+            <p class="error-suggestion">{{ exchangeError.suggestion }}</p>
+          </div>
+          <div class="error-actions">
+            <button class="retry-btn" @click="retryAfterError">
+              <RefreshCw :size="16" />
+              重新连接
+            </button>
+            <button class="settings-btn" @click="showSettings = true">
+              <Settings :size="16" />
+              前往设置
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div v-if="isEditMode" class="edit-mode-hint">
         <Info :size="14" class="hint-icon" />
         <span>使用上下箭头调整持仓顺序，完成后点击保存</span>
       </div>
 
       <div v-if="!hasCredentials" class="empty-state">
-        <div class="empty-icon">📊</div>
+        <Settings :size="52" class="empty-icon-svg" />
         <div class="empty-title">未配置 API</div>
-        <div class="empty-desc">请先在设置中配置您的 Binance API Key</div>
+        <div class="empty-desc">请先在设置中配置您的交易所 API Key</div>
         <button class="primary-button" @click="showSettings = true">
           前往设置
         </button>
@@ -693,7 +925,7 @@
         </div>
 
         <div v-else class="empty-state">
-          <div class="empty-icon">💤</div>
+          <Inbox :size="52" class="empty-icon-svg" />
           <div class="empty-title">暂无持仓</div>
         </div>
       </div>
@@ -702,7 +934,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch, toRaw } from 'vue';
 import {
   ChevronLeft,
   Moon,
@@ -726,9 +958,13 @@ import {
   Cpu,
   Wrench,
   CircleHelp,
-  Star
+  Star,
+  Sparkles,
+  Bot,
+  Inbox
 } from 'lucide-vue-next';
 import ExchangeLogo from './components/ExchangeLogo.vue';
+import NotificationCenter from './components/NotificationCenter.vue';
 
 // 交易所类型
 enum ExchangeType {
@@ -805,7 +1041,40 @@ const autoLaunch = ref(false); // 是否开机自动启动
 const appVersion = ref('1.0.0'); // 应用版本号
 const ethAddress = ref('0xC471515aa7B64832c0550814C230bEA1376cbbD3'); // ETH 打赏地址
 const copied = ref(false); // 是否已复制地址
+
+// AI 相关状态
+const aiEnabled = ref(false); // AI功能是否启用
+const defaultAIProvider = ref('anthropic'); // 默认AI提供商
+const useCustomAIKeys = ref(false); // 是否使用自定义API Key
+const aiAPIKeys = ref({
+  openai: '',
+  anthropic: '',
+  deepseek: '',
+  qwen: '',
+  grok: '',
+  gemini: ''
+});
+const aiProviders = [
+  { id: 'openai', name: 'OpenAI (ChatGPT)' },
+  { id: 'anthropic', name: 'Anthropic (Claude)' },
+  { id: 'deepseek', name: 'DeepSeek' },
+  { id: 'qwen', name: '千问 (Qwen)' },
+  { id: 'grok', name: 'Grok (xAI)' },
+  { id: 'gemini', name: 'Google Gemini' }
+];
 const showDeleteConfirm = ref(false); // 显示删除所有数据确认对话框
+
+// AI 健康度分析相关
+const showHealthAnalysis = ref(false); // 显示健康度分析对话框
+const analyzingHealth = ref(false); // 是否正在分析中
+const healthScore = ref<any>(null); // 健康度分析结果
+
+// 错误处理相关
+const exchangeErrors = ref<any[]>([]); // 交易所错误列表
+
+// 通知中心引用
+const notificationCenter = ref<any>(null);
+
 let panelRefreshInterval: NodeJS.Timeout | null = null;
 
 // 多交易所支持
@@ -908,6 +1177,14 @@ const sortedPositions = computed(() => {
 // Helper Functions
 const formatSymbol = (symbol: string) => {
   return symbol.replace('USDT', '').replace('BUSD', '');
+};
+
+// 根据评分返回CSS类
+const getScoreClass = (score: number) => {
+  if (score >= 80) return 'score-excellent';
+  if (score >= 60) return 'score-good';
+  if (score >= 40) return 'score-fair';
+  return 'score-poor';
 };
 
 // 格式化密钥显示（显示前4位和后4位，中间用****代替）
@@ -1080,6 +1357,228 @@ const toggleDebugMode = async () => {
   }
 };
 
+// ============ AI 相关函数 ============
+
+/**
+ * 加载AI设置
+ */
+const loadAISettings = async () => {
+  if ((window as any).electronAPI && (window as any).electronAPI.getAISettings) {
+    try {
+      const settings = await (window as any).electronAPI.getAISettings();
+      if (settings) {
+        aiEnabled.value = settings.enabled || false;
+        defaultAIProvider.value = settings.defaultProvider || 'anthropic';
+        useCustomAIKeys.value = settings.useCustomKeys || false;
+
+        // 加载各个provider的API key
+        if (settings.credentials) {
+          Object.keys(aiAPIKeys.value).forEach(provider => {
+            const cred = settings.credentials[provider];
+            if (cred && cred.apiKey) {
+              (aiAPIKeys.value as any)[provider] = cred.apiKey;
+            }
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load AI settings:', error);
+    }
+  }
+};
+
+/**
+ * 保存AI设置
+ */
+const saveAISettings = async () => {
+  if ((window as any).electronAPI && (window as any).electronAPI.saveAISettings) {
+    try {
+      const credentials: any = {};
+
+      // 构建credentials对象
+      Object.keys(aiAPIKeys.value).forEach(provider => {
+        credentials[provider] = {
+          provider,
+          apiKey: (aiAPIKeys.value as any)[provider] || '',
+        };
+      });
+
+      const settings = {
+        enabled: aiEnabled.value,
+        defaultProvider: defaultAIProvider.value,
+        useCustomKeys: useCustomAIKeys.value,
+        credentials,
+      };
+
+      await (window as any).electronAPI.saveAISettings(settings);
+      console.log('AI settings saved');
+
+      // 显示保存成功通知
+      notificationCenter.value?.addNotification({
+        type: 'success',
+        title: 'AI 设置已保存',
+        message: `已${aiEnabled.value ? '启用' : '禁用'} AI 功能`,
+      });
+    } catch (error) {
+      console.error('Failed to save AI settings:', error);
+
+      notificationCenter.value?.addNotification({
+        type: 'error',
+        title: 'AI 设置保存失败',
+        message: '保存配置时发生错误，请重试',
+        persistent: true,
+      });
+    }
+  }
+};
+
+/**
+ * 切换AI启用状态
+ */
+const toggleAI = async () => {
+  await saveAISettings();
+};
+
+/**
+ * 打开外部链接
+ */
+const openURL = (url: string) => {
+  if ((window as any).electronAPI && (window as any).electronAPI.openExternal) {
+    (window as any).electronAPI.openExternal(url);
+  } else {
+    window.open(url, '_blank');
+  }
+};
+
+/**
+ * 执行AI健康度分析
+ */
+const analyzeHealth = async () => {
+  if (!(window as any).electronAPI) {
+    return;
+  }
+
+  // 检查是否有配置的 API Key
+  const hasAnyAPIKey = Object.values(aiAPIKeys.value).some(key => key && key.trim() !== '');
+
+  // 检查AI是否启用或是否有API Key
+  if (!aiEnabled.value || !hasAnyAPIKey) {
+    notificationCenter.value?.addNotification({
+      type: 'info',
+      title: 'AI 功能未配置',
+      message: '请在设置中配置 AI 功能：\n\n1. 启用 AI 功能开关\n2. 选择 AI 模型（推荐 Claude 或 DeepSeek）\n3. 勾选"使用自定义 API Key"\n4. 输入对应的 API Key',
+      persistent: true,
+      spotlight: true, // 使用聚光灯效果（屏幕中间大显示）
+    });
+    showSettings.value = true; // 自动打开设置页面
+    return;
+  }
+
+  try {
+    analyzingHealth.value = true;
+    error.value = '';
+
+    // 将Vue响应式对象转换为纯JavaScript对象
+    // 使用 toRaw() 获取响应式代理的原始对象
+    const positions = toRaw(futuresPositions.value);
+
+    // 构建汇总的账户信息（合并所有交易所的数据）
+    const aggregatedAccountInfo = {
+      exchange: 'ALL' as any, // 表示汇总所有交易所
+      totalWalletBalance: totalAssets.value.totalMarginBalance,
+      totalUnrealizedProfit: totalAssets.value.totalUnrealizedProfit,
+      totalMarginBalance: totalAssets.value.totalMarginBalance,
+      availableBalance: totalAssets.value.availableBalance,
+      maxWithdrawAmount: totalAssets.value.availableBalance,
+      spotTotalUSDT: totalAssets.value.spotTotalUSDT,
+      totalAssets: totalAssets.value.totalAssets,
+    };
+
+    console.log('[AI] Sending analysis request:', {
+      positionsCount: positions.length,
+      accountInfo: aggregatedAccountInfo,
+    });
+
+    // 调用AI分析服务
+    const result = await (window as any).electronAPI.aiAnalyzeHealth(
+      positions,
+      aggregatedAccountInfo,
+      defaultAIProvider.value
+    );
+
+    if (result.success) {
+      healthScore.value = result.data;
+      showHealthAnalysis.value = true; // 直接打开分析弹框
+      console.log('[AI] Health analysis completed:', result.data);
+
+      // 不显示 Toast 通知，避免重复（已经打开了弹框）
+      // 但保存到通知历史中，方便用户后续查看
+      notificationCenter.value?.addNotification({
+        type: 'success',
+        title: 'AI 分析完成',
+        message: `持仓健康度评分：${result.data.overallScore}/100\n${result.data.summary || ''}`,
+        actionLabel: '查看详情',
+        persistent: true, // 不自动显示为 Toast
+        spotlight: false, // 不显示聚光灯
+        onAction: () => {
+          showHealthAnalysis.value = true;
+        },
+      });
+    } else {
+      console.error('[AI] Analysis failed:', result.error);
+
+      // 根据错误类型显示不同的提示
+      let errorMessage = result.error || '未知错误';
+      let actionMessage = '';
+
+      if (errorMessage.includes('not initialized') || errorMessage.includes('not configured')) {
+        errorMessage = 'AI 服务未配置';
+        actionMessage = '请在设置中配置 API Key';
+      } else if (errorMessage.includes('403') || errorMessage.includes('forbidden')) {
+        errorMessage = 'API 访问被拒绝 (403)';
+        actionMessage = `可能的原因：
+1. API Key 格式错误（Claude 需要 sk-ant-api03-xxx 格式）
+2. API Key 无效或已过期
+3. 账户余额不足或被限制
+4. baseURL 配置错误（如使用了代理）
+
+请检查您的 API Key 配置`;
+      } else if (errorMessage.includes('API key') || errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+        errorMessage = 'API 认证失败 (401)';
+        actionMessage = '请检查您的 API Key 是否正确';
+      } else if (errorMessage.includes('network') || errorMessage.includes('timeout')) {
+        errorMessage = '网络请求超时';
+        actionMessage = '请检查网络连接或稍后重试';
+      }
+
+      notificationCenter.value?.addNotification({
+        type: 'error',
+        title: 'AI 分析失败',
+        message: `${errorMessage}${actionMessage ? '\n' + actionMessage : ''}`,
+        persistent: true,
+        spotlight: true, // 使用聚光灯效果
+      });
+
+      // 如果是配置问题，打开设置页面
+      if (errorMessage.includes('未配置') || errorMessage.includes('认证失败')) {
+        showSettings.value = true;
+      }
+    }
+  } catch (err: any) {
+    console.error('[AI] Analysis error:', err);
+
+    notificationCenter.value?.addNotification({
+      type: 'error',
+      title: 'AI 分析出错',
+      message: err.message || '执行分析时发生未知错误',
+      persistent: true,
+      spotlight: true,
+    });
+  } finally {
+    analyzingHealth.value = false;
+  }
+};
+
 // Window Opacity
 const updateWindowOpacity = async () => {
   if ((window as any).electronAPI) {
@@ -1155,21 +1654,57 @@ const confirmDeleteAll = async () => {
   }
 
   try {
-    await (window as any).electronAPI.deleteAllData();
+    const result = await (window as any).electronAPI.deleteAllData();
     showDeleteConfirm.value = false;
 
-    // 清空所有本地状态
-    apiKey.value = '';
-    apiSecret.value = '';
-    proxyUrl.value = '';
-    hasCredentials.value = false;
-    futuresPositions.value = [];
-    accountInfoList.value = [];
-    customPositionOrder.value = [];
+    if (result.success) {
+      // 清空所有本地状态
+      apiKey.value = '';
+      apiSecret.value = '';
+      proxyUrl.value = '';
+      hasCredentials.value = false;
+      futuresPositions.value = [];
+      accountInfoList.value = [];
+      customPositionOrder.value = [];
+      exchangeErrors.value = [];
 
-    console.log('[Settings] All data deleted');
+      // 清空所有交易所的凭证显示
+      exchangeCredentials.value = {
+        binance: { apiKey: '', apiSecret: '' },
+        bybit: { apiKey: '', apiSecret: '' },
+        okx: { apiKey: '', apiSecret: '', passphrase: '' },
+        hyperliquid: { apiKey: '', apiSecret: '' },
+      };
+      realCredentials.value = {
+        binance: { apiKey: '', apiSecret: '' },
+        bybit: { apiKey: '', apiSecret: '' },
+        okx: { apiKey: '', apiSecret: '', passphrase: '' },
+        hyperliquid: { apiKey: '', apiSecret: '' },
+      };
+
+      // 清空 localStorage 中的代理设置
+      localStorage.removeItem('proxyUrl');
+
+      console.log('[Settings] All data deleted successfully');
+
+      // 显示成功通知
+      notificationCenter.value?.addNotification({
+        type: 'success',
+        title: '数据已清空',
+        message: '所有 API 凭证和设置已删除',
+      });
+    } else {
+      throw new Error(result.error || '删除失败');
+    }
   } catch (err: any) {
     error.value = '删除数据失败: ' + err.message;
+
+    notificationCenter.value?.addNotification({
+      type: 'error',
+      title: '删除失败',
+      message: err.message || '删除数据时发生错误',
+      persistent: true,
+    });
   }
 };
 
@@ -1209,6 +1744,13 @@ const showQuitConfirmDialog = () => {
 // 取消退出
 const cancelQuit = () => {
   showQuitConfirm.value = false;
+};
+
+// 最小化窗口
+const minimizeWindow = async () => {
+  if ((window as any).electronAPI && (window as any).electronAPI.minimizeWindow) {
+    await (window as any).electronAPI.minimizeWindow();
+  }
 };
 
 // 确认退出应用
@@ -1281,8 +1823,28 @@ const saveExchangeCredentials = async (exchange: 'binance' | 'bybit' | 'okx' | '
     fetchData();
 
     console.log(`[Settings] ${exchange} credentials saved`);
+
+    // 显示成功通知
+    const exchangeNames: any = {
+      'binance': 'Binance',
+      'bybit': 'Bybit',
+      'okx': 'OKX',
+      'hyperliquid': 'Hyperliquid',
+    };
+    notificationCenter.value?.addNotification({
+      type: 'success',
+      title: 'API 凭证已保存',
+      message: `${exchangeNames[exchange]} 的 API 凭证已成功保存`,
+    });
   } catch (err: any) {
     error.value = `保存 ${exchange} API 失败: ${err.message}`;
+
+    notificationCenter.value?.addNotification({
+      type: 'error',
+      title: 'API 保存失败',
+      message: `保存 ${exchange.toUpperCase()} API 凭证时发生错误`,
+      persistent: true,
+    });
   }
 };
 
@@ -1308,8 +1870,28 @@ const removeExchangeCredentials = async (exchange: 'binance' | 'bybit' | 'okx' |
     fetchData();
 
     console.log(`[Settings] ${exchange} credentials removed`);
+
+    // 显示成功通知
+    const exchangeNames: any = {
+      'binance': 'Binance',
+      'bybit': 'Bybit',
+      'okx': 'OKX',
+      'hyperliquid': 'Hyperliquid',
+    };
+    notificationCenter.value?.addNotification({
+      type: 'success',
+      title: '凭证已删除',
+      message: `已删除 ${exchangeNames[exchange]} 的 API 凭证`,
+    });
   } catch (err: any) {
     error.value = `删除 ${exchange} API 失败: ${err.message}`;
+
+    notificationCenter.value?.addNotification({
+      type: 'error',
+      title: '删除失败',
+      message: `删除 ${exchange.toUpperCase()} API 凭证时发生错误`,
+      persistent: true,
+    });
   }
 };
 
@@ -1320,14 +1902,47 @@ const saveProxySettings = async () => {
   }
 
   try {
-    // 如果已经有凭证，重新保存
-    if (apiKey.value && apiSecret.value) {
-      await (window as any).electronAPI.saveApiKeys(apiKey.value, apiSecret.value, proxyUrl.value.trim());
+    const trimmedProxy = proxyUrl.value.trim();
+
+    // 保存到 localStorage（前端记忆）
+    if (trimmedProxy) {
+      localStorage.setItem('proxyUrl', trimmedProxy);
+    } else {
+      localStorage.removeItem('proxyUrl');
+    }
+
+    // 保存到后端并应用到所有交易所
+    if ((window as any).electronAPI.saveProxySettings) {
+      const result = await (window as any).electronAPI.saveProxySettings(trimmedProxy);
+      if (result.success) {
+        console.log('[Proxy] Proxy settings saved and applied');
+
+        // 显示成功通知
+        notificationCenter.value?.addNotification({
+          type: 'success',
+          title: trimmedProxy ? '代理已设置' : '代理已清除',
+          message: trimmedProxy
+            ? `已应用代理：${trimmedProxy}`
+            : '已清除代理配置，使用直连',
+        });
+      }
+    } else {
+      // 降级：如果没有专门的 API，用旧方法
+      if (apiKey.value && apiSecret.value) {
+        await (window as any).electronAPI.saveApiKeys(apiKey.value, apiSecret.value, trimmedProxy);
+      }
     }
 
     console.log('[Settings] Proxy settings saved');
   } catch (err: any) {
     error.value = '保存代理失败: ' + err.message;
+
+    notificationCenter.value?.addNotification({
+      type: 'error',
+      title: '代理设置失败',
+      message: err.message || '保存代理配置时发生错误',
+      persistent: true,
+    });
   }
 };
 
@@ -1411,6 +2026,95 @@ watch(refreshInterval, () => {
     startPanelRefresh();
   }
 });
+
+// ============ 错误处理函数 ============
+
+/**
+ * 加载交易所错误状态
+ */
+const loadExchangeErrors = async () => {
+  if (!(window as any).electronAPI) {
+    return;
+  }
+
+  try {
+    const errors = await (window as any).electronAPI.getExchangeErrors();
+    if (errors && errors.length > 0) {
+      exchangeErrors.value = errors;
+      console.log('[Errors] Loaded exchange errors:', errors);
+    }
+  } catch (err) {
+    console.error('[Errors] Failed to load exchange errors:', err);
+  }
+};
+
+/**
+ * 清除错误并重试
+ */
+const retryAfterError = async () => {
+  if (!(window as any).electronAPI) {
+    return;
+  }
+
+  try {
+    const result = await (window as any).electronAPI.clearExchangeErrors();
+    if (result.success) {
+      // 清除前端错误横幅
+      exchangeErrors.value = [];
+      error.value = '';
+      console.log('[Errors] Errors cleared, retrying...');
+
+      notificationCenter.value?.addNotification({
+        type: 'info',
+        title: '正在重新连接',
+        message: '已清除错误状态，正在尝试重新连接交易所...',
+      });
+
+      // 立即刷新数据
+      await fetchData();
+
+      // 等待一小段时间，确保后端有机会推送新的错误状态
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // 再次检查是否有新错误
+      const latestErrors = await (window as any).electronAPI.getExchangeErrors();
+
+      // 如果没有新错误，说明重新连接成功
+      if (!latestErrors || latestErrors.length === 0) {
+        // 确保前端也没有错误横幅
+        exchangeErrors.value = [];
+
+        notificationCenter.value?.addNotification({
+          type: 'success',
+          title: '重新连接成功',
+          message: '已成功连接到交易所，数据已更新',
+        });
+      } else {
+        // 有新错误，更新错误横幅
+        exchangeErrors.value = latestErrors;
+      }
+    } else {
+      error.value = '清除错误失败: ' + (result.error || '未知错误');
+
+      notificationCenter.value?.addNotification({
+        type: 'error',
+        title: '重新连接失败',
+        message: result.error || '清除错误状态时发生未知错误',
+        persistent: true,
+      });
+    }
+  } catch (err: any) {
+    error.value = '清除错误失败: ' + err.message;
+    console.error('[Errors] Failed to clear errors:', err);
+
+    notificationCenter.value?.addNotification({
+      type: 'error',
+      title: '重新连接出错',
+      message: err.message || '尝试重新连接时发生错误',
+      persistent: true,
+    });
+  }
+};
 
 onMounted(async () => {
   // 加载主题
@@ -1556,6 +2260,13 @@ onMounted(async () => {
     console.error('Failed to load position order:', err);
   }
 
+  // 加载AI设置
+  try {
+    await loadAISettings();
+  } catch (err) {
+    console.error('Failed to load AI settings:', err);
+  }
+
   hasCredentials.value = await (window as any).electronAPI.hasCredentials();
 
   if (hasCredentials.value) {
@@ -1567,6 +2278,19 @@ onMounted(async () => {
   // 监听刷新事件
   (window as any).electronAPI.onRefreshData(() => {
     fetchData();
+  });
+
+  // 加载错误状态
+  try {
+    await loadExchangeErrors();
+  } catch (err) {
+    console.error('Failed to load exchange errors:', err);
+  }
+
+  // 监听错误事件
+  (window as any).electronAPI.onExchangeErrors((errors: any[]) => {
+    exchangeErrors.value = errors;
+    console.log('[Errors] Received errors from main process:', errors);
   });
 });
 
@@ -1712,6 +2436,36 @@ onUnmounted(() => {
   flex: 1;
   margin-left: 4px;
   color: var(--text-primary);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  -webkit-app-region: no-drag;
+}
+
+.header-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background 0.2s, color 0.2s;
+  -webkit-app-region: no-drag;
+}
+
+.header-button:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.header-button:active {
+  opacity: 0.7;
 }
 
 .quit-button-header {
@@ -2054,6 +2808,35 @@ input:checked + .toggle-slider:before {
   color: var(--text-secondary);
 }
 
+.info-notice {
+  background: rgba(0, 122, 255, 0.05);
+  border-color: rgba(0, 122, 255, 0.2);
+}
+
+.notice-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notice-links {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.notice-links a {
+  color: var(--accent-blue);
+  text-decoration: none;
+  margin: 0 4px;
+  transition: opacity 0.2s;
+}
+
+.notice-links a:hover {
+  opacity: 0.7;
+  text-decoration: underline;
+}
+
 /* Exchange Tabs */
 .exchange-tabs {
   display: grid;
@@ -2226,6 +3009,16 @@ input:checked + .toggle-slider:before {
   opacity: 0.9;
 }
 
+.quit-btn {
+  color: var(--accent-red);
+}
+
+.quit-btn:hover:not(:disabled) {
+  background: var(--accent-red);
+  color: white;
+  border-color: var(--accent-red);
+}
+
 .rotating {
   display: inline-block;
   animation: rotate 1s linear infinite;
@@ -2286,6 +3079,12 @@ input:checked + .toggle-slider:before {
   font-size: 52px;
   margin-bottom: 18px;
   opacity: 0.8;
+}
+
+.empty-icon-svg {
+  color: var(--text-tertiary);
+  opacity: 0.6;
+  margin-bottom: 18px;
 }
 
 .empty-title {
@@ -2471,8 +3270,8 @@ input:checked + .toggle-slider:before {
 
 .total-card-stats {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px 12px;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 8px 10px;
 }
 
 .stat-item {
@@ -2882,7 +3681,7 @@ input:checked + .toggle-slider:before {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 20000; /* 高于通知中心 (10003) */
   backdrop-filter: blur(4px);
 }
 
@@ -3104,6 +3903,450 @@ input:checked + .toggle-slider:before {
 }
 
 .action-button:active {
+  transform: scale(0.98);
+}
+
+/* AI Analysis Button */
+.ai-btn {
+  background: linear-gradient(135deg, var(--accent-blue) 0%, #0066cc 100%);
+  color: white;
+  border-color: var(--accent-blue);
+}
+
+.ai-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.ai-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Health Analysis Dialog */
+.health-dialog {
+  background: var(--bg-primary);
+  border-radius: 16px;
+  width: 420px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-color);
+}
+
+.health-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.health-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.title-icon {
+  color: var(--accent-blue);
+}
+
+.health-title h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.health-body {
+  padding: 24px;
+}
+
+/* Score Section */
+.health-score-section {
+  text-align: center;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.score-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.score-circle {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 6px solid;
+  transition: all 0.3s;
+}
+
+.score-circle.score-excellent {
+  border-color: var(--accent-green);
+  background: rgba(52, 199, 89, 0.1);
+}
+
+.score-circle.score-good {
+  border-color: var(--accent-blue);
+  background: rgba(0, 122, 255, 0.1);
+}
+
+.score-circle.score-fair {
+  border-color: var(--accent-orange);
+  background: rgba(255, 149, 0, 0.1);
+}
+
+.score-circle.score-poor {
+  border-color: var(--accent-red);
+  background: rgba(255, 59, 48, 0.1);
+}
+
+.score-value {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'Roboto Mono', 'SF Mono', 'Monaco', monospace;
+}
+
+.score-max {
+  font-size: 16px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Metrics */
+.health-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.metric-item {
+  display: grid;
+  grid-template-columns: 100px 1fr 50px;
+  gap: 12px;
+  align-items: center;
+}
+
+.metric-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.metric-bar-container {
+  height: 8px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.metric-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-blue), #0066cc);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.metric-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: right;
+  font-family: 'Roboto Mono', 'SF Mono', 'Monaco', monospace;
+}
+
+/* Summary */
+.health-summary {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 10px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-icon {
+  flex-shrink: 0;
+}
+
+.summary-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Warnings */
+.health-warnings {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: rgba(255, 59, 48, 0.05);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 59, 48, 0.2);
+}
+
+.health-warnings .section-title {
+  color: var(--accent-red);
+}
+
+.health-warnings .section-icon {
+  color: var(--accent-red);
+}
+
+.warnings-list {
+  margin: 0;
+  padding-left: 20px;
+  list-style: none;
+}
+
+.warnings-list li {
+  position: relative;
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.7;
+  padding-left: 12px;
+  margin-bottom: 8px;
+}
+
+.warnings-list li:last-child {
+  margin-bottom: 0;
+}
+
+.warnings-list li::before {
+  content: '⚠️';
+  position: absolute;
+  left: -8px;
+  font-size: 12px;
+}
+
+/* Suggestions */
+.health-suggestions {
+  padding: 16px;
+  background: rgba(0, 122, 255, 0.05);
+  border-radius: 10px;
+  border: 1px solid rgba(0, 122, 255, 0.2);
+}
+
+.health-suggestions .section-title {
+  color: var(--accent-blue);
+}
+
+.health-suggestions .section-icon {
+  color: var(--accent-blue);
+}
+
+.suggestions-list {
+  margin: 0;
+  padding-left: 20px;
+  list-style: none;
+}
+
+.suggestions-list li {
+  position: relative;
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.7;
+  padding-left: 12px;
+  margin-bottom: 8px;
+}
+
+.suggestions-list li:last-child {
+  margin-bottom: 0;
+}
+
+.suggestions-list li::before {
+  content: '💡';
+  position: absolute;
+  left: -8px;
+  font-size: 12px;
+}
+
+.health-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+/* Exchange Errors Banner */
+.exchange-errors-banner {
+  margin: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.exchange-error-item {
+  background: rgba(255, 59, 48, 0.08);
+  border: 1.5px solid rgba(255, 59, 48, 0.3);
+  border-left: 4px solid var(--accent-red);
+  border-radius: 10px;
+  padding: 14px 16px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.app.dark-mode .exchange-error-item {
+  background: rgba(255, 69, 58, 0.12);
+  border-color: rgba(255, 69, 58, 0.35);
+}
+
+.error-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.error-icon {
+  color: var(--accent-red);
+  flex-shrink: 0;
+}
+
+.error-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent-red);
+  margin: 0;
+}
+
+.close-error-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.close-error-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: var(--text-primary);
+}
+
+.app.dark-mode .close-error-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.error-details {
+  margin-bottom: 12px;
+}
+
+.error-code {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0 0 8px 0;
+  font-family: 'Roboto Mono', 'SF Mono', 'Monaco', monospace;
+}
+
+.error-suggestion {
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-line;
+}
+
+.error-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.retry-btn,
+.settings-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.retry-btn {
+  background: var(--accent-blue);
+  color: white;
+  flex: 1;
+}
+
+.retry-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.retry-btn:active {
+  transform: translateY(0);
+}
+
+.settings-btn {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.settings-btn:hover {
+  background: var(--bg-primary);
+  border-color: var(--text-tertiary);
+}
+
+.settings-btn:active {
   transform: scale(0.98);
 }
 </style>

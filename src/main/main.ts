@@ -1,8 +1,10 @@
-import { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage } from 'electron';
+import { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell } from 'electron';
 import * as path from 'path';
 import { ExchangeManager } from './services/exchangeManager';
 import { SettingsManager } from './settings';
 import { Position, ExchangeType } from './types/exchange';
+import { aiService } from './services/ai';
+import { AIProvider, AISettings } from './types/ai';
 
 // Global error handlers to prevent crashes from EPIPE and other errors
 process.on('uncaughtException', (error) => {
@@ -212,6 +214,18 @@ function startAutoRefresh() {
     clearInterval(refreshInterval);
   }
   refreshInterval = setInterval(() => {
+    // 检查是否有错误状态，如果有则停止自动刷新
+    if (exchangeManager.hasAnyErrors()) {
+      console.log('[Main] Auto refresh paused due to exchange errors');
+      stopAutoRefresh();
+
+      // 通知前端有错误
+      if (window && window.webContents) {
+        window.webContents.send('exchange-errors', exchangeManager.getAllErrors());
+      }
+      return;
+    }
+
     updateTrayTitle();
   }, refreshIntervalSeconds * 1000); // 转换为毫秒
 
@@ -312,6 +326,17 @@ app.whenReady().then(() => {
   const displaySettings = settingsManager.getDisplaySettings();
   maxDisplayCount = displaySettings.maxDisplayCount;
   refreshIntervalSeconds = displaySettings.refreshInterval;
+
+  // 初始化 AI 服务
+  const aiSettings = settingsManager.getAISettings();
+  if (aiSettings && aiSettings.enabled) {
+    aiService.setConfig(aiSettings);
+    console.log('[Main] AI service initialized with settings:', {
+      enabled: aiSettings.enabled,
+      provider: aiSettings.defaultProvider,
+      useCustomKeys: aiSettings.useCustomKeys,
+    });
+  }
 
   createTray();
   createWindow();
@@ -507,8 +532,22 @@ ipcMain.handle('reset-to-defaults', async () => {
 
 // 删除所有数据（包括API凭证）
 ipcMain.handle('delete-all-data', async () => {
-  settingsManager.clearSettings();
-  return { success: true };
+  try {
+    // 1. 停止自动刷新
+    stopAutoRefresh();
+
+    // 2. 清除所有交易所的凭证（内存中的）
+    exchangeManager.removeAllCredentials();
+
+    // 3. 清空设置文件
+    settingsManager.clearSettings();
+
+    console.log('[IPC] All data deleted successfully');
+    return { success: true };
+  } catch (error: any) {
+    console.error('[IPC] Error deleting all data:', error);
+    return { success: false, error: error.message };
+  }
 });
 
 // ============ 新版多交易所 IPC handlers ============
@@ -584,6 +623,251 @@ ipcMain.handle('remove-exchange-credentials', async (_, exchange: string) => {
     return { success: true };
   } catch (error: any) {
     console.error('[IPC] Error removing exchange credentials:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// ============ AI 相关 IPC Handlers ============
+
+/**
+ * 获取AI设置
+ */
+ipcMain.handle('get-ai-settings', async () => {
+  try {
+    return settingsManager.getAISettings();
+  } catch (error: any) {
+    console.error('[IPC] Error getting AI settings:', error);
+    return null;
+  }
+});
+
+/**
+ * 保存AI设置
+ */
+ipcMain.handle('save-ai-settings', async (_, aiSettings: AISettings) => {
+  try {
+    settingsManager.setAISettings(aiSettings);
+
+    // 初始化AI服务
+    if (aiSettings.enabled) {
+      aiService.setConfig(aiSettings);
+      console.log('[IPC] AI service initialized');
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('[IPC] Error saving AI settings:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * 分析持仓健康度
+ */
+ipcMain.handle('ai-analyze-health', async (_, positions, accountInfo, provider?: AIProvider) => {
+  try {
+    if (!aiService.isAvailable()) {
+      throw new Error('AI service not initialized. Please configure AI settings first.');
+    }
+
+    console.log('[IPC] AI health analysis requested');
+    const result = await aiService.analyzePortfolioHealth(positions, accountInfo, provider);
+
+    return { success: true, data: result };
+  } catch (error: any) {
+    console.error('[IPC] AI health analysis failed:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * AI聊天
+ */
+ipcMain.handle('ai-chat', async (_, message: string, context?: any, provider?: AIProvider) => {
+  try {
+    if (!aiService.isAvailable()) {
+      throw new Error('AI service not initialized. Please configure AI settings first.');
+    }
+
+    console.log('[IPC] AI chat request:', message.substring(0, 50) + '...');
+    const response = await aiService.chat(message, context, provider);
+
+    return { success: true, data: response };
+  } catch (error: any) {
+    console.error('[IPC] AI chat failed:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * 清除AI对话历史
+ */
+ipcMain.handle('ai-clear-conversation', async () => {
+  try {
+    aiService.clearConversation();
+    return { success: true };
+  } catch (error: any) {
+    console.error('[IPC] Error clearing AI conversation:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * 检查AI服务是否可用
+ */
+ipcMain.handle('ai-is-available', async () => {
+  try {
+    return aiService.isAvailable();
+  } catch (error: any) {
+    console.error('[IPC] Error checking AI availability:', error);
+    return false;
+  }
+});
+
+/**
+ * 获取可用的AI提供商列表
+ */
+ipcMain.handle('ai-get-providers', async () => {
+  try {
+    return aiService.getAvailableProviders();
+  } catch (error: any) {
+    console.error('[IPC] Error getting AI providers:', error);
+    return [];
+  }
+});
+
+// ============ 错误处理相关 IPC Handlers ============
+
+/**
+ * 获取所有交易所错误
+ */
+ipcMain.handle('get-exchange-errors', async () => {
+  try {
+    return exchangeManager.getAllErrors();
+  } catch (error: any) {
+    console.error('[IPC] Error getting exchange errors:', error);
+    return [];
+  }
+});
+
+/**
+ * 清除所有错误状态（用户手动重试）
+ */
+ipcMain.handle('clear-exchange-errors', async () => {
+  try {
+    exchangeManager.clearAllErrors();
+
+    // 清除错误后，重新启动自动刷新
+    if (exchangeManager.hasAnyCredentials()) {
+      startAutoRefresh();
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('[IPC] Error clearing exchange errors:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// ============ 工具函数 IPC Handlers ============
+
+/**
+ * 打开外部链接
+ */
+ipcMain.handle('open-external', async (_, url: string) => {
+  try {
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (error: any) {
+    console.error('[IPC] Error opening external URL:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * 最小化窗口
+ */
+ipcMain.handle('minimize-window', async () => {
+  try {
+    if (window && !window.isDestroyed()) {
+      window.minimize();
+    }
+    return { success: true };
+  } catch (error: any) {
+    console.error('[IPC] Error minimizing window:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * 保存代理设置并应用到所有已配置的交易所
+ */
+ipcMain.handle('save-proxy-settings', async (_, proxyUrl: string) => {
+  try {
+    console.log('[IPC] Saving proxy settings:', proxyUrl || '(no proxy)');
+
+    // 保存到 settings
+    const currentCredentials = settingsManager.getCredentials();
+    if (currentCredentials) {
+      settingsManager.setCredentials(
+        currentCredentials.apiKey,
+        currentCredentials.apiSecret,
+        proxyUrl
+      );
+    } else {
+      // 如果没有旧凭证，只保存代理URL（创建一个空凭证记录）
+      settingsManager.setCredentials('', '', proxyUrl);
+    }
+
+    // 获取所有已配置的交易所凭证
+    const allCredentials = settingsManager.getAllExchangesCredentials();
+
+    // 重新应用所有凭证（包含新的代理配置）
+    if (allCredentials.binance) {
+      exchangeManager.setCredentials({
+        exchange: ExchangeType.BINANCE,
+        apiKey: allCredentials.binance.apiKey,
+        apiSecret: allCredentials.binance.apiSecret,
+        proxyUrl: proxyUrl,
+      });
+      console.log('[IPC] Proxy applied to Binance');
+    }
+
+    if (allCredentials.bybit) {
+      exchangeManager.setCredentials({
+        exchange: ExchangeType.BYBIT,
+        apiKey: allCredentials.bybit.apiKey,
+        apiSecret: allCredentials.bybit.apiSecret,
+        proxyUrl: proxyUrl,
+      });
+      console.log('[IPC] Proxy applied to Bybit');
+    }
+
+    if (allCredentials.okx) {
+      exchangeManager.setCredentials({
+        exchange: ExchangeType.OKX,
+        apiKey: allCredentials.okx.apiKey,
+        apiSecret: allCredentials.okx.apiSecret,
+        passphrase: allCredentials.okx.passphrase,
+        proxyUrl: proxyUrl,
+      });
+      console.log('[IPC] Proxy applied to OKX');
+    }
+
+    if (allCredentials.hyperliquid) {
+      exchangeManager.setCredentials({
+        exchange: ExchangeType.HYPERLIQUID,
+        apiKey: allCredentials.hyperliquid.apiKey,
+        apiSecret: allCredentials.hyperliquid.apiSecret,
+        proxyUrl: proxyUrl,
+      });
+      console.log('[IPC] Proxy applied to Hyperliquid');
+    }
+
+    console.log('[IPC] Proxy settings saved and applied to all exchanges');
+    return { success: true };
+  } catch (error: any) {
+    console.error('[IPC] Error saving proxy settings:', error);
     return { success: false, error: error.message };
   }
 });

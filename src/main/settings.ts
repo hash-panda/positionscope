@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { app } from 'electron';
+import { AIProvider, AICredentials, AISettings } from './types/ai';
 
 // 单个交易所的凭证
 interface ExchangeCredentials {
@@ -25,6 +26,9 @@ interface AppSettings {
 
   // 新的多交易所凭证存储
   exchanges?: ExchangesCredentials;
+
+  // AI 设置
+  ai?: AISettings;
 
   maxDisplayCount?: number;
   refreshInterval?: number;
@@ -285,5 +289,102 @@ export class SettingsManager {
       openAtLogin: false,
       openAsHidden: false,
     });
+  }
+
+  // ============ AI 设置方法 ============
+
+  /**
+   * 获取AI设置
+   */
+  getAISettings(): AISettings {
+    // 默认配置（不预设任何 API Key，由用户自行配置）
+    const defaultConfig: AISettings = {
+      enabled: false, // 默认关闭 AI 功能，等待用户配置
+      defaultProvider: AIProvider.ANTHROPIC, // Claude 作为默认推荐
+      useCustomKeys: true, // 默认使用自定义 Key（用户需要自己配置）
+      credentials: {
+        [AIProvider.OPENAI]: { provider: AIProvider.OPENAI, apiKey: '' },
+        [AIProvider.ANTHROPIC]: { provider: AIProvider.ANTHROPIC, apiKey: '' },
+        [AIProvider.DEEPSEEK]: { provider: AIProvider.DEEPSEEK, apiKey: '' },
+        [AIProvider.QWEN]: { provider: AIProvider.QWEN, apiKey: '' },
+        [AIProvider.GROK]: { provider: AIProvider.GROK, apiKey: '' },
+        [AIProvider.GEMINI]: { provider: AIProvider.GEMINI, apiKey: '' },
+      },
+    };
+
+    // 如果没有AI设置，返回默认配置
+    if (!this.settings.ai) {
+      return defaultConfig;
+    }
+
+    // 如果有AI设置，合并默认配置（确保所有provider都有定义）
+    const merged: AISettings = {
+      enabled: this.settings.ai.enabled ?? defaultConfig.enabled,
+      defaultProvider: this.settings.ai.defaultProvider ?? defaultConfig.defaultProvider,
+      useCustomKeys: this.settings.ai.useCustomKeys ?? defaultConfig.useCustomKeys,
+      credentials: {
+        ...defaultConfig.credentials, // 先应用默认配置
+        ...this.settings.ai.credentials, // 再覆盖用户配置
+      },
+    };
+
+    return merged;
+  }
+
+  /**
+   * 保存AI设置
+   */
+  setAISettings(aiSettings: AISettings) {
+    this.settings.ai = aiSettings;
+    this.saveSettings();
+    console.log('[SettingsManager] AI settings saved');
+  }
+
+  /**
+   * 设置AI启用状态
+   */
+  setAIEnabled(enabled: boolean) {
+    if (!this.settings.ai) {
+      this.settings.ai = this.getAISettings();
+    }
+    this.settings.ai.enabled = enabled;
+    this.saveSettings();
+  }
+
+  /**
+   * 设置AI默认提供商
+   */
+  setAIDefaultProvider(provider: AIProvider) {
+    if (!this.settings.ai) {
+      this.settings.ai = this.getAISettings();
+    }
+    this.settings.ai.defaultProvider = provider;
+    this.saveSettings();
+  }
+
+  /**
+   * 设置某个AI提供商的凭证
+   */
+  setAIProviderCredentials(provider: AIProvider, credentials: AICredentials) {
+    if (!this.settings.ai) {
+      this.settings.ai = this.getAISettings();
+    }
+    this.settings.ai.credentials[provider] = credentials;
+    this.saveSettings();
+    console.log(`[SettingsManager] AI credentials set for ${provider}`);
+  }
+
+  /**
+   * 获取某个AI提供商的凭证
+   */
+  getAIProviderCredentials(provider: AIProvider): AICredentials | null {
+    return this.settings.ai?.credentials[provider] || null;
+  }
+
+  /**
+   * 检查AI功能是否启用
+   */
+  isAIEnabled(): boolean {
+    return this.settings.ai?.enabled || false;
   }
 }
