@@ -62,44 +62,182 @@
       <div class="settings-content">
         <!-- API Configuration - Most Important -->
         <div class="settings-section">
-          <div class="section-header">🔑 API 配置</div>
-          <div class="setting-item column">
-            <label class="input-label">
-              <span class="exchange-badge binance">Binance</span>
-              API Key
-            </label>
-            <input
-              v-model="apiKey"
-              type="text"
-              class="text-input"
-              placeholder="输入 Binance API Key"
-              @blur="saveApiCredentials"
-            />
+          <div class="section-header">
+            <Key :size="16" class="section-icon" />
+            API 配置
           </div>
-          <div class="setting-item column">
-            <label class="input-label">
-              <span class="exchange-badge binance">Binance</span>
-              API Secret
-            </label>
-            <input
-              v-model="apiSecret"
-              type="password"
-              class="text-input"
-              placeholder="输入 Binance API Secret"
-              @blur="saveApiCredentials"
-            />
+
+          <!-- Exchange Tabs -->
+          <div class="exchange-tabs">
+            <button
+              v-for="exchange in availableExchanges"
+              :key="exchange.type"
+              :class="['tab-button', { active: activeExchangeTab === exchange.type }]"
+              @click="activeExchangeTab = exchange.type"
+            >
+              <ExchangeLogo :exchange="exchange.type" size="small" />
+              <span class="tab-label">{{ exchange.name }}</span>
+            </button>
           </div>
+
+          <!-- Tab Content -->
+          <div class="tab-content">
+            <!-- Binance -->
+            <div v-if="activeExchangeTab === 'binance'" class="exchange-config">
+              <div class="setting-item column">
+                <label class="input-label">API Key</label>
+                <input
+                  v-model="exchangeCredentials.binance.apiKey"
+                  type="text"
+                  class="text-input"
+                  placeholder="输入 Binance API Key"
+                  @focus="handleSecretFocus('binance', 'apiKey')"
+                  @blur="handleSecretBlur('binance', 'apiKey'); saveExchangeCredentials('binance')"
+                />
+              </div>
+              <div class="setting-item column">
+                <label class="input-label">API Secret</label>
+                <input
+                  v-model="exchangeCredentials.binance.apiSecret"
+                  type="text"
+                  class="text-input"
+                  placeholder="输入 Binance API Secret"
+                  @focus="handleSecretFocus('binance', 'apiSecret')"
+                  @blur="handleSecretBlur('binance', 'apiSecret'); saveExchangeCredentials('binance')"
+                />
+              </div>
+              <button
+                v-if="realCredentials.binance.apiKey || realCredentials.binance.apiSecret"
+                class="remove-credential-btn"
+                @click="removeExchangeCredentials('binance')"
+              >
+                删除 Binance 凭证
+              </button>
+            </div>
+
+            <!-- Bybit -->
+            <div v-if="activeExchangeTab === 'bybit'" class="exchange-config">
+              <div class="setting-item column">
+                <label class="input-label">API Key</label>
+                <input
+                  v-model="exchangeCredentials.bybit.apiKey"
+                  type="text"
+                  class="text-input"
+                  placeholder="输入 Bybit API Key"
+                  @focus="handleSecretFocus('bybit', 'apiKey')"
+                  @blur="handleSecretBlur('bybit', 'apiKey'); saveExchangeCredentials('bybit')"
+                />
+              </div>
+              <div class="setting-item column">
+                <label class="input-label">API Secret</label>
+                <input
+                  v-model="exchangeCredentials.bybit.apiSecret"
+                  type="text"
+                  class="text-input"
+                  placeholder="输入 Bybit API Secret"
+                  @focus="handleSecretFocus('bybit', 'apiSecret')"
+                  @blur="handleSecretBlur('bybit', 'apiSecret'); saveExchangeCredentials('bybit')"
+                />
+              </div>
+              <button
+                v-if="realCredentials.bybit.apiKey || realCredentials.bybit.apiSecret"
+                class="remove-credential-btn"
+                @click="removeExchangeCredentials('bybit')"
+              >
+                删除 Bybit 凭证
+              </button>
+            </div>
+
+            <!-- OKX -->
+            <div v-if="activeExchangeTab === 'okx'" class="exchange-config">
+              <div class="setting-item column">
+                <label class="input-label">API Key</label>
+                <input
+                  v-model="exchangeCredentials.okx.apiKey"
+                  type="text"
+                  class="text-input"
+                  placeholder="输入 OKX API Key"
+                  @focus="handleSecretFocus('okx', 'apiKey')"
+                  @blur="handleSecretBlur('okx', 'apiKey'); saveExchangeCredentials('okx')"
+                />
+              </div>
+              <div class="setting-item column">
+                <label class="input-label">API Secret</label>
+                <input
+                  v-model="exchangeCredentials.okx.apiSecret"
+                  type="text"
+                  class="text-input"
+                  placeholder="输入 OKX API Secret"
+                  @focus="handleSecretFocus('okx', 'apiSecret')"
+                  @blur="handleSecretBlur('okx', 'apiSecret'); saveExchangeCredentials('okx')"
+                />
+              </div>
+              <div class="setting-item column">
+                <label class="input-label">Passphrase</label>
+                <input
+                  v-model="exchangeCredentials.okx.passphrase"
+                  type="text"
+                  class="text-input"
+                  placeholder="输入 OKX Passphrase"
+                  @focus="handleSecretFocus('okx', 'passphrase')"
+                  @blur="handleSecretBlur('okx', 'passphrase'); saveExchangeCredentials('okx')"
+                />
+              </div>
+              <button
+                v-if="realCredentials.okx.apiKey || realCredentials.okx.apiSecret"
+                class="remove-credential-btn"
+                @click="removeExchangeCredentials('okx')"
+              >
+                删除 OKX 凭证
+              </button>
+            </div>
+
+            <!-- Hyperliquid -->
+            <div v-if="activeExchangeTab === 'hyperliquid'" class="exchange-config">
+              <div class="setting-item column">
+                <label class="input-label">API Key</label>
+                <input
+                  v-model="exchangeCredentials.hyperliquid.apiKey"
+                  type="text"
+                  class="text-input"
+                  placeholder="输入 Hyperliquid API Key"
+                  @focus="handleSecretFocus('hyperliquid', 'apiKey')"
+                  @blur="handleSecretBlur('hyperliquid', 'apiKey'); saveExchangeCredentials('hyperliquid')"
+                />
+              </div>
+              <div class="setting-item column">
+                <label class="input-label">API Secret</label>
+                <input
+                  v-model="exchangeCredentials.hyperliquid.apiSecret"
+                  type="text"
+                  class="text-input"
+                  placeholder="输入 Hyperliquid API Secret"
+                  @focus="handleSecretFocus('hyperliquid', 'apiSecret')"
+                  @blur="handleSecretBlur('hyperliquid', 'apiSecret'); saveExchangeCredentials('hyperliquid')"
+                />
+              </div>
+              <button
+                v-if="realCredentials.hyperliquid.apiKey || realCredentials.hyperliquid.apiSecret"
+                class="remove-credential-btn"
+                @click="removeExchangeCredentials('hyperliquid')"
+              >
+                删除 Hyperliquid 凭证
+              </button>
+            </div>
+          </div>
+
           <div class="setting-notice">
             <AlertTriangle :size="16" class="notice-icon-svg" />
             <span>请确保 API Key 仅开启查询权限，不要开启交易权限</span>
           </div>
-          <!-- Future: More Exchanges -->
-          <!-- <div class="add-exchange-btn">+ 添加其他交易所</div> -->
         </div>
 
         <!-- Display Settings - Frequently Used -->
         <div class="settings-section">
-          <div class="section-header">📊 显示设置</div>
+          <div class="section-header">
+            <BarChart3 :size="16" class="section-icon" />
+            显示设置
+          </div>
           <div class="setting-item">
             <div class="setting-label">
               <Hash :size="18" class="setting-icon-svg" />
@@ -141,7 +279,10 @@
 
         <!-- Appearance -->
         <div class="settings-section">
-          <div class="section-header">🎨 外观</div>
+          <div class="section-header">
+            <Palette :size="16" class="section-icon" />
+            外观
+          </div>
           <div class="setting-item">
             <div class="setting-label">
               <Moon :size="18" class="setting-icon-svg" />
@@ -171,7 +312,10 @@
 
         <!-- System Settings -->
         <div class="settings-section">
-          <div class="section-header">⚙️ 系统</div>
+          <div class="section-header">
+            <Cpu :size="16" class="section-icon" />
+            系统
+          </div>
           <div class="setting-item">
             <div class="setting-label">
               <Settings :size="18" class="setting-icon-svg" />
@@ -200,7 +344,10 @@
 
         <!-- Developer Settings -->
         <div class="settings-section">
-          <div class="section-header">🛠️ 开发者</div>
+          <div class="section-header">
+            <Wrench :size="16" class="section-icon" />
+            开发者
+          </div>
           <div class="setting-item">
             <div class="setting-label">
               <Settings :size="18" class="setting-icon-svg" />
@@ -219,7 +366,10 @@
 
         <!-- About & Data Management -->
         <div class="settings-section">
-          <div class="section-header">ℹ️ 关于</div>
+          <div class="section-header">
+            <CircleHelp :size="16" class="section-icon" />
+            关于
+          </div>
           <div class="setting-item column">
             <div class="about-info">
               <div class="about-row">
@@ -239,7 +389,10 @@
 
           <!-- Donate Section -->
           <div class="setting-item column">
-            <label class="input-label">⭐ 打赏支持</label>
+            <label class="input-label">
+              <Star :size="14" class="label-icon" />
+              打赏支持
+            </label>
             <div class="donate-section">
               <div class="donate-address">
                 <code class="eth-address">{{ ethAddress }}</code>
@@ -348,23 +501,35 @@
               </button>
             </div>
             <div class="total-card-amount">
-              {{ maskAmount((totalAssets.totalUnrealizedProfit >= 0 ? '+' : '') + formatNumber(totalAssets.totalMarginBalance, 2)) }}
+              {{ maskAmount(formatNumber(totalAssets.totalAssets, 2)) }}
               <span class="total-card-currency">USDT</span>
             </div>
             <div class="total-card-stats">
+              <div class="stat-item">
+                <span class="stat-label">现货账户</span>
+                <span class="stat-value">
+                  {{ maskAmount(formatNumber(totalAssets.spotTotalUSDT, 2)) }}
+                </span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">合约账户</span>
+                <span class="stat-value">
+                  {{ maskAmount(formatNumber(totalAssets.totalMarginBalance, 2)) }}
+                </span>
+              </div>
               <div class="stat-item">
                 <span class="stat-label">未实现盈亏</span>
                 <span class="stat-value" :class="{
                   'profit': totalAssets.totalUnrealizedProfit > 0,
                   'loss': totalAssets.totalUnrealizedProfit < 0
                 }">
-                  {{ maskAmount((totalAssets.totalUnrealizedProfit >= 0 ? '+' : '') + formatNumber(totalAssets.totalUnrealizedProfit, 2) + ' USDT') }}
+                  {{ maskAmount((totalAssets.totalUnrealizedProfit >= 0 ? '+' : '') + formatNumber(totalAssets.totalUnrealizedProfit, 2)) }}
                 </span>
               </div>
               <div class="stat-item">
                 <span class="stat-label">可用余额</span>
                 <span class="stat-value">
-                  {{ maskAmount('+' + formatNumber(totalAssets.availableBalance, 2)) }}
+                  {{ maskAmount(formatNumber(totalAssets.availableBalance, 2)) }}
                 </span>
               </div>
             </div>
@@ -385,24 +550,48 @@
               </div>
               <div class="exchange-card-body">
                 <div class="exchange-stat">
-                  <span class="exchange-stat-label">总计</span>
+                  <span class="exchange-stat-label">总资产</span>
                   <span class="exchange-stat-value">
-                    +{{ formatNumber(accountInfo.totalMarginBalance, 2) }}
+                    {{ maskAmount(formatNumber(accountInfo.totalAssets || accountInfo.totalMarginBalance, 2)) }}
                   </span>
                 </div>
-                <div class="exchange-stat">
-                  <span class="exchange-stat-label">可用余额</span>
-                  <span class="exchange-stat-value">
-                    +{{ formatNumber(accountInfo.availableBalance, 2) }}
-                  </span>
-                </div>
+                <!-- OKX显示资金账户和交易账户 -->
+                <template v-if="accountInfo.exchange === 'okx'">
+                  <div class="exchange-stat">
+                    <span class="exchange-stat-label">资金账户</span>
+                    <span class="exchange-stat-value">
+                      {{ maskAmount(formatNumber(accountInfo.fundingAccountUSDT || 0, 2)) }}
+                    </span>
+                  </div>
+                  <div class="exchange-stat">
+                    <span class="exchange-stat-label">交易账户</span>
+                    <span class="exchange-stat-value">
+                      {{ maskAmount(formatNumber(accountInfo.tradingAccountUSDT || 0, 2)) }}
+                    </span>
+                  </div>
+                </template>
+                <!-- 其他交易所显示现货和合约 -->
+                <template v-else>
+                  <div class="exchange-stat">
+                    <span class="exchange-stat-label">现货</span>
+                    <span class="exchange-stat-value">
+                      {{ maskAmount(formatNumber(accountInfo.spotTotalUSDT || 0, 2)) }}
+                    </span>
+                  </div>
+                  <div class="exchange-stat">
+                    <span class="exchange-stat-label">合约</span>
+                    <span class="exchange-stat-value">
+                      {{ maskAmount(formatNumber(accountInfo.totalMarginBalance, 2)) }}
+                    </span>
+                  </div>
+                </template>
                 <div class="exchange-stat">
                   <span class="exchange-stat-label">PNL</span>
                   <span class="exchange-stat-value" :class="{
                     'profit': accountInfo.totalUnrealizedProfit > 0,
                     'loss': accountInfo.totalUnrealizedProfit < 0
                   }">
-                    {{ accountInfo.totalUnrealizedProfit >= 0 ? '+' : '' }}{{ formatNumber(accountInfo.totalUnrealizedProfit, 2) }}
+                    {{ maskAmount((accountInfo.totalUnrealizedProfit >= 0 ? '+' : '') + formatNumber(accountInfo.totalUnrealizedProfit, 2)) }}
                   </span>
                 </div>
               </div>
@@ -530,7 +719,14 @@ import {
   Save,
   X,
   Eye,
-  EyeOff
+  EyeOff,
+  Key,
+  BarChart3,
+  Palette,
+  Cpu,
+  Wrench,
+  CircleHelp,
+  Star
 } from 'lucide-vue-next';
 import ExchangeLogo from './components/ExchangeLogo.vue';
 
@@ -577,6 +773,12 @@ interface AccountInfo {
   totalMarginBalance: number;
   availableBalance: number;
   maxWithdrawAmount: number;
+  spotTotalUSDT?: number;          // 现货账户总资产（USDT价值）
+  totalAssets?: number;            // 总资产（现货+合约，USDT价值）
+
+  // OKX专用字段
+  fundingAccountUSDT?: number;     // 资金账户（USDT价值）
+  tradingAccountUSDT?: number;     // 交易账户（USDT价值）
 }
 
 // State
@@ -606,6 +808,38 @@ const copied = ref(false); // 是否已复制地址
 const showDeleteConfirm = ref(false); // 显示删除所有数据确认对话框
 let panelRefreshInterval: NodeJS.Timeout | null = null;
 
+// 多交易所支持
+const activeExchangeTab = ref<'binance' | 'bybit' | 'okx' | 'hyperliquid'>('binance');
+const availableExchanges = [
+  { type: 'binance' as const, name: 'Binance' },
+  { type: 'bybit' as const, name: 'Bybit' },
+  { type: 'okx' as const, name: 'OKX' },
+  { type: 'hyperliquid' as const, name: 'Hyperliquid' },
+];
+
+const exchangeCredentials = ref({
+  binance: { apiKey: '', apiSecret: '' },
+  bybit: { apiKey: '', apiSecret: '' },
+  okx: { apiKey: '', apiSecret: '', passphrase: '' },
+  hyperliquid: { apiKey: '', apiSecret: '' },
+});
+
+// 用于跟踪哪些字段正在被编辑
+const editingFields = ref({
+  binance: { apiKey: false, apiSecret: false },
+  bybit: { apiKey: false, apiSecret: false },
+  okx: { apiKey: false, apiSecret: false, passphrase: false },
+  hyperliquid: { apiKey: false, apiSecret: false },
+});
+
+// 真实的完整凭证（用于保存）
+const realCredentials = ref({
+  binance: { apiKey: '', apiSecret: '' },
+  bybit: { apiKey: '', apiSecret: '' },
+  okx: { apiKey: '', apiSecret: '', passphrase: '' },
+  hyperliquid: { apiKey: '', apiSecret: '' },
+});
+
 // Computed
 const totalPnL = computed(() => {
   return futuresPositions.value.reduce((sum, position) => {
@@ -617,7 +851,9 @@ const totalPnL = computed(() => {
 const totalAssets = computed(() => {
   if (accountInfoList.value.length === 0) {
     return {
-      totalMarginBalance: 0,
+      totalAssets: 0,              // 总资产（现货+合约）
+      totalMarginBalance: 0,       // 合约账户总资产
+      spotTotalUSDT: 0,            // 现货账户总资产
       availableBalance: 0,
       totalUnrealizedProfit: 0,
     };
@@ -625,11 +861,13 @@ const totalAssets = computed(() => {
 
   return accountInfoList.value.reduce(
     (acc, account) => ({
+      totalAssets: acc.totalAssets + (account.totalAssets || 0),
       totalMarginBalance: acc.totalMarginBalance + account.totalMarginBalance,
+      spotTotalUSDT: acc.spotTotalUSDT + (account.spotTotalUSDT || 0),
       availableBalance: acc.availableBalance + account.availableBalance,
       totalUnrealizedProfit: acc.totalUnrealizedProfit + account.totalUnrealizedProfit,
     }),
-    { totalMarginBalance: 0, availableBalance: 0, totalUnrealizedProfit: 0 }
+    { totalAssets: 0, totalMarginBalance: 0, spotTotalUSDT: 0, availableBalance: 0, totalUnrealizedProfit: 0 }
   );
 });
 
@@ -670,6 +908,45 @@ const sortedPositions = computed(() => {
 // Helper Functions
 const formatSymbol = (symbol: string) => {
   return symbol.replace('USDT', '').replace('BUSD', '');
+};
+
+// 格式化密钥显示（显示前4位和后4位，中间用****代替）
+const maskSecret = (secret: string): string => {
+  if (!secret || secret.length <= 8) {
+    return secret;
+  }
+  const start = secret.substring(0, 4);
+  const end = secret.substring(secret.length - 4);
+  return `${start}****${end}`;
+};
+
+// 处理密钥输入框的focus事件
+const handleSecretFocus = (
+  exchange: 'binance' | 'bybit' | 'okx' | 'hyperliquid',
+  field: string
+) => {
+  // 标记为正在编辑
+  (editingFields.value[exchange] as any)[field] = true;
+  // 显示真实值
+  (exchangeCredentials.value[exchange] as any)[field] = (realCredentials.value[exchange] as any)[field];
+};
+
+// 处理密钥输入框的blur事件
+const handleSecretBlur = (
+  exchange: 'binance' | 'bybit' | 'okx' | 'hyperliquid',
+  field: string
+) => {
+  // 保存真实值
+  const realValue = (exchangeCredentials.value[exchange] as any)[field];
+  (realCredentials.value[exchange] as any)[field] = realValue;
+
+  // 标记为不在编辑
+  (editingFields.value[exchange] as any)[field] = false;
+
+  // 显示遮蔽值
+  if (realValue) {
+    (exchangeCredentials.value[exchange] as any)[field] = maskSecret(realValue);
+  }
 };
 
 // 动态格式化价格 - 根据价格大小决定小数位数
@@ -947,7 +1224,7 @@ const confirmQuitApp = async () => {
   }
 };
 
-// 保存 API 凭证
+// 保存 API 凭证 (旧版，向后兼容)
 const saveApiCredentials = async () => {
   if (!apiKey.value || !apiSecret.value) {
     return; // 静默失败，用户还在输入
@@ -971,6 +1248,68 @@ const saveApiCredentials = async () => {
     console.log('[Settings] API credentials saved');
   } catch (err: any) {
     error.value = '保存 API 失败: ' + err.message;
+  }
+};
+
+// 保存单个交易所的凭证
+const saveExchangeCredentials = async (exchange: 'binance' | 'bybit' | 'okx' | 'hyperliquid') => {
+  // 使用真实凭证进行保存
+  const credentials = realCredentials.value[exchange];
+
+  if (!credentials.apiKey || !credentials.apiSecret) {
+    return; // 静默失败，用户还在输入
+  }
+
+  if (!(window as any).electronAPI) {
+    return;
+  }
+
+  try {
+    // 添加代理URL
+    const credentialsWithProxy = {
+      ...credentials,
+      proxyUrl: proxyUrl.value.trim(),
+    };
+
+    await (window as any).electronAPI.saveExchangeCredentials(exchange, credentialsWithProxy);
+
+    hasCredentials.value = true;
+    error.value = '';
+
+    // 重新启动面板刷新定时器
+    startPanelRefresh();
+    fetchData();
+
+    console.log(`[Settings] ${exchange} credentials saved`);
+  } catch (err: any) {
+    error.value = `保存 ${exchange} API 失败: ${err.message}`;
+  }
+};
+
+// 删除单个交易所的凭证
+const removeExchangeCredentials = async (exchange: 'binance' | 'bybit' | 'okx' | 'hyperliquid') => {
+  if (!(window as any).electronAPI) {
+    return;
+  }
+
+  try {
+    await (window as any).electronAPI.removeExchangeCredentials(exchange);
+
+    // 清空真实凭证和显示凭证
+    if (exchange === 'okx') {
+      realCredentials.value[exchange] = { apiKey: '', apiSecret: '', passphrase: '' };
+      exchangeCredentials.value[exchange] = { apiKey: '', apiSecret: '', passphrase: '' };
+    } else {
+      (realCredentials.value[exchange] as any) = { apiKey: '', apiSecret: '' };
+      (exchangeCredentials.value[exchange] as any) = { apiKey: '', apiSecret: '' };
+    }
+
+    // 刷新数据
+    fetchData();
+
+    console.log(`[Settings] ${exchange} credentials removed`);
+  } catch (err: any) {
+    error.value = `删除 ${exchange} API 失败: ${err.message}`;
   }
 };
 
@@ -1087,6 +1426,67 @@ onMounted(async () => {
   if (!(window as any).electronAPI) {
     error.value = '请使用 Electron 启动应用（运行 pnpm dev 或 ./dev.sh）';
     return;
+  }
+
+  // 加载所有交易所的凭证
+  try {
+    const allCredentials = await (window as any).electronAPI.getAllExchangesCredentials();
+    if (allCredentials) {
+      // Binance
+      if (allCredentials.binance) {
+        realCredentials.value.binance = {
+          apiKey: allCredentials.binance.apiKey || '',
+          apiSecret: allCredentials.binance.apiSecret || '',
+        };
+        // 显示遮蔽值
+        exchangeCredentials.value.binance = {
+          apiKey: maskSecret(allCredentials.binance.apiKey || ''),
+          apiSecret: maskSecret(allCredentials.binance.apiSecret || ''),
+        };
+      }
+
+      // Bybit
+      if (allCredentials.bybit) {
+        realCredentials.value.bybit = {
+          apiKey: allCredentials.bybit.apiKey || '',
+          apiSecret: allCredentials.bybit.apiSecret || '',
+        };
+        exchangeCredentials.value.bybit = {
+          apiKey: maskSecret(allCredentials.bybit.apiKey || ''),
+          apiSecret: maskSecret(allCredentials.bybit.apiSecret || ''),
+        };
+      }
+
+      // OKX
+      if (allCredentials.okx) {
+        realCredentials.value.okx = {
+          apiKey: allCredentials.okx.apiKey || '',
+          apiSecret: allCredentials.okx.apiSecret || '',
+          passphrase: allCredentials.okx.passphrase || '',
+        };
+        exchangeCredentials.value.okx = {
+          apiKey: maskSecret(allCredentials.okx.apiKey || ''),
+          apiSecret: maskSecret(allCredentials.okx.apiSecret || ''),
+          passphrase: maskSecret(allCredentials.okx.passphrase || ''),
+        };
+      }
+
+      // Hyperliquid
+      if (allCredentials.hyperliquid) {
+        realCredentials.value.hyperliquid = {
+          apiKey: allCredentials.hyperliquid.apiKey || '',
+          apiSecret: allCredentials.hyperliquid.apiSecret || '',
+        };
+        exchangeCredentials.value.hyperliquid = {
+          apiKey: maskSecret(allCredentials.hyperliquid.apiKey || ''),
+          apiSecret: maskSecret(allCredentials.hyperliquid.apiSecret || ''),
+        };
+      }
+
+      console.log('[Exchange Credentials] Loaded all exchanges');
+    }
+  } catch (err) {
+    console.error('Failed to load exchange credentials:', err);
   }
 
   // 加载菜单栏显示设置
@@ -1356,7 +1756,17 @@ onUnmounted(() => {
   padding-left: 2px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+}
+
+.section-icon {
+  color: var(--accent-blue);
+  flex-shrink: 0;
+}
+
+.label-icon {
+  color: var(--accent-orange);
+  flex-shrink: 0;
 }
 
 .setting-item {
@@ -1642,6 +2052,84 @@ input:checked + .toggle-slider:before {
 .notice-icon-svg {
   flex-shrink: 0;
   color: var(--text-secondary);
+}
+
+/* Exchange Tabs */
+.exchange-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tab-button {
+  background: var(--bg-secondary);
+  border: 1.5px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.tab-button:hover {
+  border-color: var(--text-tertiary);
+  background: var(--bg-tertiary);
+}
+
+.tab-button.active {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+}
+
+.tab-button.active .tab-label {
+  color: white;
+  font-weight: 600;
+}
+
+.tab-label {
+  font-size: 12px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.tab-content {
+  margin-bottom: 10px;
+}
+
+.exchange-config {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.remove-credential-btn {
+  width: 100%;
+  padding: 10px 16px;
+  background: var(--bg-tertiary);
+  border: 1.5px solid var(--accent-red);
+  border-radius: 8px;
+  color: var(--accent-red);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 6px;
+}
+
+.remove-credential-btn:hover {
+  background: var(--accent-red);
+  color: white;
+}
+
+.remove-credential-btn:active {
+  transform: scale(0.98);
 }
 
 /* Main Panel */
@@ -1984,7 +2472,7 @@ input:checked + .toggle-slider:before {
 .total-card-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 10px 12px;
 }
 
 .stat-item {
@@ -2018,6 +2506,7 @@ input:checked + .toggle-slider:before {
 /* 交易所卡片网格 */
 .exchanges-grid {
   display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
   padding-top: 4px;
 }

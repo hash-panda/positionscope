@@ -2,10 +2,30 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { app } from 'electron';
 
+// 单个交易所的凭证
+interface ExchangeCredentials {
+  apiKey: string;
+  apiSecret: string;
+  passphrase?: string; // OKX 需要
+}
+
+// 所有交易所的凭证
+interface ExchangesCredentials {
+  binance?: ExchangeCredentials;
+  bybit?: ExchangeCredentials;
+  okx?: ExchangeCredentials;
+  hyperliquid?: ExchangeCredentials;
+}
+
 interface AppSettings {
+  // 向后兼容：保留旧的单个 API Key（用于 Binance）
   apiKey?: string;
   apiSecret?: string;
   proxyUrl?: string;
+
+  // 新的多交易所凭证存储
+  exchanges?: ExchangesCredentials;
+
   maxDisplayCount?: number;
   refreshInterval?: number;
   theme?: 'light' | 'dark' | 'auto';
@@ -56,11 +76,18 @@ export class SettingsManager {
     }
   }
 
-  // API 凭证
+  // ============ 旧版 API 凭证方法（向后兼容，用于 Binance）============
   setCredentials(apiKey: string, apiSecret: string, proxyUrl?: string) {
     this.settings.apiKey = apiKey;
     this.settings.apiSecret = apiSecret;
     this.settings.proxyUrl = proxyUrl || '';
+
+    // 同时也设置到新的 exchanges 结构中
+    if (!this.settings.exchanges) {
+      this.settings.exchanges = {};
+    }
+    this.settings.exchanges.binance = { apiKey, apiSecret };
+
     this.saveSettings();
   }
 
@@ -77,6 +104,73 @@ export class SettingsManager {
 
   hasCredentials(): boolean {
     return !!(this.settings.apiKey && this.settings.apiSecret);
+  }
+
+  // ============ 新版多交易所 API 凭证方法 ============
+
+  /**
+   * 设置单个交易所的凭证
+   */
+  setExchangeCredentials(
+    exchange: 'binance' | 'bybit' | 'okx' | 'hyperliquid',
+    credentials: ExchangeCredentials
+  ) {
+    if (!this.settings.exchanges) {
+      this.settings.exchanges = {};
+    }
+
+    this.settings.exchanges[exchange] = credentials;
+
+    // 如果是 Binance，也更新旧的字段（向后兼容）
+    if (exchange === 'binance') {
+      this.settings.apiKey = credentials.apiKey;
+      this.settings.apiSecret = credentials.apiSecret;
+    }
+
+    this.saveSettings();
+    console.log(`[SettingsManager] Credentials set for ${exchange}`);
+  }
+
+  /**
+   * 获取单个交易所的凭证
+   */
+  getExchangeCredentials(
+    exchange: 'binance' | 'bybit' | 'okx' | 'hyperliquid'
+  ): ExchangeCredentials | null {
+    return this.settings.exchanges?.[exchange] || null;
+  }
+
+  /**
+   * 获取所有交易所的凭证
+   */
+  getAllExchangesCredentials(): ExchangesCredentials {
+    return this.settings.exchanges || {};
+  }
+
+  /**
+   * 检查某个交易所是否有凭证
+   */
+  hasExchangeCredentials(exchange: 'binance' | 'bybit' | 'okx' | 'hyperliquid'): boolean {
+    const creds = this.settings.exchanges?.[exchange];
+    return !!(creds?.apiKey && creds?.apiSecret);
+  }
+
+  /**
+   * 删除某个交易所的凭证
+   */
+  removeExchangeCredentials(exchange: 'binance' | 'bybit' | 'okx' | 'hyperliquid') {
+    if (this.settings.exchanges) {
+      delete this.settings.exchanges[exchange];
+
+      // 如果是 Binance，也清除旧的字段
+      if (exchange === 'binance') {
+        delete this.settings.apiKey;
+        delete this.settings.apiSecret;
+      }
+
+      this.saveSettings();
+      console.log(`[SettingsManager] Credentials removed for ${exchange}`);
+    }
   }
 
   // 显示设置

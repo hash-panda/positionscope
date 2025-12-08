@@ -1,4 +1,7 @@
 import { BinanceService } from './binance';
+import { BybitService } from './bybit';
+import { OKXService } from './okx';
+import { HyperliquidService } from './hyperliquid';
 import {
   IExchangeService,
   ExchangeType,
@@ -17,12 +20,13 @@ export class ExchangeManager {
   private exchanges: Map<ExchangeType, IExchangeService> = new Map();
 
   constructor() {
-    // 初始化支持的交易所
+    // 初始化支持的所有交易所
     this.exchanges.set(ExchangeType.BINANCE, new BinanceService());
-    // TODO: 添加其他交易所
-    // this.exchanges.set(ExchangeType.BYBIT, new BybitService());
-    // this.exchanges.set(ExchangeType.OKX, new OKXService());
-    // this.exchanges.set(ExchangeType.HYPERLIQUID, new HyperliquidService());
+    this.exchanges.set(ExchangeType.BYBIT, new BybitService());
+    this.exchanges.set(ExchangeType.OKX, new OKXService());
+    this.exchanges.set(ExchangeType.HYPERLIQUID, new HyperliquidService());
+
+    logger.log('[ExchangeManager] Initialized with 4 exchanges: Binance, Bybit, OKX, Hyperliquid');
   }
 
   /**
@@ -37,6 +41,25 @@ export class ExchangeManager {
 
     exchange.setCredentials(credentials);
     logger.log(`[ExchangeManager] Credentials set for ${credentials.exchange}`);
+  }
+
+  /**
+   * 删除交易所凭证（将凭证设置为空）
+   */
+  removeCredentials(exchangeType: ExchangeType): void {
+    const exchange = this.exchanges.get(exchangeType);
+    if (!exchange) {
+      logger.error(`[ExchangeManager] Exchange ${exchangeType} not supported`);
+      throw new Error(`Exchange ${exchangeType} not supported`);
+    }
+
+    // 通过设置空凭证来清除
+    exchange.setCredentials({
+      exchange: exchangeType,
+      apiKey: '',
+      apiSecret: '',
+    });
+    logger.log(`[ExchangeManager] Credentials removed for ${exchangeType}`);
   }
 
   /**

@@ -268,15 +268,44 @@ app.whenReady().then(() => {
   // 初始化设置管理器
   settingsManager = new SettingsManager();
 
-  // 加载保存的设置
-  const credentials = settingsManager.getCredentials();
-  if (credentials) {
-    // 为币安交易所设置凭证（向后兼容）
+  // 加载保存的所有交易所凭证
+  const allCredentials = settingsManager.getAllExchangesCredentials();
+
+  // 为每个已配置的交易所设置凭证
+  if (allCredentials.binance) {
     exchangeManager.setCredentials({
       exchange: ExchangeType.BINANCE,
-      apiKey: credentials.apiKey,
-      apiSecret: credentials.apiSecret,
-      proxyUrl: credentials.proxyUrl,
+      apiKey: allCredentials.binance.apiKey,
+      apiSecret: allCredentials.binance.apiSecret,
+      proxyUrl: settingsManager.getCredentials()?.proxyUrl,
+    });
+  }
+
+  if (allCredentials.bybit) {
+    exchangeManager.setCredentials({
+      exchange: ExchangeType.BYBIT,
+      apiKey: allCredentials.bybit.apiKey,
+      apiSecret: allCredentials.bybit.apiSecret,
+      proxyUrl: settingsManager.getCredentials()?.proxyUrl,
+    });
+  }
+
+  if (allCredentials.okx) {
+    exchangeManager.setCredentials({
+      exchange: ExchangeType.OKX,
+      apiKey: allCredentials.okx.apiKey,
+      apiSecret: allCredentials.okx.apiSecret,
+      passphrase: allCredentials.okx.passphrase,
+      proxyUrl: settingsManager.getCredentials()?.proxyUrl,
+    });
+  }
+
+  if (allCredentials.hyperliquid) {
+    exchangeManager.setCredentials({
+      exchange: ExchangeType.HYPERLIQUID,
+      apiKey: allCredentials.hyperliquid.apiKey,
+      apiSecret: allCredentials.hyperliquid.apiSecret,
+      proxyUrl: settingsManager.getCredentials()?.proxyUrl,
     });
   }
 
@@ -288,7 +317,7 @@ app.whenReady().then(() => {
   createWindow();
 
   // 如果有凭证，启动自动刷新
-  if (credentials) {
+  if (exchangeManager.hasAnyCredentials()) {
     startAutoRefresh();
   }
 });
@@ -480,4 +509,81 @@ ipcMain.handle('reset-to-defaults', async () => {
 ipcMain.handle('delete-all-data', async () => {
   settingsManager.clearSettings();
   return { success: true };
+});
+
+// ============ 新版多交易所 IPC handlers ============
+
+// 保存单个交易所的凭证
+ipcMain.handle('save-exchange-credentials', async (_, exchange: string, credentials: any) => {
+  try {
+    const exchangeType = exchange.toLowerCase() as ExchangeType;
+
+    // 保存到设置管理器
+    settingsManager.setExchangeCredentials(
+      exchange as 'binance' | 'bybit' | 'okx' | 'hyperliquid',
+      credentials
+    );
+
+    // 设置到交易所管理器
+    exchangeManager.setCredentials({
+      exchange: exchangeType,
+      apiKey: credentials.apiKey,
+      apiSecret: credentials.apiSecret,
+      passphrase: credentials.passphrase,
+      proxyUrl: credentials.proxyUrl,
+    });
+
+    // 启动自动刷新
+    startAutoRefresh();
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('[IPC] Error saving exchange credentials:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 获取单个交易所的凭证
+ipcMain.handle('get-exchange-credentials', async (_, exchange: string) => {
+  try {
+    return settingsManager.getExchangeCredentials(
+      exchange as 'binance' | 'bybit' | 'okx' | 'hyperliquid'
+    );
+  } catch (error: any) {
+    console.error('[IPC] Error getting exchange credentials:', error);
+    return null;
+  }
+});
+
+// 获取所有交易所的凭证
+ipcMain.handle('get-all-exchanges-credentials', async () => {
+  try {
+    return settingsManager.getAllExchangesCredentials();
+  } catch (error: any) {
+    console.error('[IPC] Error getting all exchanges credentials:', error);
+    return {};
+  }
+});
+
+// 删除单个交易所的凭证
+ipcMain.handle('remove-exchange-credentials', async (_, exchange: string) => {
+  try {
+    const exchangeType = exchange.toLowerCase() as ExchangeType;
+
+    // 从设置管理器删除
+    settingsManager.removeExchangeCredentials(
+      exchange as 'binance' | 'bybit' | 'okx' | 'hyperliquid'
+    );
+
+    // 从交易所管理器删除
+    exchangeManager.removeCredentials(exchangeType);
+
+    // 更新托盘显示
+    updateTrayTitle();
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('[IPC] Error removing exchange credentials:', error);
+    return { success: false, error: error.message };
+  }
 });

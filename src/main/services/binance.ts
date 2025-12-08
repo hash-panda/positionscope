@@ -289,22 +289,38 @@ export class BinanceService implements IExchangeService {
     const signature = this.sign(params);
 
     try {
-      const response = await this.futuresClient.get('/fapi/v2/account', {
-        params: { ...params, signature },
-        headers: { 'X-MBX-APIKEY': this.apiKey },
-      });
+      // 并行获取合约账户信息和现货账户信息
+      const [futuresResponse, spotBalances] = await Promise.all([
+        this.futuresClient.get('/fapi/v2/account', {
+          params: { ...params, signature },
+          headers: { 'X-MBX-APIKEY': this.apiKey },
+        }),
+        this.getSpotBalances().catch((err) => {
+          logger.error('[BinanceService] Error getting spot balances for account info:', err.message);
+          return [];
+        }),
+      ]);
 
       logger.log('[BinanceService] Futures account info retrieved successfully');
 
+      // 计算现货账户总资产（USDT价值）
+      const spotTotalUSDT = spotBalances.reduce((sum, balance) => sum + (balance.usdValue || 0), 0);
+      logger.log('[BinanceService] Spot total USDT:', spotTotalUSDT);
+
       // 提取关键信息
+      const totalMarginBalance = parseFloat(futuresResponse.data.totalMarginBalance || '0');
       const accountInfo: AccountInfo = {
         exchange: this.exchangeType,
-        totalWalletBalance: parseFloat(response.data.totalWalletBalance || '0'),
-        totalUnrealizedProfit: parseFloat(response.data.totalUnrealizedProfit || '0'),
-        totalMarginBalance: parseFloat(response.data.totalMarginBalance || '0'),
-        availableBalance: parseFloat(response.data.availableBalance || '0'),
-        maxWithdrawAmount: parseFloat(response.data.maxWithdrawAmount || '0'),
+        totalWalletBalance: parseFloat(futuresResponse.data.totalWalletBalance || '0'),
+        totalUnrealizedProfit: parseFloat(futuresResponse.data.totalUnrealizedProfit || '0'),
+        totalMarginBalance: totalMarginBalance,
+        availableBalance: parseFloat(futuresResponse.data.availableBalance || '0'),
+        maxWithdrawAmount: parseFloat(futuresResponse.data.maxWithdrawAmount || '0'),
+        spotTotalUSDT: spotTotalUSDT,
+        totalAssets: spotTotalUSDT + totalMarginBalance,
       };
+
+      logger.log('[BinanceService] Total assets (spot + futures):', accountInfo.totalAssets);
 
       return accountInfo;
     } catch (error: any) {

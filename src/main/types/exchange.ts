@@ -38,11 +38,17 @@ export interface Position {
 // 账户信息（统一格式）
 export interface AccountInfo {
   exchange: ExchangeType;          // 交易所类型
-  totalWalletBalance: number;      // 钱包总余额
-  totalUnrealizedProfit: number;   // 未实现盈亏总额
-  totalMarginBalance: number;      // 保证金总余额
-  availableBalance: number;        // 可用余额
-  maxWithdrawAmount: number;       // 最大可提现金额
+  totalWalletBalance: number;      // 钱包总余额（合约）
+  totalUnrealizedProfit: number;   // 未实现盈亏总额（合约）
+  totalMarginBalance: number;      // 保证金总余额（合约）
+  availableBalance: number;        // 可用余额（合约）
+  maxWithdrawAmount: number;       // 最大可提现金额（合约）
+  spotTotalUSDT?: number;          // 现货账户总资产（USDT价值）
+  totalAssets?: number;            // 总资产（现货+合约，USDT价值）
+
+  // OKX专用字段
+  fundingAccountUSDT?: number;     // 资金账户（USDT价值）
+  tradingAccountUSDT?: number;     // 交易账户（USDT价值）
 }
 
 // 现货余额（统一格式）
