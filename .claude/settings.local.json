@@ -37,7 +37,14 @@
       "Bash(xargs kill -9)",
       "Bash(kill:*)",
       "Bash(npm run dev:*)",
-      "WebFetch(domain:www.okx.com)"
+      "WebFetch(domain:www.okx.com)",
+      "Bash(pnpm run build:*)",
+      "Bash(pnpm remove:*)",
+      "Bash(pnpm why node-fetch)",
+      "Bash(pnpm list:*)",
+      "Bash(npm run package:*)",
+      "Bash(wait)",
+      "Bash(npx asar:*)"
     ],
     "deny": [],
     "ask": []

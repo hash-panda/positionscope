@@ -2,23 +2,32 @@
  * Anthropic Provider (Claude)
  *
  * Claude API适配器，支持Claude系列模型
+ * 使用 axios 直接调用 API，避免 node-fetch 依赖问题
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { AxiosInstance } from 'axios';
 import { BaseAIProvider, ChatOptions } from '../base-provider';
 import { ChatMessage, AIModelConfig } from '../../../types/ai';
 import { logger } from '../../../utils/logger';
+import { createHttpClient, streamSSE } from '../../../utils/http-client';
 
 export class AnthropicProvider extends BaseAIProvider {
-  private client: Anthropic;
+  private client: AxiosInstance;
+  private baseURL: string;
 
   constructor(config: AIModelConfig) {
     super(config);
 
-    // 初始化Anthropic客户端
-    this.client = new Anthropic({
-      apiKey: config.apiKey,
-      baseURL: config.baseURL,
+    this.baseURL = config.baseURL || 'https://api.anthropic.com';
+
+    // 创建 axios 客户端
+    this.client = createHttpClient({
+      baseURL: this.baseURL,
+      headers: {
+        'x-api-key': config.apiKey,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json',
+      },
     });
 
     logger.log(`[Anthropic] Initialized with model: ${config.model}`);
@@ -35,7 +44,7 @@ export class AnthropicProvider extends BaseAIProvider {
       const systemMessage = messages.find(m => m.role === 'system')?.content || '';
       const conversationMessages = messages.filter(m => m.role !== 'system');
 
-      const response = await this.client.messages.create({
+      const response = await this.client.post('/v1/messages', {
         model: this.config.model,
         system: systemMessage,
         messages: conversationMessages.map(m => ({
@@ -46,15 +55,16 @@ export class AnthropicProvider extends BaseAIProvider {
         max_tokens: options?.maxTokens ?? this.config.maxTokens ?? 2000,
       });
 
-      const content = response.content[0]?.type === 'text'
-        ? response.content[0].text
+      const content = response.data.content[0]?.type === 'text'
+        ? response.data.content[0].text
         : '';
 
       logger.log(`[Anthropic] Response received, length: ${content.length}`);
       return content;
     } catch (error: any) {
-      logger.error('[Anthropic] Chat request failed:', error.message);
-      throw new Error(`Claude API Error: ${error.message}`);
+      const errorMsg = error.response?.data?.error?.message || error.message;
+      logger.error('[Anthropic] Chat request failed:', errorMsg);
+      throw new Error(`Claude API Error: ${errorMsg}`);
     }
   }
 
@@ -86,8 +96,9 @@ export class AnthropicProvider extends BaseAIProvider {
       logger.log('[Anthropic] JSON response parsed successfully');
       return parsed as T;
     } catch (error: any) {
-      logger.error('[Anthropic] JSON request failed:', error.message);
-      throw new Error(`Claude JSON Error: ${error.message}`);
+      const errorMsg = error.response?.data?.error?.message || error.message;
+      logger.error('[Anthropic] JSON request failed:', errorMsg);
+      throw new Error(`Claude JSON Error: ${errorMsg}`);
     }
   }
 
@@ -104,28 +115,41 @@ export class AnthropicProvider extends BaseAIProvider {
       const systemMessage = messages.find(m => m.role === 'system')?.content || '';
       const conversationMessages = messages.filter(m => m.role !== 'system');
 
-      const stream = await this.client.messages.create({
-        model: this.config.model,
-        system: systemMessage,
-        messages: conversationMessages.map(m => ({
-          role: m.role as 'user' | 'assistant',
-          content: m.content,
-        })),
-        stream: true,
-        temperature: this.config.temperature ?? 0.7,
-        max_tokens: this.config.maxTokens ?? 2000,
+      const stream = streamSSE(`${this.baseURL}/v1/messages`, {
+        headers: {
+          'x-api-key': this.config.apiKey,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json',
+        },
+        data: {
+          model: this.config.model,
+          system: systemMessage,
+          messages: conversationMessages.map(m => ({
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+          })),
+          stream: true,
+          temperature: this.config.temperature ?? 0.7,
+          max_tokens: this.config.maxTokens ?? 2000,
+        },
       });
 
-      for await (const event of stream) {
-        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-          onChunk(event.delta.text);
+      for await (const data of stream) {
+        try {
+          const event = JSON.parse(data);
+          if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+            onChunk(event.delta.text);
+          }
+        } catch (e) {
+          // 忽略解析错误
         }
       }
 
       logger.log('[Anthropic] Stream completed');
     } catch (error: any) {
-      logger.error('[Anthropic] Stream failed:', error.message);
-      throw new Error(`Claude Stream Error: ${error.message}`);
+      const errorMsg = error.response?.data?.error?.message || error.message;
+      logger.error('[Anthropic] Stream failed:', errorMsg);
+      throw new Error(`Claude Stream Error: ${errorMsg}`);
     }
   }
 }
