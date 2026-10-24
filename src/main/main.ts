@@ -117,7 +117,7 @@ function formatPositionsAsText(positions: PositionDisplayData[]): string {
 }
 
 // 更新菜单栏显示
-async function updateTrayTitle() {
+async function updateTrayTitle(snapshot?: Position[]) {
   if (!tray || !exchangeManager.hasAnyCredentials()) {
     if (tray) {
       tray.setTitle('--');
@@ -127,7 +127,7 @@ async function updateTrayTitle() {
   }
 
   try {
-    const positions = await exchangeManager.getAllFuturesPositions();
+    const positions = snapshot ?? await exchangeManager.getAllFuturesPositions();
 
     // A credential removal can complete while the request is in flight.
     if (!exchangeManager.hasAnyCredentials()) {
@@ -189,7 +189,7 @@ function startAutoRefresh() {
   }
   refreshInterval = setInterval(() => {
     // 检查是否有错误状态，如果有则停止自动刷新
-    if (exchangeManager.hasAnyErrors()) {
+    if (exchangeManager.hasBlockingErrors()) {
       console.log('[Main] Auto refresh paused due to exchange errors');
       stopAutoRefresh();
 
@@ -352,8 +352,8 @@ ipcMain.handle('get-spot-positions', async () => {
 ipcMain.handle('get-futures-positions', async () => {
   try {
     const positions = await exchangeManager.getAllFuturesPositions();
-    // 每次获取数据后更新菜单栏
-    updateTrayTitle();
+    // Reuse this snapshot; avoid a second API read that could hide a failed request.
+    await updateTrayTitle(positions);
     return positions;
   } catch (error: any) {
     return { error: error.message };

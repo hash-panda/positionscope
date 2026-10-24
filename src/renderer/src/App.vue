@@ -28,6 +28,7 @@ import HealthPanel from './components/HealthPanel.vue';
 import NotificationCenter from './components/NotificationCenter.vue';
 import PositionList from './components/PositionList.vue';
 import SettingsPanel from './components/SettingsPanel.vue';
+import ActivityPanel from './components/ActivityPanel.vue';
 
 const notificationCenter = ref<InstanceType<typeof NotificationCenter>>();
 const notificationsOpen = ref(false);
@@ -162,6 +163,7 @@ onUnmounted(() => {
         @close="app.currentView = 'overview'"
         @confirm="askConfirmation"
       />
+      <ActivityPanel v-else-if="app.currentView === 'activity'" :model="app" @close="app.currentView = 'overview'" />
       <HealthPanel
         v-else-if="app.currentView === 'health' && app.healthScore"
         :score="app.healthScore"
@@ -238,6 +240,7 @@ onUnmounted(() => {
                 <MoreHorizontal :size="20" />
               </button>
               <div v-if="moreOpen" ref="menu" class="more-menu">
+                <button @click="app.currentView = 'activity'; moreOpen = false"><SlidersHorizontal :size="15" />持仓动态 · 交易室</button>
                 <button
                   :disabled="!app.hasCredentials || app.loading"
                   @click="

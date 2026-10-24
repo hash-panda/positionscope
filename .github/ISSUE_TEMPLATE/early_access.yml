@@ -1,0 +1,25 @@
+name: 试用反馈 / Early access
+description: 自愿反馈场景，不收取凭证或持仓金额
+title: '[Feedback] '
+body:
+  - type: markdown
+    attributes:
+      value: 本表单公开。仅填写愿意公开的信息，不提供Key、真实持仓或联系方式。当前版本状态请先查看官网。
+  - type: input
+    id: system
+    attributes: {label: macOS版本与Apple Silicon或Intel}
+  - type: textarea
+    id: workflow
+    attributes: {label: 使用场景与最想更快看清的变化}
+    validations: {required: true}
+  - type: dropdown
+    id: activation
+    attributes:
+      label: 当前试用状态
+      options: [还未安装, 已安装未连接, 已完成只读接入并核对快照, 接入遇到问题]
+  - type: input
+    id: source
+    attributes: {label: 自愿填写：从哪里知道项目}
+  - type: textarea
+    id: value
+    attributes: {label: 哪个功能有用、哪个地方阻碍继续使用}

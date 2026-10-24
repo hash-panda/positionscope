@@ -1,0 +1,77 @@
+name: Signed macOS release
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    tags: ['v*']
+permissions:
+  contents: read
+concurrency:
+  group: signed-release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {fetch-depth: 0, persist-credentials: false}
+      - name: Require a reviewed master commit and matching version tag
+        run: |
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/master
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            test "${GITHUB_REF#refs/tags/v}" = "$(node -p 'require("./package.json").version')"
+          fi
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - run: corepack enable && corepack prepare pnpm@10.11.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck && pnpm test && pnpm build
+  sign:
+    if: github.event_name == 'workflow_dispatch' || vars.APPLE_SIGNING_ENABLED == 'true'
+    needs: quality
+    runs-on: macos-14
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix: {arch: [arm64, x64]}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '22'}
+      - run: corepack enable && corepack prepare pnpm@10.11.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Sign, notarize, staple and verify
+        run: python3 scripts/release-signed-mac.py --arch '${{ matrix.arch }}'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: signed-${{ matrix.arch }}
+          path: release/signed/*
+          if-no-files-found: error
+          retention-days: 7
+  publish:
+    needs: sign
+    runs-on: ubuntu-latest
+    permissions: {contents: write}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: {persist-credentials: false}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with: {pattern: 'signed-*', path: signed, merge-multiple: true}
+      - name: Create immutable signed preview
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          set -euo pipefail
+          version=$(node -p 'require("./package.json").version')
+          test "$(find signed -name '*.zip' | wc -l)" -eq 2
+          test "$(find signed -name '*.dmg' | wc -l)" -eq 2
+          (cd signed && sha256sum *.zip *.dmg > SHA256SUMS.txt)
+          gh release create "v${version}" signed/* --target "$GITHUB_SHA" --prerelease --title "PositionScope ${version} — signed & notarized" --notes-file docs/release-notes.md

@@ -1,0 +1,15 @@
+# PositionScope · 仓位镜
+
+> Independent, read-only macOS menu-bar position monitor. Current release v0.2.0-beta.1 is unsigned/unnotarized. Planned features are not released features.
+
+## Product
+- [Overview](https://positionscope.funagent.app/): Features and synthetic demonstration
+- [English overview](https://positionscope.funagent.app/en/): Current capabilities and limits
+- [Downloads](https://positionscope.funagent.app/download/): Verified release status
+- [Risk methodology](https://positionscope.funagent.app/guides/portfolio-risk/): Formulas and limitations
+- [Read-only setup](https://positionscope.funagent.app/guides/read-only-api/): Permissions and local credentials
+- [Privacy](https://positionscope.funagent.app/privacy/): Current data handling
+- [Roadmap](https://positionscope.funagent.app/roadmap/): Released versus planned capabilities
+- [Source](https://github.com/hash-panda/positionscope): MIT-declared source repository
+
+No exchange affiliation. No profit forecasts or verified performance claims. Local credentials are not yet encrypted through Keychain. AI processing is opt-in and sends sensitive risk aggregates to the selected model provider.

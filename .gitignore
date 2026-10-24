@@ -27,7 +27,9 @@ dist-ssr
 # Build output
 test-results/
 dist/
-build/
+build/*
+!build/electron-signed.cjs
+!build/entitlements.mac.plist
 release/
 
 # Environment variables
@@ -65,3 +67,7 @@ pnpm-workspace.yaml
 settings.json
 *.pem
 *.key
+
+# Python verification caches
+__pycache__/
+*.pyc

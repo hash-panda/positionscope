@@ -52,3 +52,15 @@ test('restoring display defaults preserves all exchange and AI credentials', () 
     fs.rmSync(directory, { recursive: true, force: true });
   }
 });
+test('disk failure rolls back in-memory settings and preserves previous file',()=>{
+ const directory=fs.mkdtempSync(path.join(os.tmpdir(),'positionscope-save-'));const load=Module._load;const rename=fs.renameSync;
+ try{
+  Module._load=function(id,...args){if(id==='electron')return {app:{getPath:()=>directory}};return load.call(this,id,...args)};
+  delete require.cache[require.resolve('../dist/main/settings.js')];
+  const {SettingsManager}=require('../dist/main/settings.js');const manager=new SettingsManager();manager.setTheme('dark');
+  const previous=fs.readFileSync(path.join(directory,'settings.json'),'utf8');
+  fs.renameSync=()=>{throw new Error('denied')};
+  assert.throws(()=>manager.setTheme('light'),/设置未保存/);assert.equal(manager.getTheme(),'dark');assert.equal(fs.readFileSync(path.join(directory,'settings.json'),'utf8'),previous);
+  assert.equal(fs.readdirSync(directory).length,1);
+ }finally{Module._load=load;fs.renameSync=rename;fs.rmSync(directory,{recursive:true,force:true})}
+});

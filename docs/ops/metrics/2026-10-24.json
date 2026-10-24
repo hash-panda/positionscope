@@ -1,0 +1,32 @@
+{
+  "observed_at": "2026-10-24T12:48:36.132Z",
+  "stars": 0,
+  "forks": 0,
+  "watchers": 0,
+  "open_items_including_PRs": 2,
+  "releases": [
+    {
+      "tag": "v0.2.0-beta.1",
+      "published_at": "2026-10-24T11:32:46Z",
+      "downloads": [
+        {
+          "name": "PositionScope-0.2.0-beta.1-arm64-mac.zip",
+          "count": 0
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.1-mac.zip",
+          "count": 0
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "count": 0
+        }
+      ]
+    }
+  ],
+  "website_visitors": null,
+  "activations": null,
+  "retention": null,
+  "paying_customers": null,
+  "revenue": null
+}
