@@ -1,6 +1,6 @@
 # macOS 签名与发布
 
-状态（2026-10-24）：六个 Apple Secrets 已配置，新 Developer ID Application 证书与私钥匹配，PKCS#12 完整性检查通过。首次 macOS 实跑已通过证书导入与身份查找，发现 electron-builder 24 的身份选择器不能带证书类型前缀，正在修复重跑；尚未完成签名、公证和发布。v0.2.0-beta.1 是未签名开发预览，不能用本文件证明它已经公证。
+状态（2026-10-24）：六个 Apple Secrets 已配置，`APPLE_SIGNING_ENABLED=true` 已启用。v0.2.0-beta.2 双架构 ZIP/DMG 均已完成 Developer ID 签名、Apple 公证、装订和 Gatekeeper 自动验证；发布运行：https://github.com/hash-panda/positionscope/actions/runs/40104806497 。验证记录与 SHA256SUMS 已按 GitHub 资产摘要交叉核对，副本见 docs/releases/v0.2.0-beta.2。旧 v0.2.0-beta.1 保持未签名状态。原生 UI、真实账户与升级迁移仍需实机回归。
 
 ## 与 AIbubu 的对应
 
@@ -24,7 +24,7 @@
 1. PR 的质量检查通过后合并 master。每个发布版本更新 package.json 和 release-notes，已有 Release 不覆盖。
 2. 在 [Signed macOS release](https://github.com/hash-panda/positionscope/actions/workflows/signed-release.yml) 选择 master → Run workflow。手动运行会检查密钥，不会降级成未签名发布。
 3. 两架构成功后检查 ZIP/DMG、SHA256SUMS 和各自 verification.json，再修改官网的版本与安装状态。
-4. 首次成功后可在 [Variables](https://github.com/hash-panda/positionscope/settings/variables/actions) 建立 `APPLE_SIGNING_ENABLED=true`，以后影响二进制的 master 提交自动尝试发布；文档/官网改动不会触发签名。流水线先查询当前版本的 Release，已有版本直接跳过，不覆盖产物。新的二进制需先更新 package.json 版本。可删除变量关闭自动签名。
+4. 已在 [Variables](https://github.com/hash-panda/positionscope/settings/variables/actions) 配置 `APPLE_SIGNING_ENABLED=true`，以后影响二进制的 master 提交自动尝试发布；文档/官网改动不会触发签名。流水线先查询当前版本的 Release，已有版本直接跳过，不覆盖产物。新的二进制需先更新 package.json 版本。可删除变量关闭自动签名。
 
 流水线要求构建提交属于 master；PR 不得到 Apple Secrets。签名 runner 使用临时钥匙串、最小 hardened runtime entitlement；验证 codesign 身份与团队，提交 notarytool，要求 Accepted，装订票据并验证 spctl，之后才上传和发布。DMG 单独签名、公证与装订。所有 action 固定提交 SHA；没有使用不受控第三方签名 action。日志不输出密钥、密码、私钥长度或密钥承载命令参数。临时钥匙串最后清除。
 

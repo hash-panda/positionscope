@@ -16,12 +16,12 @@ pnpm dev
 
 支持 Binance、Bybit、OKX、Hyperliquid 的现有只读适配器；资产总额沿用各适配器口径。AI 只解释线性 USDT/USD 仓位快照，不产生交易指令；缺少历史与强平价等信息时不生成绩效或强平指标。
 
-产品/安装包名称改为 PositionScope，macOS App ID 与旧用户数据目录保留，以便升级。Mac 原生行为、真实账户/模型连通性和签名公证尚未完成实测，未签名 ZIP 仅用于开发预览。
+产品/安装包名称改为 PositionScope，macOS App ID 与旧用户数据目录保留，以便升级。当前 Beta 已通过 macOS 双架构签名、公证、票据装订与 Gatekeeper 自动检查；原生交互和真实账户/模型连通性仍需实测。
 
 
 ## 下载与使用
 
-[开发预览 v0.2.0-beta.1](https://github.com/hash-panda/positionscope/releases/tag/v0.2.0-beta.1) 提供 Apple Silicon、Intel 的 macOS ZIP 和 SHA256 校验文件。安装包尚未签名或公证，macOS 原生交互与真实只读账户仍需实测。
+[签名 Beta v0.2.0-beta.2](https://github.com/hash-panda/positionscope/releases/tag/v0.2.0-beta.2) 提供 Apple Silicon、Intel 的 DMG/ZIP、SHA256 和公证验证记录。四个安装包均通过签名、公证和 Gatekeeper 自动验证；真实只读账户与原生交互仍需试用核对。
 
 打开菜单栏窗口，进入设置 → API 配置，选择交易所并保存只读凭证；隐藏金额会同时作用于持仓与菜单栏。设置 → AI 分析中可配置提供商、Key 与模型 ID，点击「AI 持仓分析」才发送计算后的风险汇总。
 
@@ -41,7 +41,7 @@ Electron + Vue 3 + TypeScript + Vite。原项目作者 Wang（hash-panda）；�
 
 ## 持续迭代与运营
 
-最新开发：会话内持仓变动、可选交易室和签名发布流水线；当前可下载版本请以官网和Release为准，主分支功能不代表已有二进制。
+当前签名 Beta 已包含会话内持仓变动、可选交易室和保存/接口错误修正。发布状态与验证记录以官网和 Release 为准。
 
 - [产品 Review 与官方方案调研](docs/PRODUCT-REVIEW.md)
 - [产品、周/月/年运营与商业验证规范](docs/OPERATING-PLAN.md)
