@@ -4,6 +4,7 @@
  * 本文件定义了AI集成所需的所有类型和接口
  */
 
+import type { RiskFacts } from '../services/ai/risk-facts';
 import { Position, AccountInfo } from './exchange';
 
 /**
@@ -34,6 +35,7 @@ export interface AIModelConfig {
  * AI提供商的凭证配置
  */
 export interface AICredentials {
+  model?: string;
   provider: AIProvider;
   apiKey: string;
   baseURL?: string;
@@ -62,11 +64,11 @@ export interface ChatMessage {
  * 持仓健康度评分
  */
 export interface HealthScore {
-  overallScore: number;           // 总体评分 (0-100)
-  diversification: number;        // 分散度评分 (0-100)
-  leverage: number;               // 杠杆合理性 (0-100)
-  riskExposure: number;          // 风险敞口 (0-100)
-  profitabilityRatio: number;    // 盈亏比 (0-100)
+  facts: RiskFacts;
+  snapshotId: string;
+  analyzedAt: string;
+  provider: string;
+  model: string;
   summary: string;               // 总结
   warnings: string[];            // 警告列表
   suggestions: string[];         // 建议列表
@@ -147,3 +149,4 @@ export interface CachedAnalysis {
   data: any;
   timestamp: number;
 }
+

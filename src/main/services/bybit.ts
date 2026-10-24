@@ -51,7 +51,7 @@ export class BybitService implements IExchangeService {
       this.apiSecret = apiSecret || '';
       logger.log('[BybitService] Credentials set - API Key:', credentialsOrApiKey.substring(0, 8) + '...');
 
-      if (proxyUrl && proxyUrl.trim()) {
+      if (typeof proxyUrl === 'string') {
         this.setProxy(proxyUrl.trim());
       }
     } else {
@@ -60,7 +60,7 @@ export class BybitService implements IExchangeService {
       this.apiSecret = credentials.apiSecret;
       logger.log('[BybitService] Credentials set - API Key:', credentials.apiKey.substring(0, 8) + '...');
 
-      if (credentials.proxyUrl && credentials.proxyUrl.trim()) {
+      if (typeof credentials.proxyUrl === 'string') {
         this.setProxy(credentials.proxyUrl.trim());
       }
     }
@@ -284,3 +284,4 @@ export class BybitService implements IExchangeService {
     }
   }
 }
+

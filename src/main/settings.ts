@@ -110,6 +110,10 @@ export class SettingsManager {
     return !!(this.settings.apiKey && this.settings.apiSecret);
   }
 
+  getProxyUrl(): string { return this.settings.proxyUrl || ''; }
+
+  setProxyUrl(proxyUrl: string) { this.settings.proxyUrl = proxyUrl; this.saveSettings(); }
+
   // ============ 新版多交易所 API 凭证方法 ============
 
   /**
@@ -156,7 +160,7 @@ export class SettingsManager {
    */
   hasExchangeCredentials(exchange: 'binance' | 'bybit' | 'okx' | 'hyperliquid'): boolean {
     const creds = this.settings.exchanges?.[exchange];
-    return !!(creds?.apiKey && creds?.apiSecret);
+    return !!(creds?.apiKey && (exchange === 'hyperliquid' || creds.apiSecret));
   }
 
   /**
@@ -269,10 +273,14 @@ export class SettingsManager {
   resetToDefaults() {
     const apiKey = this.settings.apiKey;
     const apiSecret = this.settings.apiSecret;
+    const exchanges = this.settings.exchanges;
+    const ai = this.settings.ai;
 
     this.settings = {
       apiKey,
       apiSecret,
+      exchanges,
+      ai,
       maxDisplayCount: 2,
       refreshInterval: 5,
       theme: 'dark',
@@ -388,3 +396,4 @@ export class SettingsManager {
     return this.settings.ai?.enabled || false;
   }
 }
+

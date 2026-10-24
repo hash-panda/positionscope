@@ -53,7 +53,7 @@ export class OKXService implements IExchangeService {
       // OKX passphrase should be passed as part of credentials
       logger.log('[OKXService] Credentials set - API Key:', credentialsOrApiKey.substring(0, 8) + '...');
 
-      if (proxyUrl && proxyUrl.trim()) {
+      if (typeof proxyUrl === 'string') {
         this.setProxy(proxyUrl.trim());
       }
     } else {
@@ -63,7 +63,7 @@ export class OKXService implements IExchangeService {
       this.apiPassphrase = credentials.passphrase || ''; // OKX specific
       logger.log('[OKXService] Credentials set - API Key:', credentials.apiKey.substring(0, 8) + '...');
 
-      if (credentials.proxyUrl && credentials.proxyUrl.trim()) {
+      if (typeof credentials.proxyUrl === 'string') {
         this.setProxy(credentials.proxyUrl.trim());
       }
     }
@@ -369,3 +369,4 @@ export class OKXService implements IExchangeService {
     }
   }
 }
+

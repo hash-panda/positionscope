@@ -1,10 +1,14 @@
 import { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell } from 'electron';
+
 import * as path from 'path';
+import * as fs from 'fs';
 import { ExchangeManager } from './services/exchangeManager';
 import { SettingsManager } from './settings';
 import { Position, ExchangeType } from './types/exchange';
 import { aiService } from './services/ai';
 import { AIProvider, AISettings } from './types/ai';
+import { orderPositions } from './utils/position-order';
+import { menuValues } from './utils/menu-format';
 
 // Global error handlers to prevent crashes from EPIPE and other errors
 process.on('uncaughtException', (error) => {
@@ -18,6 +22,10 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (reason, promise) => {
   console.error('[Main] Unhandled rejection at:', promise, 'reason:', reason);
 });
+
+// Preserve settings from the pre-PositionScope application.
+const previousDataDirectory = ['Binance Menubar', 'binance-menubar'].map(name => path.join(app.getPath('appData'), name)).find(directory => fs.existsSync(path.join(directory, 'settings.json')));
+if (previousDataDirectory) app.setPath('userData', previousDataDirectory);
 
 let tray: Tray | null = null;
 let window: BrowserWindow | null = null;
@@ -82,15 +90,6 @@ function createWindow() {
   }
 }
 
-// 格式化价格 - 动态小数位
-function formatPrice(price: number): string {
-  if (price >= 1000) return price.toFixed(0);      // 大于1000: 整数
-  if (price >= 100) return price.toFixed(1);       // 100-1000: 1位小数
-  if (price >= 1) return price.toFixed(2);         // 1-100: 2位小数
-  if (price >= 0.01) return price.toFixed(4);      // 0.01-1: 4位小数
-  return price.toFixed(6);                          // 小于0.01: 6位小数
-}
-
 // 格式化持仓数据（用于绘制）
 interface PositionDisplayData {
   symbol: string;
@@ -102,35 +101,17 @@ interface PositionDisplayData {
 }
 
 function formatPositionData(position: Position): PositionDisplayData {
-  const symbol = position.symbol.replace('USDT', '').replace('BUSD', '');
-  const price = parseFloat(position.markPrice);
-  const pnl = parseFloat(position.unRealizedProfit);
-  const entry = parseFloat(position.entryPrice);
-  const posAmt = parseFloat(position.positionAmt);
-
-  // 计算收益率
-  const pnlPercent = posAmt > 0
-    ? ((price - entry) / entry) * 100
-    : ((entry - price) / entry) * 100;
-
-  const sign = pnl >= 0 ? '+' : '';
-  const isProfit = pnl >= 0;
-
-  return {
-    symbol,
-    price: formatPrice(price),
-    pnl,
-    pnlText: `${sign}${pnl.toFixed(0)}`,
-    percentText: `${sign}${pnlPercent.toFixed(1)}%`,
-    isProfit
-  };
+  const pnl = Number(position.unRealizedProfit);
+  return { ...menuValues(position), pnl, isProfit: pnl >= 0 };
 }
 
 // 文字模式：格式化持仓为纯文本（无颜色）
 function formatPositionsAsText(positions: PositionDisplayData[]): string {
   const textParts: string[] = [];
   positions.forEach(pos => {
-    textParts.push(`${pos.symbol} ${pos.price} ${pos.pnlText} ${pos.percentText}`);
+    textParts.push(settingsManager.getHideAmounts()
+      ? `${pos.symbol} •••• •••• ••••`
+      : `${pos.symbol} ${pos.price} ${pos.pnlText} ${pos.percentText}`);
   });
   return textParts.join(' | ');
 }
@@ -147,6 +128,12 @@ async function updateTrayTitle() {
 
   try {
     const positions = await exchangeManager.getAllFuturesPositions();
+
+    // A credential removal can complete while the request is in flight.
+    if (!exchangeManager.hasAnyCredentials()) {
+      tray.setTitle('--');
+      return;
+    }
 
     if (!positions || positions.length === 0) {
       tray.setTitle('无持仓');
@@ -167,20 +154,7 @@ async function updateTrayTitle() {
 
     if (customOrder.length > 0) {
       // 使用自定义顺序
-      const symbolMap = new Map<string, Position>();
-      positions.forEach(p => symbolMap.set(p.symbol, p));
-
-      // 按自定义顺序添加
-      customOrder.forEach(symbol => {
-        const pos = symbolMap.get(symbol);
-        if (pos) {
-          sortedPositions.push(pos);
-          symbolMap.delete(symbol);
-        }
-      });
-
-      // 添加新的持仓（不在自定义顺序中的）
-      symbolMap.forEach(pos => sortedPositions.push(pos));
+      sortedPositions = orderPositions(positions, customOrder);
     } else {
       // 没有自定义顺序，按收益绝对值排序
       sortedPositions = positions.sort((a: Position, b: Position) => {
@@ -291,7 +265,7 @@ app.whenReady().then(() => {
       exchange: ExchangeType.BINANCE,
       apiKey: allCredentials.binance.apiKey,
       apiSecret: allCredentials.binance.apiSecret,
-      proxyUrl: settingsManager.getCredentials()?.proxyUrl,
+      proxyUrl: settingsManager.getProxyUrl(),
     });
   }
 
@@ -300,7 +274,7 @@ app.whenReady().then(() => {
       exchange: ExchangeType.BYBIT,
       apiKey: allCredentials.bybit.apiKey,
       apiSecret: allCredentials.bybit.apiSecret,
-      proxyUrl: settingsManager.getCredentials()?.proxyUrl,
+      proxyUrl: settingsManager.getProxyUrl(),
     });
   }
 
@@ -310,7 +284,7 @@ app.whenReady().then(() => {
       apiKey: allCredentials.okx.apiKey,
       apiSecret: allCredentials.okx.apiSecret,
       passphrase: allCredentials.okx.passphrase,
-      proxyUrl: settingsManager.getCredentials()?.proxyUrl,
+      proxyUrl: settingsManager.getProxyUrl(),
     });
   }
 
@@ -319,7 +293,7 @@ app.whenReady().then(() => {
       exchange: ExchangeType.HYPERLIQUID,
       apiKey: allCredentials.hyperliquid.apiKey,
       apiSecret: allCredentials.hyperliquid.apiSecret,
-      proxyUrl: settingsManager.getCredentials()?.proxyUrl,
+      proxyUrl: settingsManager.getProxyUrl(),
     });
   }
 
@@ -410,7 +384,7 @@ ipcMain.handle('save-display-settings', async (_, settings: {
   updateTrayTitle();
 
   // 重启自动刷新以应用新的刷新间隔
-  if (settingsManager.hasCredentials()) {
+  if (exchangeManager.hasAnyCredentials()) {
     startAutoRefresh();
   }
 
@@ -462,6 +436,7 @@ ipcMain.handle('get-futures-account-info', async () => {
 // 保存隐藏金额设置
 ipcMain.handle('save-hide-amounts', async (_, hide: boolean) => {
   settingsManager.setHideAmounts(hide);
+  updateTrayTitle();
   return { success: true };
 });
 
@@ -541,6 +516,14 @@ ipcMain.handle('delete-all-data', async () => {
 
     // 3. 清空设置文件
     settingsManager.clearSettings();
+    aiService.setConfig(settingsManager.getAISettings());
+    aiService.clearCache();
+    tray?.setTitle('--');
+    app.setLoginItemSettings({ openAtLogin: false, openAsHidden: false });
+    if (window) {
+      window.setOpacity(1);
+      window.webContents.closeDevTools();
+    }
 
     console.log('[IPC] All data deleted successfully');
     return { success: true };
@@ -664,12 +647,13 @@ ipcMain.handle('save-ai-settings', async (_, aiSettings: AISettings) => {
 /**
  * 分析持仓健康度
  */
-ipcMain.handle('ai-analyze-health', async (_, positions, accountInfo, provider?: AIProvider) => {
+ipcMain.handle('ai-analyze-health', async (_, positions, accountInfo, provider?: AIProvider, forceRefresh = false) => {
   try {
     if (!aiService.isAvailable()) {
       throw new Error('AI service not initialized. Please configure AI settings first.');
     }
 
+    if (forceRefresh) aiService.clearCache();
     console.log('[IPC] AI health analysis requested');
     const result = await aiService.analyzePortfolioHealth(positions, accountInfo, provider);
 
@@ -806,18 +790,7 @@ ipcMain.handle('save-proxy-settings', async (_, proxyUrl: string) => {
   try {
     console.log('[IPC] Saving proxy settings:', proxyUrl || '(no proxy)');
 
-    // 保存到 settings
-    const currentCredentials = settingsManager.getCredentials();
-    if (currentCredentials) {
-      settingsManager.setCredentials(
-        currentCredentials.apiKey,
-        currentCredentials.apiSecret,
-        proxyUrl
-      );
-    } else {
-      // 如果没有旧凭证，只保存代理URL（创建一个空凭证记录）
-      settingsManager.setCredentials('', '', proxyUrl);
-    }
+    settingsManager.setProxyUrl(proxyUrl);
 
     // 获取所有已配置的交易所凭证
     const allCredentials = settingsManager.getAllExchangesCredentials();
@@ -871,3 +844,4 @@ ipcMain.handle('save-proxy-settings', async (_, proxyUrl: string) => {
     return { success: false, error: error.message };
   }
 });
+

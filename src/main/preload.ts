@@ -46,8 +46,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('get-theme'),
 
   // 事件监听
-  onRefreshData: (callback: () => void) =>
-    ipcRenderer.on('refresh-data', callback),
+  onRefreshData: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('refresh-data', listener);
+    return () => ipcRenderer.removeListener('refresh-data', listener);
+  },
 
   // 应用控制
   quitApp: () =>
@@ -101,8 +104,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveAISettings: (settings: any) =>
     ipcRenderer.invoke('save-ai-settings', settings),
 
-  aiAnalyzeHealth: (positions: any, accountInfo: any, provider?: string) =>
-    ipcRenderer.invoke('ai-analyze-health', positions, accountInfo, provider),
+  aiAnalyzeHealth: (positions: any, accountInfo: any, provider?: string, forceRefresh = false) =>
+    ipcRenderer.invoke('ai-analyze-health', positions, accountInfo, provider, forceRefresh),
 
   aiChat: (message: string, context?: any, provider?: string) =>
     ipcRenderer.invoke('ai-chat', message, context, provider),
@@ -123,8 +126,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   clearExchangeErrors: () =>
     ipcRenderer.invoke('clear-exchange-errors'),
 
-  onExchangeErrors: (callback: (errors: any[]) => void) =>
-    ipcRenderer.on('exchange-errors', (_event, errors) => callback(errors)),
+  onExchangeErrors: (callback: (errors: any[]) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, errors: any[]) => callback(errors);
+    ipcRenderer.on('exchange-errors', listener);
+    return () => ipcRenderer.removeListener('exchange-errors', listener);
+  },
 
   // 工具函数
   openExternal: (url: string) =>
@@ -138,3 +144,4 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveProxySettings: (proxyUrl: string) =>
     ipcRenderer.invoke('save-proxy-settings', proxyUrl),
 });
+

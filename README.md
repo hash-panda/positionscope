@@ -1,3 +1,27 @@
+# PositionScope · 仓位镜
+
+macOS 菜单栏中的多交易所持仓监控与按需 AI 风险解读。
+
+官网：https://positionscope.funagent.app/ 。当前为开发预览；发布产物以 Releases 为准。
+
+```sh
+corepack enable
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+仅配置只读交易所凭证。当前使用本地设置文件，尚未接入系统钥匙串；不会验证交易所 Key 的权限。AI 分析会发送计算后的风险汇总至用户选择的模型提供商，调用费用由提供商收取。
+
+本地验证：`pnpm typecheck`、`pnpm test`、`pnpm build`；安装 Chromium 后 `pnpm test:ui`。设计见 [DESIGN.md](DESIGN.md)，评审与迭代见 [docs/product-quality.md](docs/product-quality.md)。
+
+支持 Binance、Bybit、OKX、Hyperliquid 的现有只读适配器；资产总额沿用各适配器口径。AI 只解释线性 USDT/USD 仓位快照，不产生交易指令；缺少历史与强平价等信息时不生成绩效或强平指标。
+
+产品/安装包名称改为 PositionScope，macOS App ID 与旧用户数据目录保留，以便升级。Mac 原生行为、真实账户/模型连通性和签名公证尚未完成实测，未签名 ZIP 仅用于开发预览。
+
+---
+
+以下保留原项目使用资料与作者信息；旧名称属于历史说明。
+
 # Binance MenuBar - 币安合约持仓查看器
 
 一个小巧的 macOS 菜单栏应用，专注于实时查看币安(Binance)的合约持仓信息。
@@ -208,3 +232,4 @@ MIT
 ## 免责声明
 
 本软件仅供学习和个人使用，不构成任何投资建议。使用本软件进行的任何交易决策，风险自负。
+
