@@ -211,7 +211,7 @@ onUnmounted(() => {
       </section>
       <section v-else class="screen overview-screen" aria-labelledby="overview-title">
         <header class="screen-header overview-header">
-          <h1 id="overview-title" ref="mainTitle" tabindex="-1">持仓盈亏</h1>
+          <div class="wordmark"><span class="brand-mark" aria-hidden="true">p.</span><div><h1 id="overview-title" ref="mainTitle" tabindex="-1">持仓盈亏</h1><span class="product-caption">PositionScope · 仓位镜</span></div></div>
           <div class="header-actions">
             <button
               ref="notificationButton"
@@ -372,7 +372,7 @@ onUnmounted(() => {
                   </div>
                 </dl>
               </section>
-              <div class="exchange-status-list" aria-label="交易所连接状态">
+              <details class="account-disclosure"><summary><span>账户连接 <span class="count numeric">{{ app.configuredExchanges.length }}</span></span><span class="muted">{{ app.stale ? '连接需关注' : '查看明细' }} <ChevronRight :size="13" /></span></summary>              <div class="exchange-status-list" aria-label="交易所连接状态">
                 <div
                   v-for="exchange in app.configuredExchanges"
                   :key="exchange.id"
@@ -440,7 +440,16 @@ onUnmounted(() => {
                   </details>
                 </div>
               </div>
-              <div class="section-heading positions-heading">
+</details>
+              <button
+                v-if="app.sortedPositions.length"
+                class="button secondary full-width analysis-button"
+                :disabled="app.analyzing || app.loading || app.stale"
+                @click="analyze"
+              >
+                <Sparkles :size="16" />{{ app.analyzing ? '正在分析持仓…' : 'AI 持仓分析'
+                }}<ChevronRight v-if="!app.analyzing" :size="14" class="header-end" />
+              </button>              <div class="section-heading positions-heading">
                 <h2>
                   持仓<span class="count numeric">{{ app.sortedPositions.length }}</span>
                 </h2>
@@ -465,15 +474,7 @@ onUnmounted(() => {
                   {{ app.stale ? '连接恢复后会自动更新。' : '账户已连接，有持仓后会自动显示。' }}
                 </p>
               </div>
-              <button
-                v-if="app.sortedPositions.length"
-                class="button secondary full-width analysis-button"
-                :disabled="app.analyzing || app.loading || app.stale"
-                @click="analyze"
-              >
-                <Sparkles :size="16" />{{ app.analyzing ? '正在分析持仓…' : 'AI 持仓分析'
-                }}<ChevronRight v-if="!app.analyzing" :size="14" class="header-end" />
-              </button>
+
             </template>
           </template>
         </main>

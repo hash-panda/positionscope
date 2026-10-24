@@ -62,6 +62,7 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
   const credentialDrafts = reactive(emptyCredentials());
   const savedCredentials = reactive(emptyCredentials());
   const aiKeyDrafts = reactive(emptyKeys());
+  const aiModelDrafts = reactive(emptyKeys());
   let savedAI: AISettings['credentials'] = {};
   const appVersion = ref('');
   const savedOrder = ref<string[]>([]);
@@ -298,7 +299,7 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
       ? Object.fromEntries(
           providers.map(({ id }) => [
             id,
-            { ...savedAI[id], provider: id, apiKey: aiKeyDrafts[id].trim() },
+            { ...savedAI[id], provider: id, apiKey: aiKeyDrafts[id].trim(), model: aiModelDrafts[id].trim() || undefined },
           ])
         )
       : savedAI;
@@ -327,7 +328,7 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
   }
 
   async function analyze() {
-    if (!api || analyzing.value || !positions.value.length) return;
+    if (!api || analyzing.value || !positions.value.length || stale.value || loading.value) return;
     if (
       !preferences.aiEnabled ||
       !preferences.useCustomKeys ||
@@ -368,17 +369,7 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
       );
       if (disposed || requestGeneration !== generation) return;
       check(result);
-      if (
-        !result.data ||
-        ![
-          'overallScore',
-          'diversification',
-          'leverage',
-          'riskExposure',
-          'profitabilityRatio',
-        ].every((key) => Number.isFinite(Number(result.data![key as keyof HealthScore])))
-      )
-        throw new Error('分析结果不完整，请重试');
+      if (!result.data?.facts || typeof result.data.summary !== 'string' || !Array.isArray(result.data.warnings) || !Array.isArray(result.data.suggestions)) throw new Error('分析结果不完整，请重试');
       healthScore.value = result.data;
       analysisTime.value = new Date();
       analysisProvider.value =
@@ -461,9 +452,10 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
       preferences.defaultProvider = ai.defaultProvider;
       preferences.useCustomKeys = ai.useCustomKeys;
       savedAI = structuredClone(ai.credentials || {});
-      for (const { id } of providers) aiKeyDrafts[id] = savedAI[id]?.apiKey || '';
+      for (const { id } of providers) { aiKeyDrafts[id] = savedAI[id]?.apiKey || ''; aiModelDrafts[id] = savedAI[id]?.model || ''; }
     } else {
       Object.assign(aiKeyDrafts, emptyKeys());
+      Object.assign(aiModelDrafts, emptyKeys());
       savedAI = {};
       preferences.aiEnabled = false;
     }
@@ -509,6 +501,7 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
         Object.assign(credentialDrafts, emptyCredentials());
         Object.assign(savedCredentials, emptyCredentials());
         Object.assign(aiKeyDrafts, emptyKeys());
+      Object.assign(aiModelDrafts, emptyKeys());
         savedAI = {};
         savedOrder.value = [];
         editingOrder.value = [];
@@ -587,6 +580,7 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
     credentialDrafts,
     savedCredentials,
     aiKeyDrafts,
+    aiModelDrafts,
     appVersion,
     saving,
     formError,

@@ -1,5 +1,7 @@
 import { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell } from 'electron';
+
 import * as path from 'path';
+import * as fs from 'fs';
 import { ExchangeManager } from './services/exchangeManager';
 import { SettingsManager } from './settings';
 import { Position, ExchangeType } from './types/exchange';
@@ -20,6 +22,10 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (reason, promise) => {
   console.error('[Main] Unhandled rejection at:', promise, 'reason:', reason);
 });
+
+// Preserve settings from the pre-PositionScope application.
+const previousDataDirectory = ['Binance Menubar', 'binance-menubar'].map(name => path.join(app.getPath('appData'), name)).find(directory => fs.existsSync(path.join(directory, 'settings.json')));
+if (previousDataDirectory) app.setPath('userData', previousDataDirectory);
 
 let tray: Tray | null = null;
 let window: BrowserWindow | null = null;

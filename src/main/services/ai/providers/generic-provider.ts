@@ -124,39 +124,6 @@ export class GrokProvider extends GenericProvider {
  */
 export class GeminiProvider extends GenericProvider {
   constructor(config: AIModelConfig) {
-    super({
-      ...config,
-      baseURL: config.baseURL || 'https://generativelanguage.googleapis.com/v1beta',
-      model: config.model || 'gemini-pro',
-    });
-  }
-
-  /**
-   * Gemini使用不同的认证方式
-   */
-  async chat(messages: ChatMessage[], options?: ChatOptions): Promise<string> {
-    try {
-      // Gemini使用API key作为query参数而不是header
-      const response = await axios.post(
-        `${this.config.baseURL}/models/${this.config.model}:generateContent?key=${this.config.apiKey}`,
-        {
-          contents: messages.map(m => ({
-            role: m.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: m.content }],
-          })),
-        },
-        {
-          headers: { 'Content-Type': 'application/json' },
-          timeout: 60000,
-        }
-      );
-
-      const content = response.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      logger.log('[Gemini] Response received');
-      return content;
-    } catch (error: any) {
-      logger.error('[Gemini] Chat failed:', error.message);
-      throw new Error(`Gemini API Error: ${error.message}`);
-    }
+    super({...config, baseURL:config.baseURL || 'https://generativelanguage.googleapis.com/v1beta/openai', model:config.model || 'gemini-2.5-flash'});
   }
 }

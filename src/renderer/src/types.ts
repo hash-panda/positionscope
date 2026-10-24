@@ -42,18 +42,9 @@ export interface AISettings {
   enabled: boolean;
   defaultProvider: Provider;
   useCustomKeys: boolean;
-  credentials: Partial<Record<Provider, { provider: Provider; apiKey: string; baseURL?: string }>>;
+  credentials: Partial<Record<Provider, { provider: Provider; apiKey: string; baseURL?: string; model?: string }>>;
 }
-export interface HealthScore {
-  overallScore: number;
-  diversification: number;
-  leverage: number;
-  riskExposure: number;
-  profitabilityRatio: number;
-  summary: string;
-  warnings: string[];
-  suggestions: string[];
-}
+export type HealthScore = import('../../main/types/ai').HealthScore;
 export interface ExchangeError {
   exchange: Exchange;
   errorCode: string;

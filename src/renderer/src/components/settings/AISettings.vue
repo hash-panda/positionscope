@@ -72,6 +72,9 @@ const selectedProvider = computed(() => providers.find((item) => item.id === pro
           :label="`${selectedProvider.name} API Key`"
           :disabled="!!model.saving"
         />
+        <label class="field-label" :for="`${provider}-model`">模型 ID（可选）</label>
+        <input :id="`${provider}-model`" v-model="model.aiModelDrafts[provider]" class="text-input" :disabled="!!model.saving" placeholder="留空沿用默认模型" autocomplete="off" />
+        <p class="helper">按提供商文档填写可用模型 ID；旧默认模型可能已停用。</p>
         <button class="button primary full-width" :disabled="!!model.saving">
           {{ model.saving === 'ai' ? '正在保存…' : '保存配置' }}
         </button>
@@ -79,7 +82,7 @@ const selectedProvider = computed(() => providers.find((item) => item.id === pro
     </template>
     <p v-else class="inline-note">请开启自定义 API Key 并配置默认提供商。</p>
     <p class="inline-note">
-      <ShieldCheck :size="15" /><span>分析时会将当前持仓与账户汇总发送给所选 AI 提供商。</span>
+      <ShieldCheck :size="15" /><span>分析时仅将本地计算的风险汇总发送给所选 AI 提供商，不发送 API Key 或逐笔开仓信息。</span>
     </p>
   </template>
   <div v-else class="empty-state compact">

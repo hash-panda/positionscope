@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowDown, ArrowUp } from 'lucide-vue-next';
+import { ArrowDown, ArrowUp, ChevronDown } from 'lucide-vue-next';
 import type { Position, Exchange } from '../types';
 import { positionKey } from '../../../main/utils/position-order';
 import { amount, direction, price, priceChange, signed, symbol } from '../utils/format';
@@ -114,6 +114,8 @@ defineEmits<{ move: [index: number, offset: number] }>();
             ></span
           >
         </div>
+        <details class="position-details">
+          <summary><span>价格与仓位详情</span><ChevronDown :size="13" /></summary>
         <dl class="position-prices">
           <div>
             <dt>开仓价</dt>
@@ -134,6 +136,8 @@ defineEmits<{ move: [index: number, offset: number] }>();
             </dd>
           </div>
         </dl>
+          <p class="position-margin helper">{{ position.marginType === 'isolated' ? '逐仓' : '全仓' }} · {{ hidden ? '••••' : Math.abs(Number(position.positionAmt)) }} {{ symbol(position.symbol) }}</p>
+        </details>
       </template>
     </li>
   </ol>

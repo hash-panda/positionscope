@@ -26,7 +26,7 @@ onUnmounted(() => {
 </script>
 <template>
   <div class="about-heading">
-    <h2>Trade Realtime View</h2>
+    <h2>PositionScope · 仓位镜</h2>
     <p>菜单栏持仓监控工具</p>
   </div>
   <dl class="about-details">

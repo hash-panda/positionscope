@@ -58,6 +58,10 @@ test-*.ts
 assets/
 
 # pnpm
-pnpm-lock.yaml
 pnpm-workspace.yaml
 
+
+# Local settings and credentials are never source artifacts
+settings.json
+*.pem
+*.key

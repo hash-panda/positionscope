@@ -62,7 +62,7 @@ async function fixture(page, options = {}) {
     const calls = [];
     const account = {
       exchange: 'binance',
-      totalAssets: 445.47,
+      totalAssets: options.large ? 1234567890123.45 : 445.47,
       spotTotalUSDT: 0.06,
       totalWalletBalance: 13.67,
       totalUnrealizedProfit: 431.73,
@@ -155,11 +155,8 @@ async function fixture(page, options = {}) {
         return {
           success: true,
           data: {
-            overallScore: 62,
-            diversification: 35,
-            leverage: 50,
-            riskExposure: 63,
-            profitabilityRatio: 78,
+            facts:{version:'risk-facts-v1',positionCount:1,grossNotional:919.32,netNotional:919.32,marginEquity:445.4,grossToEquity:2.06,largestAsset:'FOLKS',largestAssetShare:1,longNotional:919.32,shortNotional:0,adverseMove5Percent:45.966,adverseMoveToEquity:.1032,limitations:['仅为快照，缺少历史数据与强平价。']},
+            snapshotId:'demo-synthetic',model:'demo-model',provider:'deepseek',analyzedAt:'2026-10-24T10:00:00Z',
             summary: '当前持仓集中，需关注杠杆与风险敞口。',
             warnings: ['持仓较集中', '10× 杠杆会放大波动影响'],
             suggestions: ['结合自身风险承受能力，复核仓位安排。'],
@@ -290,6 +287,9 @@ async function fixture(page, options = {}) {
     });
     const page = await open();
     await capture(page, '01-overview');
+    await page.getByText('价格与仓位详情', {exact:true}).first().click();
+    await capture(page, '01-overview-expanded');
+    await page.getByText('价格与仓位详情', {exact:true}).first().click();
     const analysis = page.getByRole('button', { name: 'AI 持仓分析', exact: true });
     assert(await analysis.isVisible());
     assert(await analysis.evaluate((element) => element.getBoundingClientRect().bottom <= 565));
@@ -404,6 +404,10 @@ async function fixture(page, options = {}) {
     results.push('notifications read state and amount privacy');
 
     const multi = await open({ multiple: true });
+    await capture(multi, '07-multiple-overview');
+    assert(await multi.locator('.position-item').nth(2).evaluate(element => element.getBoundingClientRect().bottom <= 565));
+    await multi.getByText('价格与仓位详情', {exact:true}).first().click();
+    await capture(multi, '07-multiple-expanded');
     await multi.getByRole('button', { name: '调整顺序', exact: true }).click();
     assert.equal(await multi.locator('.position-item').count(), 3);
     const initial = await multi
@@ -459,6 +463,9 @@ async function fixture(page, options = {}) {
     await narrow.getByRole('button', { name: /^API 配置/ }).click();
     await capture(narrow, '15-narrow-form');
     results.push('320px width overflow checks');
+    const large = await open({large:true,multiple:true},320);
+    await capture(large,'16-large-amounts');
+    await large.close();
     assert.deepEqual(errors, [], 'browser errors');
     console.log(JSON.stringify({ results, errors, screenshots }, null, 2));
   } finally {
