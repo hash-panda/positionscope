@@ -25,6 +25,7 @@ dist-ssr
 *.sw?
 
 # Build output
+test-results/
 dist/
 build/
 release/
@@ -59,3 +60,4 @@ assets/
 # pnpm
 pnpm-lock.yaml
 pnpm-workspace.yaml
+

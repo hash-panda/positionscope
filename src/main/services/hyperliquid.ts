@@ -50,7 +50,7 @@ export class HyperliquidService implements IExchangeService {
       this.apiSecret = apiSecret || '';
       logger.log('[HyperliquidService] Credentials set - Address:', credentialsOrApiKey.substring(0, 8) + '...');
 
-      if (proxyUrl && proxyUrl.trim()) {
+      if (typeof proxyUrl === 'string') {
         this.setProxy(proxyUrl.trim());
       }
     } else {
@@ -59,7 +59,7 @@ export class HyperliquidService implements IExchangeService {
       this.apiSecret = credentials.apiSecret;
       logger.log('[HyperliquidService] Credentials set - Address:', credentials.apiKey.substring(0, 8) + '...');
 
-      if (credentials.proxyUrl && credentials.proxyUrl.trim()) {
+      if (typeof credentials.proxyUrl === 'string') {
         this.setProxy(credentials.proxyUrl.trim());
       }
     }
@@ -243,3 +243,4 @@ export class HyperliquidService implements IExchangeService {
     }
   }
 }
+
