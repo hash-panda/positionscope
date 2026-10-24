@@ -20,8 +20,8 @@ GEO每月人工抽样5个固定问题（Mac菜单栏多所持仓、只读配置�
 
 ## 可直接使用的发布素材（尚未向社交渠道发布）
 
-中文：我们在做 PositionScope · 仓位镜，一个开源的 Mac 菜单栏持仓工具。目标是少切几次屏，把多交易所仓位和变化看清楚；风险数字本地计算，AI按需解释。当前下载仍是未签名开发预览，凭证安全存储和签名版正在完善，不建议接重要账户。希望寻找有多所持仓场景的Mac用户，反馈你最难发现的变化。官网 https://positionscope.funagent.app/ ，源码 https://github.com/hash-panda/positionscope 。欢迎自愿Star或Watch，反馈无需提供Key或真实金额。
+中文：我们在做 PositionScope · 仓位镜，一个开源的 Mac 菜单栏持仓工具。目标是少切几次屏，把多交易所仓位和变化看清楚；风险数字本地计算，AI按需解释。当前已发布签名、公证的 Beta 版，凭证安全存储和原生场景仍在完善，欢迎用只读测试账户反馈。希望寻找有多所持仓场景的Mac用户，反馈你最难发现的变化。官网 https://positionscope.funagent.app/ ，源码 https://github.com/hash-panda/positionscope 。欢迎自愿Star或Watch，反馈无需提供Key或真实金额。
 
-English: PositionScope is an open-source Mac menu-bar position monitor. We are testing whether read-only multi-exchange snapshots and reproducible risk facts help users spot changes faster. The current download is an unsigned developer preview; secure credential storage and signed distribution are still being prepared. We welcome feedback from Mac users with multi-exchange workflows. No API keys or account balances are needed for feedback. https://positionscope.funagent.app/en/
+English: PositionScope is an open-source Mac menu-bar position monitor. We are testing whether read-only multi-exchange snapshots and reproducible risk facts help users spot changes faster. A signed and notarized beta is now available; secure credential storage, native UI and real-account validation are still being improved. We welcome feedback from Mac users with multi-exchange workflows. No API keys or account balances are needed for feedback. https://positionscope.funagent.app/en/
 
 建立群时优先提供公开规则、隐私提醒与反馈模板，用户主动加入；没有具体账号前不创建无人维护的邀请入口。收集问题进入Issue并合并重复项，公开周报回链到真实修复。

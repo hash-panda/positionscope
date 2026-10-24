@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0-beta.2",
+  "architecture": "arm64",
+  "app_notarization": "97b0b003-9396-4e77-b31e-09ce6d95e1be",
+  "dmg_notarization": "9ee05267-28d3-4a7d-bc20-150a66d66181",
+  "signature_verified": true,
+  "staple_validated": true,
+  "gatekeeper_assessment": "accepted",
+  "artifacts": {
+    "PositionScope-0.2.0-beta.2-arm64.zip": "059baed04c1497b48473f7b6a767bbb3c1b50b4de5eea7e36759a6973623fe02",
+    "PositionScope-0.2.0-beta.2-arm64.dmg": "e2fa513c410c61fb9d524bb63356057f4f2d7a5c2dcf6ea4d157484ec09a4a02"
+  }
+}

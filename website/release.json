@@ -1,0 +1,24 @@
+{
+  "version": "0.2.0-beta.2",
+  "tag": "v0.2.0-beta.2",
+  "published_at": "2026-10-24T15:02:17Z",
+  "signed_and_notarized": true,
+  "ci_run_url": "https://github.com/hash-panda/positionscope/actions/runs/40104806497",
+  "downloads": {
+    "arm64": {
+      "dmg": "https://github.com/hash-panda/positionscope/releases/download/v0.2.0-beta.2/PositionScope-0.2.0-beta.2-arm64.dmg",
+      "zip": "https://github.com/hash-panda/positionscope/releases/download/v0.2.0-beta.2/PositionScope-0.2.0-beta.2-arm64.zip"
+    },
+    "x64": {
+      "dmg": "https://github.com/hash-panda/positionscope/releases/download/v0.2.0-beta.2/PositionScope-0.2.0-beta.2-x64.dmg",
+      "zip": "https://github.com/hash-panda/positionscope/releases/download/v0.2.0-beta.2/PositionScope-0.2.0-beta.2-x64.zip"
+    }
+  },
+  "verification_records": {
+    "arm64": "https://github.com/hash-panda/positionscope/releases/download/v0.2.0-beta.2/PositionScope-0.2.0-beta.2-arm64-verification.json",
+    "x64": "https://github.com/hash-panda/positionscope/releases/download/v0.2.0-beta.2/PositionScope-0.2.0-beta.2-x64-verification.json"
+  },
+  "checksums": "https://github.com/hash-panda/positionscope/releases/download/v0.2.0-beta.2/SHA256SUMS.txt",
+  "native_ui_tested": false,
+  "real_accounts_tested": false
+}

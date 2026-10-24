@@ -41,3 +41,7 @@ CI 在 PR 上执行类型、逻辑、构建、签名输入测试、官网检查�
 本轮静态公开准备检查覆盖默认分支全部 9 个历史提交的 patch 与当前源码，未匹配预设的 API Token / 私钥模式；这是静态模式检查，并非无凭证泄漏的绝对保证。本地工具权限文件从当前树移除，不重写历史。移除未被源码引用的 canvas、crypto-js、form-data、abort-controller，减少打包与原生依赖负担。
 
 首轮合并与发布：PR #1 已合并，GitHub CI 质量检查及 macOS 双架构 ZIP 构建通过，v0.2.0-beta.1 预发布已创建。签名/公证与原生实机验证仍未完成。
+
+## 后续签名验收（2026-10-24）
+
+PR #10 修复 electron-builder 身份选择器，17 项 Node 与 4 项 Python 测试及 GitHub CI 通过。发布运行 40104806497 的 quality、arm64、x64、publish 全部成功，v0.2.0-beta.2 的四个安装包完成 Developer ID 签名、Apple 公证、票据装订和 Gatekeeper 自动检查。验证记录与 GitHub 七项资产摘要一致。自动签名已启用，已有版本跳过，纯文档/官网变更不触发签名。原生交互、真实账户和加密存储仍未完成。
