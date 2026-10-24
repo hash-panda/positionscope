@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { randomBytes } from 'crypto';
 import { app } from 'electron';
 import { AIProvider, AICredentials, AISettings } from './types/ai';
 
@@ -43,11 +44,13 @@ interface AppSettings {
 export class SettingsManager {
   private settingsPath: string;
   private settings: AppSettings = {};
+  private persisted: AppSettings = {};
 
   constructor() {
     const userDataPath = app.getPath('userData');
     this.settingsPath = path.join(userDataPath, 'settings.json');
     this.loadSettings();
+    this.persisted = JSON.parse(JSON.stringify(this.settings));
   }
 
   private loadSettings() {
@@ -66,17 +69,20 @@ export class SettingsManager {
   }
 
   private saveSettings() {
+    const temporary = `${this.settingsPath}.${randomBytes(8).toString('hex')}.tmp`;
     try {
-      // 确保目录存在
-      const dir = path.dirname(this.settingsPath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-
-      fs.writeFileSync(this.settingsPath, JSON.stringify(this.settings, null, 2), 'utf-8');
-      console.log('[SettingsManager] Settings saved to:', this.settingsPath);
-    } catch (error) {
-      console.error('[SettingsManager] Error saving settings:', error);
+      fs.mkdirSync(path.dirname(this.settingsPath), { recursive: true, mode: 0o700 });
+      const descriptor = fs.openSync(temporary, 'wx', 0o600);
+      try {
+        fs.writeFileSync(descriptor, JSON.stringify(this.settings, null, 2), 'utf-8');
+        fs.fsyncSync(descriptor);
+      } finally { fs.closeSync(descriptor); }
+      fs.renameSync(temporary, this.settingsPath);
+      this.persisted = JSON.parse(JSON.stringify(this.settings));
+    } catch {
+      try { fs.unlinkSync(temporary); } catch { /* No partial settings survive. */ }
+      this.settings = JSON.parse(JSON.stringify(this.persisted));
+      throw new Error('设置未保存，请检查本机存储权限后重试');
     }
   }
 

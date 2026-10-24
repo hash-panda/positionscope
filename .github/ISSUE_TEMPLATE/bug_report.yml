@@ -1,0 +1,18 @@
+name: 问题反馈 / Bug
+description: 提供可复现、已脱敏的问题
+title: '[Bug] '
+body:
+  - type: markdown
+    attributes:
+      value: 不要提交 API Key、Secret、Passphrase、私钥、真实余额或可识别的截图。请使用合成数据。
+  - type: input
+    id: version
+    attributes: {label: 应用版本、macOS版本与芯片架构}
+    validations: {required: true}
+  - type: textarea
+    id: scenario
+    attributes: {label: 复现步骤、预期结果与实际结果}
+    validations: {required: true}
+  - type: textarea
+    id: evidence
+    attributes: {label: 已脱敏的错误与相关时间, description: 说明数据是否陈旧、网络状态；不要粘贴完整账户日志。}

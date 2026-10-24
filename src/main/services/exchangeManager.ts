@@ -30,7 +30,7 @@ export interface ExchangeError {
  */
 export class ExchangeManager {
   private exchanges: Map<ExchangeType, IExchangeService> = new Map();
-  private errorStates: Map<ExchangeType, ExchangeError> = new Map();
+  private errorStates: Map<string, ExchangeError> = new Map();
   private readonly MAX_CONSECUTIVE_FAILURES = 3; // 最大连续失败次数
 
   constructor() {
@@ -53,6 +53,7 @@ export class ExchangeManager {
       throw new Error(`Exchange ${credentials.exchange} not supported`);
     }
 
+    this.removeErrors(credentials.exchange);
     exchange.setCredentials(credentials);
     logger.log(`[ExchangeManager] Credentials set for ${credentials.exchange}`);
   }
@@ -75,7 +76,7 @@ export class ExchangeManager {
     });
 
     // 同时清除错误状态
-    this.errorStates.delete(exchangeType);
+    this.removeErrors(exchangeType);
 
     logger.log(`[ExchangeManager] Credentials removed for ${exchangeType}`);
   }
@@ -149,69 +150,42 @@ export class ExchangeManager {
   /**
    * 记录错误状态
    */
-  private recordError(exchangeType: ExchangeType, error: any): void {
+  private recordError(exchangeType: ExchangeType, error: any, operation: string): void {
+    const key = `${exchangeType}:${operation}`;
     const errorCode = error.code || 'UNKNOWN';
     const errorMessage = error.message || String(error);
-    const suggestion = this.getSuggestionForError(errorCode, errorMessage);
-
-    const existingError = this.errorStates.get(exchangeType);
-    const consecutiveFailures = existingError ? existingError.consecutiveFailures + 1 : 1;
-
-    const errorState: ExchangeError = {
-      exchange: exchangeType,
-      errorCode,
-      errorMessage,
-      timestamp: Date.now(),
-      consecutiveFailures,
-      suggestion,
-    };
-
-    this.errorStates.set(exchangeType, errorState);
-
-    logger.error(
-      `[ExchangeManager] ${exchangeType} error (${consecutiveFailures}/${this.MAX_CONSECUTIVE_FAILURES}):`,
-      errorMessage
-    );
-
-    if (consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES) {
-      logger.error(`[ExchangeManager] ${exchangeType} has failed ${consecutiveFailures} times consecutively. Auto-refresh may be paused.`);
-    }
+    this.errorStates.set(key, {
+      exchange: exchangeType, errorCode, errorMessage, timestamp: Date.now(),
+      consecutiveFailures: (this.errorStates.get(key)?.consecutiveFailures || 0) + 1,
+      suggestion: this.getSuggestionForError(errorCode, errorMessage),
+    });
   }
 
-  /**
-   * 清除错误状态（成功调用后）
-   */
-  private clearError(exchangeType: ExchangeType): void {
-    if (this.errorStates.has(exchangeType)) {
-      logger.log(`[ExchangeManager] ${exchangeType} error cleared after successful call`);
-      this.errorStates.delete(exchangeType);
-    }
+  private removeErrors(exchange: ExchangeType): void {
+    for (const key of this.errorStates.keys()) if (key.startsWith(`${exchange}:`)) this.errorStates.delete(key);
   }
 
-  /**
-   * 检查交易所是否处于错误状态（连续失败超过阈值）
-   */
-  isInErrorState(exchangeType: ExchangeType): boolean {
-    const error = this.errorStates.get(exchangeType);
-    return error ? error.consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES : false;
+  private clearError(exchange: ExchangeType, operation: string): void {
+    this.errorStates.delete(`${exchange}:${operation}`);
   }
 
-  /**
-   * 检查是否有任何交易所处于错误状态
-   */
-  hasAnyErrors(): boolean {
-    return Array.from(this.errorStates.values()).some(
-      error => error.consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES
-    );
+  isInErrorState(exchange: ExchangeType): boolean {
+    return [...this.errorStates.values()].some(error => error.exchange === exchange && error.consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES);
   }
 
-  /**
-   * 获取所有错误状态
-   */
+  hasAnyErrors(): boolean { return this.errorStates.size > 0; }
+
+  hasBlockingErrors(): boolean {
+    return [...this.errorStates.values()].some(error => error.consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES);
+  }
+
   getAllErrors(): ExchangeError[] {
-    return Array.from(this.errorStates.values()).filter(
-      error => error.consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES
-    );
+    const errors = new Map<ExchangeType, ExchangeError>();
+    for (const error of this.errorStates.values()) {
+      const previous = errors.get(error.exchange);
+      if (!previous || previous.timestamp <= error.timestamp) errors.set(error.exchange, error);
+    }
+    return [...errors.values()];
   }
 
   /**
@@ -267,14 +241,14 @@ export class ExchangeManager {
         logger.log(`[ExchangeManager] Got ${positions.length} positions from ${exchangeType}`);
 
         // 成功调用，清除错误状态
-        this.clearError(exchangeType);
+        this.clearError(exchangeType, 'positions');
 
         return positions;
       } catch (error: any) {
         logger.error(`[ExchangeManager] Error fetching positions from ${exchangeType}:`, error.message);
 
         // 记录错误
-        this.recordError(exchangeType, error);
+        this.recordError(exchangeType, error, 'positions');
 
         return [];
       }
@@ -314,14 +288,14 @@ export class ExchangeManager {
         logger.log(`[ExchangeManager] Got account info from ${exchangeType}`);
 
         // 成功调用，清除错误状态
-        this.clearError(exchangeType);
+        this.clearError(exchangeType, 'account');
 
         return accountInfo;
       } catch (error: any) {
         logger.error(`[ExchangeManager] Error fetching account info from ${exchangeType}:`, error.message);
 
         // 记录错误
-        this.recordError(exchangeType, error);
+        this.recordError(exchangeType, error, 'account');
 
         return null;
       }

@@ -1,0 +1,12 @@
+name: 场景建议 / Feature
+description: 描述问题、现有做法和验收结果
+title: '[Idea] '
+body:
+  - type: textarea
+    id: problem
+    attributes: {label: 具体场景与问题}
+    validations: {required: true}
+  - type: textarea
+    id: outcome
+    attributes: {label: 你希望看到什么结果、现在如何解决}
+    validations: {required: true}

@@ -466,6 +466,28 @@ async function fixture(page, options = {}) {
     const large = await open({large:true,multiple:true},320);
     await capture(large,'16-large-amounts');
     await large.close();
+    const activity = await open({}, 320);
+    await activity.getByRole('button', { name: '更多操作', exact: true }).click();
+    await activity.getByRole('button', { name: '持仓动态 · 交易室', exact: true }).click();
+    await activity.getByRole('heading', { name: '等待下一次持仓变化', exact: true }).waitFor();
+    await activity.evaluate(() => { window.__qa.positions[0].positionAmt = '400'; window.__qa.refresh(); });
+    await activity.getByText('FOLKS · 数量增加', { exact: true }).waitFor();
+    assert(await activity.getByText('binance · 多仓 · 380.1985 → 400', { exact: true }).isVisible());
+    await activity.getByRole('button', { name: '暂停示意动画', exact: true }).click();
+    assert.equal(await activity.getByRole('button', { name: '播放示意动画', exact: true }).getAttribute('aria-pressed'), 'true');
+    await capture(activity, '17-trading-room');
+    await activity.evaluate(() => { window.__qa.failData = true; window.__qa.refresh(); });
+    await activity.getByText('连接中断后会重建基线，间隔内变化未分类。', { exact: true }).waitFor();
+    await activity.evaluate(() => { window.__qa.failData = false; window.__qa.positions[0].positionAmt = '1'; window.__qa.refresh(); });
+    await activity.getByText('已有快照', { exact: true }).waitFor();
+    assert.equal(await activity.locator('.event-list li').count(), 1, 'no inferred change through an outage');
+    await activity.getByRole('button', { name: '返回持仓', exact: true }).click();
+    await activity.getByRole('button', { name: '隐藏金额', exact: true }).click();
+    await activity.getByRole('button', { name: '更多操作', exact: true }).click();
+    await activity.getByRole('button', { name: '持仓动态 · 交易室', exact: true }).click();
+    assert(await activity.getByText('binance · 多仓 · ••••', { exact: true }).isVisible());
+    await activity.close();
+    results.push('session changes, animation pause, outage rebaseline, private amounts and 320px trading room');
     assert.deepEqual(errors, [], 'browser errors');
     console.log(JSON.stringify({ results, errors, screenshots }, null, 2));
   } finally {

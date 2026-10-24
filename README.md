@@ -38,3 +38,15 @@ AI 不提供可验证的盈利预测或投资建议。缺少历史收益、波�
 ## 项目
 
 Electron + Vue 3 + TypeScript + Vite。原项目作者 Wang（hash-panda）；旧资料可从 Git 历史查看。独立产品，与交易所无官方关联。许可证沿用原项目声明的 MIT。
+
+## 持续迭代与运营
+
+最新开发：会话内持仓变动、可选交易室和签名发布流水线；当前可下载版本请以官网和Release为准，主分支功能不代表已有二进制。
+
+- [产品 Review 与官方方案调研](docs/PRODUCT-REVIEW.md)
+- [产品、周/月/年运营与商业验证规范](docs/OPERATING-PLAN.md)
+- [SEO/GEO 与社区实验](docs/GROWTH-PLAYBOOK.md)
+- [Apple 签名、公证与发布配置](docs/release-signing.md)
+- [第0期报告](docs/ops/2026-10-24.md)
+
+欢迎提交已脱敏的使用场景；如果项目有帮助，可以自愿 Star 或 Watch Releases。

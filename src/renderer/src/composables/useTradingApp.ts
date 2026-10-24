@@ -1,3 +1,4 @@
+import { diffPositions, type PositionEvent } from '../../../main/utils/position-diff';
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import type { UnwrapNestedRefs } from 'vue';
 import { orderPositions, positionKey } from '../../../main/utils/position-order';
@@ -41,11 +42,14 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
   const loading = ref(false);
   const hasCredentials = ref(false);
   const positions = ref<Position[]>([]);
+  const positionEvents = ref<PositionEvent[]>([]);
+  const historyGap = ref(false);
+  let journalBaseline: Position[] | null = null;
   const accounts = ref<AccountInfo[]>([]);
   const exchangeErrors = ref<ExchangeError[]>([]);
   const error = ref('');
   const lastUpdated = ref<Date | null>(null);
-  const currentView = ref<'overview' | 'settings' | 'sort' | 'health'>('overview');
+  const currentView = ref<'overview' | 'settings' | 'sort' | 'health' | 'activity'>('overview');
   const preferences = reactive<Preferences>({
     maxDisplayCount: 2,
     refreshInterval: 5,
@@ -142,8 +146,15 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
         ];
       } else failures.push('资产更新失败');
       error.value = failures.join('，');
-      if (!failures.length && !failedExchanges.size) lastUpdated.value = new Date();
+      if (!failures.length && !failedExchanges.size) {
+        lastUpdated.value = new Date();
+        try {
+          if (journalBaseline) positionEvents.value = [...diffPositions(journalBaseline as any, positions.value as any, Date.now()), ...positionEvents.value].slice(0,40);
+          journalBaseline = JSON.parse(JSON.stringify(positions.value));
+        } catch { journalBaseline = null; historyGap.value = true; }
+      } else { journalBaseline = null; historyGap.value = true; }
     } catch (cause) {
+      journalBaseline = null; historyGap.value = true;
       if (!disposed && requestGeneration === generation)
         error.value = `数据更新失败：${message(cause)}`;
     } finally {
@@ -154,7 +165,7 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
   function restartTimer() {
     if (timer) clearInterval(timer);
     timer = setInterval(() => {
-      if (currentView.value === 'overview') void fetchData();
+      if (currentView.value === 'overview' || currentView.value === 'activity') void fetchData();
     }, preferences.refreshInterval * 1000);
   }
 
@@ -228,6 +239,8 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
         loading.value = false;
         Object.assign(savedCredentials[exchange], emptyCredentials()[exchange]);
         Object.assign(credentialDrafts[exchange], emptyCredentials()[exchange]);
+        journalBaseline = null;
+        positionEvents.value = positionEvents.value.filter(item => item.exchange !== exchange);
         positions.value = positions.value.filter((item) => item.exchange !== exchange);
         accounts.value = accounts.value.filter((item) => item.exchange !== exchange);
         exchangeErrors.value = exchangeErrors.value.filter((item) => item.exchange !== exchange);
@@ -493,6 +506,7 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
         generation++;
         loading.value = false;
         positions.value = [];
+        positionEvents.value = []; journalBaseline = null; historyGap.value = false;
         accounts.value = [];
         exchangeErrors.value = [];
         hasCredentials.value = false;
@@ -571,6 +585,8 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
     loading,
     hasCredentials,
     positions,
+    positionEvents,
+    historyGap,
     accounts,
     exchangeErrors,
     error,
