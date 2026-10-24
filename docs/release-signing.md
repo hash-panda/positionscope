@@ -1,6 +1,6 @@
 # macOS 签名与发布
 
-状态（2026-10-24）：工作流已实现，尚未实际使用 Apple 凭证签名/公证。仓库 Secrets 页面确认当前没有密钥。v0.2.0-beta.1 是未签名开发预览，不能用本文件证明它已经公证。
+状态（2026-10-24）：六个 Apple Secrets 已配置，新 Developer ID Application 证书与私钥匹配，PKCS#12 完整性检查通过。首次 macOS 实跑已通过证书导入与身份查找，发现 electron-builder 24 的身份选择器不能带证书类型前缀，正在修复重跑；尚未完成签名、公证和发布。v0.2.0-beta.1 是未签名开发预览，不能用本文件证明它已经公证。
 
 ## 与 AIbubu 的对应
 
@@ -24,7 +24,7 @@
 1. PR 的质量检查通过后合并 master。每个发布版本更新 package.json 和 release-notes，已有 Release 不覆盖。
 2. 在 [Signed macOS release](https://github.com/hash-panda/positionscope/actions/workflows/signed-release.yml) 选择 master → Run workflow。手动运行会检查密钥，不会降级成未签名发布。
 3. 两架构成功后检查 ZIP/DMG、SHA256SUMS 和各自 verification.json，再修改官网的版本与安装状态。
-4. 首次成功后可在 [Variables](https://github.com/hash-panda/positionscope/settings/variables/actions) 建立 `APPLE_SIGNING_ENABLED=true`，以后 master 提交自动尝试发布。无版本变动的提交不会覆盖已有发布，应避免为文档改动触发重复构建。可删除变量关闭自动签名。
+4. 首次成功后可在 [Variables](https://github.com/hash-panda/positionscope/settings/variables/actions) 建立 `APPLE_SIGNING_ENABLED=true`，以后影响二进制的 master 提交自动尝试发布；文档/官网改动不会触发签名。流水线先查询当前版本的 Release，已有版本直接跳过，不覆盖产物。新的二进制需先更新 package.json 版本。可删除变量关闭自动签名。
 
 流水线要求构建提交属于 master；PR 不得到 Apple Secrets。签名 runner 使用临时钥匙串、最小 hardened runtime entitlement；验证 codesign 身份与团队，提交 notarytool，要求 Accepted，装订票据并验证 spctl，之后才上传和发布。DMG 单独签名、公证与装订。所有 action 固定提交 SHA；没有使用不受控第三方签名 action。日志不输出密钥、密码、私钥长度或密钥承载命令参数。临时钥匙串最后清除。
 
@@ -35,3 +35,9 @@
 任一架构失败则不发布。依据步骤名称检查原始 Apple 服务/证书权限，在自有安全环境排查，不把证书或完整敏感日志贴公开。部分构建产物不等于可发布版本。首次失败修复后重跑；已创建版本不可覆盖，修复用新版本。发布后发现严重问题，先在官网标明不可用并提供上一已验证版本，再发布修复；不要重用同一个版本号替换二进制。
 
 来源：[Apple Developer ID](https://developer.apple.com/developer-id/)、[Apple 公证](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution)、[Electron 签名](https://www.electronjs.org/docs/latest/tutorial/code-signing)。实现同时按本仓库安装的 electron-builder 24.13.3 源码核对配置，不能套用其他版本行为。
+
+## 当前证书核对记录
+
+新证书到期：2027-11-23。公钥证书 SHA256：`0e4cc86f3c63f7331684cc9da927ca2068b20ff199260b928e918d1e97f5240c`。这仅标识已导入证书，不代替安装包签名/公证验证。私钥、PKCS#12、导出密码与 App 专用密码不提交到源码；原始材料仅用于安全配置 Secrets，不放入构建产物或报告。
+
+Secret 中保留完整 Developer ID 身份，electron-builder 配置仅传不含类型前缀的名称选择器；原生签名验证仍检查完整身份与团队。构建失败输出仅显示经过凭证值脱敏的诊断；密钥承载的命令输出继续保留。

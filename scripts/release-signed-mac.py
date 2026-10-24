@@ -25,8 +25,15 @@ def preflight(env):
     try: base64.b64decode(''.join(env['APPLE_CERTIFICATE'].split()),validate=True)
     except Exception: raise ValueError('APPLE_CERTIFICATE must be a base64-encoded PKCS#12 file') from None
 
-def run(args,env=None):
+def run(args,env=None,diagnostics=False):
     result=subprocess.run(args,env=env,capture_output=True,text=True)
+    if result.returncode and diagnostics:
+        # Only enabled for the builder process, whose environment excludes Apple credentials.
+        output=result.stdout+'\n'+result.stderr
+        for name,value in os.environ.items():
+            if value and (name.startswith(('APPLE_','CSC_')) or name in ('GH_TOKEN','GITHUB_TOKEN')):
+                output=output.replace(value,'[REDACTED]')
+        print(output[-6000:],file=sys.stderr)
     if result.returncode: raise RuntimeError(f'{Path(args[0]).name} {args[1] if len(args)>1 else ""} failed (exit {result.returncode}); secret-bearing output withheld')
     return result.stdout
 
@@ -57,15 +64,19 @@ def main():
             if identity not in run(['security','find-identity','-v','-p','codesigning',str(keychain)]): raise RuntimeError('Developer ID Application identity not found in imported certificate')
             build_env={k:v for k,v in env.items() if not k.startswith('APPLE_') and k not in ('CSC_LINK','CSC_KEY_PASSWORD')}
             build_env.update(APPLE_SIGNING_IDENTITY=identity,CSC_KEYCHAIN=str(keychain),CSC_IDENTITY_AUTO_DISCOVERY='true')
-            run(['pnpm','exec','electron-builder','--config','build/electron-signed.cjs','--mac','dir','--'+args.arch,'--publish','never'],env=build_env)
+            print('Stage: build and sign application',flush=True)
+            run(['pnpm','exec','electron-builder','--config','build/electron-signed.cjs','--mac','dir','--'+args.arch,'--publish','never'],env=build_env,diagnostics=True)
             app=root/'release'/('mac-arm64' if args.arch=='arm64' else 'mac')/'PositionScope.app'
             run(['codesign','--verify','--deep','--strict',str(app)])
             info=subprocess.run(['codesign','-dv','--verbose=4',str(app)],capture_output=True,text=True,check=True).stderr
             if f'TeamIdentifier={env["APPLE_TEAM_ID"]}' not in info or 'Authority=Developer ID Application:' not in info: raise RuntimeError('Signed app identity/team mismatch')
+            print('Stage: application signature verified; validate Apple notarization credentials',flush=True)
             profile='positionscope-notary'
             run(['xcrun','notarytool','store-credentials',profile,'--apple-id',env['APPLE_ID'],'--password',env['APPLE_PASSWORD'],'--team-id',env['APPLE_TEAM_ID'],'--keychain',str(keychain)])
             upload=temporary/'upload.zip';run(['ditto','-c','-k','--keepParent',str(app),str(upload)])
+            print('Stage: submit application for Apple notarization',flush=True)
             app_submission=notarize(upload,profile,keychain)
+            print('Stage: application notarization accepted; staple and assess Gatekeeper',flush=True)
             run(['xcrun','stapler','staple',str(app)]);run(['xcrun','stapler','validate',str(app)])
             run(['spctl','--assess','--type','execute','--verbose=2',str(app)])
             output=root/'release'/'signed';output.mkdir(parents=True,exist_ok=True)
@@ -74,6 +85,7 @@ def main():
             staging=temporary/'dmg';staging.mkdir();shutil.copytree(app,staging/app.name,symlinks=True);(staging/'Applications').symlink_to('/Applications')
             dmg=output/f'{stem}.dmg';run(['hdiutil','create','-volname','PositionScope','-srcfolder',str(staging),'-format','UDZO','-ov',str(dmg)])
             run(['codesign','--timestamp','--sign',identity,'--keychain',str(keychain),str(dmg)])
+            print('Stage: submit signed DMG for Apple notarization',flush=True)
             dmg_submission=notarize(dmg,profile,keychain);run(['xcrun','stapler','staple',str(dmg)]);run(['xcrun','stapler','validate',str(dmg)])
             evidence={'version':version,'architecture':args.arch,'app_notarization':app_submission,'dmg_notarization':dmg_submission,'signature_verified':True,'staple_validated':True,'gatekeeper_assessment':'accepted','artifacts':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in (zip_path,dmg)}}
             (output/f'{stem}-verification.json').write_text(json.dumps(evidence,indent=2)+'\n')

@@ -4,14 +4,27 @@ on:
   push:
     branches: [master]
     tags: ['v*']
+    paths:
+      - 'src/**'
+      - 'build/**'
+      - 'assets/**'
+      - 'scripts/release-signed-mac.py'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'tsconfig*.json'
+      - 'vite.config.ts'
+      - '.npmrc'
+      - '.github/workflows/signed-release.yml'
 permissions:
   contents: read
 concurrency:
-  group: signed-release-${{ github.ref }}
+  group: signed-macos-release
   cancel-in-progress: false
 jobs:
   quality:
     runs-on: ubuntu-latest
+    outputs:
+      release_required: ${{ steps.release.outputs.required }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with: {fetch-depth: 0, persist-credentials: false}
@@ -26,8 +39,30 @@ jobs:
       - run: corepack enable && corepack prepare pnpm@10.11.0 --activate
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck && pnpm test && pnpm build
+      - name: Check immutable release version
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PYCODE'
+          import json, os, urllib.request, urllib.error, urllib.parse
+          version=json.load(open('package.json'))['version']
+          tag='v'+version
+          url=os.environ['GITHUB_API_URL']+'/repos/'+os.environ['GITHUB_REPOSITORY']+'/releases/tags/'+urllib.parse.quote(tag,safe='')
+          request=urllib.request.Request(url,headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','User-Agent':'PositionScope-release'})
+          try:
+              with urllib.request.urlopen(request,timeout=30) as response:
+                  assert json.load(response)['tag_name']==tag
+              required=False
+          except urllib.error.HTTPError as error:
+              if error.code!=404: raise
+              required=True
+          with open(os.environ['GITHUB_OUTPUT'],'a') as output:
+              output.write('required='+str(required).lower()+'\n')
+          print('New version ready for signing' if required else 'Version already released; skip signing. Increment package.json for a new binary.')
+          PYCODE
   sign:
-    if: github.event_name == 'workflow_dispatch' || vars.APPLE_SIGNING_ENABLED == 'true'
+    if: needs.quality.outputs.release_required == 'true' && (github.event_name == 'workflow_dispatch' || vars.APPLE_SIGNING_ENABLED == 'true')
     needs: quality
     runs-on: macos-14
     timeout-minutes: 90
