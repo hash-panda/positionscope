@@ -1,6 +1,6 @@
 # PositionScope 质量评审与迭代
 
-产品名：PositionScope · 仓位镜。目标仓库名：positionscope；更名前使用 trade-realtime-view。官网：https://positionscope.funagent.app/。官网来源位于 website/index.html，与 Sites 源同步时必须使用同一份内容。
+产品名：PositionScope · 仓位镜。仓库：hash-panda/positionscope（Public），原名 trade-realtime-view。官网：https://positionscope.funagent.app/。官网来源位于 website/index.html，与 Sites 源同步时必须使用同一份内容。
 
 ## 100 分标准
 
@@ -39,3 +39,5 @@ CI 在 PR 上执行类型、逻辑、构建及 UI 回归；master 成功后在 m
 每次模型迁移必须重新检查当前官方模型 ID、支持参数、实际可用性与费用，不能只更新名字就声称更智能。
 
 本轮静态公开准备检查覆盖默认分支全部 9 个历史提交的 patch 与当前源码，未匹配预设的 API Token / 私钥模式；这是静态模式检查，并非无凭证泄漏的绝对保证。本地工具权限文件从当前树移除，不重写历史。移除未被源码引用的 canvas、crypto-js、form-data、abort-controller，减少打包与原生依赖负担。
+
+首轮合并与发布：PR #1 已合并，GitHub CI 质量检查及 macOS 双架构 ZIP 构建通过，v0.2.0-beta.1 预发布已创建。签名/公证与原生实机验证仍未完成。
