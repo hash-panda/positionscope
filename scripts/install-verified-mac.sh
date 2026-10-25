@@ -9,12 +9,15 @@ ARM64_ZIP_SHA256='f4f86599646c91131f23c15c45e3b799baff079334a3211c7aa49796891c09
 X64_ZIP_SHA256='66bc1a126c9c0a16ec440b86c3d852564aaef681cc69fa517dc0e8fe98f4b652'
 
 verify_only=0
-case "${1:-}" in
-  '') ;;
-  --verify-only) verify_only=1 ;;
-  *) echo 'Usage: bash install-verified-mac.sh [--verify-only]' >&2; exit 2 ;;
-esac
-if [ "$#" -gt 1 ]; then echo 'Unexpected extra arguments.' >&2; exit 2; fi
+direct_download=0
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --verify-only) verify_only=1 ;;
+    --direct) direct_download=1 ;;
+    *) echo 'Usage: bash install-verified-mac.sh [--verify-only] [--direct]' >&2; exit 2 ;;
+  esac
+  shift
+done
 if [ "$(/usr/bin/uname -s)" != Darwin ]; then
   echo 'This installer must run on your Mac; no files were changed.' >&2
   exit 2
@@ -87,10 +90,25 @@ record 'real_accounts=NOT_TESTED'
 
 echo "Downloading verified PositionScope $VERSION ($architecture)…"
 asset="PositionScope-$VERSION-$architecture.zip"
-/usr/bin/curl --disable --fail --location --proto '=https' --tlsv1.2 --retry 2 \
-  --connect-timeout 15 --max-time 300 \
-  "https://github.com/hash-panda/positionscope/releases/download/v$VERSION/$asset" \
-  --output "$work/package.zip"
+curl_options=(--disable --fail --location --proto '=https' --tlsv1.2 --retry 2 --connect-timeout 15 --max-time 300)
+if [ "$direct_download" -eq 1 ]; then
+  # Applies only to this download; leave shell/system proxy configuration intact.
+  curl_options+=(--noproxy '*')
+  record 'download_route=DIRECT'
+else
+  record 'download_route=ENVIRONMENT'
+fi
+if /usr/bin/curl "${curl_options[@]}" \
+    "https://github.com/hash-panda/positionscope/releases/download/v$VERSION/$asset" \
+    --output "$work/package.zip"; then
+  :
+else
+  download_status=$?
+  if [ "$download_status" -eq 7 ] && [ "$direct_download" -eq 0 ]; then
+    echo 'Connection failed. If your local proxy is stopped, restart it or rerun this script with --direct to try a direct download.' >&2
+  fi
+  exit "$download_status"
+fi
 actual_hash=$(/usr/bin/shasum -a 256 "$work/package.zip")
 actual_hash=${actual_hash%% *}
 [ "$actual_hash" = "$expected_hash" ] || fail 'Release checksum mismatch; the old app was not changed.'
