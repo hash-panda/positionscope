@@ -38,8 +38,13 @@ jobs:
       - run: corepack enable && corepack prepare pnpm@10.11.0 --activate
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:main && bash scripts/verify-secure-settings-native.sh
-      - name: Verify the published installer package without installing or launching
-        run: bash scripts/install-verified-mac.sh --verify-only
+      - name: Verify direct package download despite an unavailable local proxy
+        run: bash scripts/install-verified-mac.sh --verify-only --direct
+        env:
+          https_proxy: http://127.0.0.1:1
+          HTTPS_PROXY: http://127.0.0.1:1
+          all_proxy: http://127.0.0.1:1
+          ALL_PROXY: http://127.0.0.1:1
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: storage-native-evidence

@@ -20,10 +20,12 @@ test('Mac installer is pinned to the published release and both verified ZIP dig
 
 test('Mac installer refuses a non-Mac host and unknown arguments before installation', () => {
   if (process.platform !== 'darwin') {
-    const result = spawnSync('bash', [script], { encoding: 'utf8' });
-    assert.equal(result.status, 2);
-    assert.match(result.stderr, /must run on your Mac; no files were changed/);
-    assert.equal(result.stdout, '');
+    for (const args of [[], ['--direct'], ['--verify-only', '--direct'], ['--direct', '--verify-only']]) {
+      const result = spawnSync('bash', [script, ...args], { encoding: 'utf8' });
+      assert.equal(result.status, 2);
+      assert.match(result.stderr, /must run on your Mac; no files were changed/);
+      assert.equal(result.stdout, '');
+    }
   }
   const unknown = spawnSync('bash', [script, '--erase-data'], { encoding: 'utf8' });
   assert.equal(unknown.status, 2);
