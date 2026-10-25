@@ -39,12 +39,18 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:main && bash scripts/verify-secure-settings-native.sh
       - name: Verify direct package download despite an unavailable local proxy
-        run: bash scripts/install-verified-mac.sh --verify-only --direct
+        run: |
+          proxy_status=0
+          /usr/bin/curl --disable --silent --show-error --fail --proto '=https' --connect-timeout 2 --max-time 3 https://github.com/ --output /dev/null || proxy_status=$?
+          test "$proxy_status" -eq 7
+          bash scripts/install-verified-mac.sh --verify-only --direct
         env:
           https_proxy: http://127.0.0.1:1
           HTTPS_PROXY: http://127.0.0.1:1
           all_proxy: http://127.0.0.1:1
           ALL_PROXY: http://127.0.0.1:1
+          no_proxy: ''
+          NO_PROXY: ''
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: storage-native-evidence
