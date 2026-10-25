@@ -13,3 +13,14 @@ for(const architecture of ['arm64','x64']) for(const kind of ['dmg','zip']) {
  assert(fs.readFileSync(path.join(root,'download/index.html'),'utf8').includes(release.downloads[architecture][kind]));
 }
 console.log('Verified current signed-release download links against release manifest.');
+
+for (const p of html) {
+ const source = fs.readFileSync(p, 'utf8');
+ for (const [, json] of source.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
+  const data = JSON.parse(json);
+  if (data['@type'] === 'SoftwareApplication') {
+   assert.equal(data.softwareVersion, release.version, 'structured release version');
+   assert(!data.description.includes('未签名'), 'verified release must not have unsigned metadata');
+  }
+ }
+}

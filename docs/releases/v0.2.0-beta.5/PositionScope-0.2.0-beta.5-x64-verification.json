@@ -1,0 +1,26 @@
+{
+  "version": "0.2.0-beta.5",
+  "architecture": "x64",
+  "app_notarization": "4a44cedf-b366-4423-afd8-15eae6f1131f",
+  "dmg_notarization": "6307eacc-3c80-43e6-b184-87450baa2e1b",
+  "signature_verified": true,
+  "staple_validated": true,
+  "gatekeeper_assessment": "accepted",
+  "artifacts": {
+    "PositionScope-0.2.0-beta.5-x64.zip": "66bc1a126c9c0a16ec440b86c3d852564aaef681cc69fa517dc0e8fe98f4b652",
+    "PositionScope-0.2.0-beta.5-x64.dmg": "3787d28867eebba6ad1b48fc09494b8a86bd30cd1d42a19cfa0df1699b76a65a"
+  },
+  "app_id": "app.funagent.positionscope",
+  "minimum_macos_version": "13.0",
+  "settings_storage_smoke": {
+    "platform": "darwin",
+    "electron": "45.0.0",
+    "asynchronous_system_encryption": true,
+    "cross_process_reload": true,
+    "reset_preserves_credentials": true,
+    "targeted_removal": true,
+    "deletion": true,
+    "synthetic_profile_only": true,
+    "packaged_app_keychain_prompt_tested": false
+  }
+}
