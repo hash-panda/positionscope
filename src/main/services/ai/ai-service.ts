@@ -1,3 +1,4 @@
+import { resolveAIModel } from '../../utils/ai-model';
 import type { MarketSnapshot } from '../../types/market';
 import { fundingScenarios } from '../public-market';
 import { analysisCacheKey, buildRiskFacts, validateNarrative } from './risk-facts';
@@ -103,7 +104,7 @@ export class AIService {
             provider: providerName as AIProvider,
             apiKey: credentials.apiKey,
             baseURL: credentials.baseURL,
-            model: credentials.model?.trim() || this.getDefaultModel(providerName as AIProvider),
+            model: resolveAIModel(providerName, credentials.model),
           });
 
           this.providers.set(providerName as AIProvider, provider);
@@ -144,22 +145,6 @@ export class AIService {
   }
 
   /**
-   * 获取默认模型名称
-   */
-  private getDefaultModel(provider: AIProvider): string {
-    const defaultModels: Record<AIProvider, string> = {
-      [AIProvider.OPENAI]: 'gpt-4-turbo',
-      [AIProvider.ANTHROPIC]: 'claude-3-5-sonnet-20241022',
-      [AIProvider.DEEPSEEK]: 'deepseek-flash',
-      [AIProvider.QWEN]: 'qwen-turbo',
-      [AIProvider.GROK]: 'grok-beta',
-      [AIProvider.GEMINI]: 'gemini-2.5-flash',
-    };
-
-    return defaultModels[provider] || 'gpt-4-turbo';
-  }
-
-  /**
    * 获取当前可用的Provider
    */
   private getProvider(providerName?: AIProvider): BaseAIProvider {
@@ -167,7 +152,7 @@ export class AIService {
     const provider = this.providers.get(targetProvider);
 
     if (!provider) {
-      throw new Error(`AI Provider not initialized: ${targetProvider}`);
+      throw new Error(`AI提供商 ${targetProvider} 未就绪，请核对Key及模型ID并保存配置`);
     }
 
     return provider;

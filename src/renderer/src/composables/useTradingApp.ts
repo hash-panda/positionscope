@@ -1,3 +1,4 @@
+import { validateAISettingsModels } from '../../../main/utils/ai-model';
 import { sumKnown } from '../../../main/utils/position-math';
 import { diffPositions, type PositionEvent } from '../../../main/utils/position-diff';
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
@@ -316,6 +317,7 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
     const success = await runSave(
       'ai',
       async () => {
+        validateAISettingsModels({enabled:preferences.aiEnabled,useCustomKeys:preferences.useCustomKeys,credentials,defaultProvider:preferences.defaultProvider} as unknown as import('../../../main/types/ai').AISettings);
         check(
           await api!.saveAISettings({
             enabled: preferences.aiEnabled,

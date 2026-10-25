@@ -1,3 +1,4 @@
+import { resolveAIModel } from '../../utils/ai-model';
 /**
  * AI Provider 基类
  *
@@ -15,7 +16,7 @@ export abstract class BaseAIProvider {
   protected config: AIModelConfig;
 
   constructor(config: AIModelConfig) {
-    this.config = config;
+    this.config = {...config, model:resolveAIModel(config.provider, config.model)};
     logger.log(`[AI Provider] Initialized: ${config.provider}`);
   }
 

@@ -73,9 +73,9 @@ const selectedProvider = computed(() => providers.find((item) => item.id === pro
           :label="`${selectedProvider.name} API Key`"
           :disabled="!!model.saving"
         />
-        <label class="field-label" :for="`${provider}-model`">模型 ID（可选）</label>
-        <AppTextInput :id="`${provider}-model`" v-model="model.aiModelDrafts[provider]" class="text-input" :aria-describedby="`${provider}-model-help`" :disabled="!!model.saving" placeholder="留空沿用默认模型" autocomplete="off" />
-        <p :id="`${provider}-model-help`" class="helper">按提供商文档填写可用模型 ID；旧默认模型可能已停用。</p>
+        <label class="field-label" :for="`${provider}-model`">模型 ID（{{ provider === 'deepseek' ? '可选' : '必填' }}）</label>
+        <AppTextInput :id="`${provider}-model`" v-model="model.aiModelDrafts[provider]" class="text-input" :aria-describedby="`${provider}-model-help`" :disabled="!!model.saving" :aria-required="provider !== 'deepseek'" :placeholder="provider === 'deepseek' ? '留空使用 deepseek-flash' : '必填：提供商当前可用的模型 ID'" autocomplete="off" />
+        <p :id="`${provider}-model-help`" class="helper">除 DeepSeek 可沿用已核对的 deepseek-flash 外，需明确填写模型 ID，并核对兼容接口与价格；不会自动替你升级模型。</p>
         <button class="button primary full-width" :disabled="!!model.saving">
           {{ model.saving === 'ai' ? '正在保存…' : '保存配置' }}
         </button>

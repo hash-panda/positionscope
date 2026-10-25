@@ -1,3 +1,4 @@
+import { validateAISettingsModels } from './utils/ai-model';
 import { buildRiskFacts } from './services/ai/risk-facts';
 import { publicMarketService } from './services/public-market';
 import { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell } from 'electron';
@@ -632,6 +633,7 @@ ipcMain.handle('get-ai-settings', async () => {
  */
 ipcMain.handle('save-ai-settings', async (_, aiSettings: AISettings) => {
   try {
+    validateAISettingsModels(aiSettings);
     await settingsManager.setAISettings(aiSettings);
 
     // 初始化AI服务
