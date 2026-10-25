@@ -9,29 +9,8 @@ export type SettingsPage =
   | 'ai'
   | 'developer'
   | 'about';
-export interface Position {
-  exchange: Exchange;
-  symbol: string;
-  positionAmt: string;
-  entryPrice: string;
-  markPrice: string;
-  unRealizedProfit: string;
-  marginType: string;
-  isolatedMargin: string;
-  leverage: string;
-}
-export interface AccountInfo {
-  exchange: Exchange;
-  totalWalletBalance: number;
-  totalUnrealizedProfit: number;
-  totalMarginBalance: number;
-  availableBalance: number;
-  maxWithdrawAmount: number;
-  spotTotalUSDT?: number;
-  totalAssets?: number;
-  fundingAccountUSDT?: number;
-  tradingAccountUSDT?: number;
-}
+export type Position = Omit<import('../../main/types/exchange').Position, 'exchange'> & {exchange: Exchange};
+export type AccountInfo = Omit<import('../../main/types/exchange').AccountInfo, 'exchange'> & {exchange: Exchange};
 export interface Credentials {
   apiKey: string;
   apiSecret: string;
@@ -111,7 +90,7 @@ export interface ElectronAPI {
   saveAISettings(settings: AISettings): Promise<Result>;
   aiAnalyzeHealth(
     positions: Position[],
-    accountInfo: Omit<AccountInfo, 'exchange'> & { exchange: string },
+    accountInfo: AccountInfo[],
     provider: Provider,
     forceRefresh?: boolean
   ): Promise<Result & { data?: HealthScore }>;

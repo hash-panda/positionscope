@@ -30,25 +30,53 @@ export interface Position {
   entryPrice: string;              // 开仓价格
   markPrice: string;               // 标记价格
   unRealizedProfit: string;        // 未实现盈亏
-  marginType: string;              // 保证金模式
-  isolatedMargin: string;          // 逐仓保证金
-  leverage: string;                // 杠杆倍数
+  marginType: 'cross' | 'isolated' | 'portfolio' | 'unknown';
+  isolatedMargin: string | null;   // 逐仓抵押金额；不可用不能补零
+  leverage: string | null;
+  instrumentId?: string;
+  positionId?: string;
+  positionSide?: string;
+  baseAsset?: string;
+  settlementAsset?: string;
+  rawQuantity?: string;
+  rawQuantityUnit?: 'base' | 'contracts';
+  liquidationPrice?: string | null;
+  usedMargin?: string | null;
+  initialMargin?: string | null;
+  maintenanceMargin?: string | null;
+  marginCurrency?: string;
+  fetchedAt?: number;
+  sourceUpdatedAt?: number | null;
+  priceSource?: 'exchange_mark' | 'position_value_derived';
+}
+
+export interface MarginFacts {
+  scope: string;
+  currency: string;
+  mode: string;
+  equity: number | null;
+  initialMargin: number | null;
+  maintenanceMargin: number | null;
+  nativeRatio?: { name: string; value: number | null; direction: 'higher-risk' | 'lower-risk' };
 }
 
 // 账户信息（统一格式）
 export interface AccountInfo {
   exchange: ExchangeType;          // 交易所类型
-  totalWalletBalance: number;      // 钱包总余额（合约）
-  totalUnrealizedProfit: number;   // 未实现盈亏总额（合约）
-  totalMarginBalance: number;      // 保证金总余额（合约）
-  availableBalance: number;        // 可用余额（合约）
-  maxWithdrawAmount: number;       // 最大可提现金额（合约）
-  spotTotalUSDT?: number;          // 现货账户总资产（USDT价值）
-  totalAssets?: number;            // 总资产（现货+合约，USDT价值）
+  totalWalletBalance: number | null;
+  totalUnrealizedProfit: number | null;
+  totalMarginBalance: number | null;
+  availableBalance: number | null;
+  maxWithdrawAmount: number | null;
+  spotTotalUSDT: number | null;
+  totalAssets: number | null;
+  marginFacts?: MarginFacts;
+  valuationNotes?: string[];
+  fetchedAt?: number;
 
   // OKX专用字段
-  fundingAccountUSDT?: number;     // 资金账户（USDT价值）
-  tradingAccountUSDT?: number;     // 交易账户（USDT价值）
+  fundingAccountUSDT?: number | null;
+  tradingAccountUSDT?: number | null;
 }
 
 // 现货余额（统一格式）

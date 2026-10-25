@@ -1,5 +1,9 @@
 # PositionScope 质量评审与迭代
 
+## 最新风险基础迭代（2026-10-25，候选beta.7）
+
+详见[本轮证据与官方来源](ops/2026-10-25-risk-foundation.md)。修正OKX合约单位/空仓方向、Bybit GET签名与UNIFIED口径，补Binance v3/参考强平价/保证金/独立账户时间；未知总额不补零。risk-facts-v2增加条件情景，AI不再机械复述缺口。发布状态必须核对实际Release，以下历史beta.5状态不替代当前记录。
+
 ## 当前状态（2026-10-25，v0.2.0-beta.5）
 
 按维护者要求采用全新实现，不兼容或迁移此前预览版。PR [#17](https://github.com/hash-panda/positionscope/pull/17) 已合并：独立应用身份 `app.funagent.positionscope` 与 PositionScope 数据目录，Electron 45 异步 safeStorage 加密完整配置；失败保留原密文，串行原子提交，移除明文保存和旧凭据接口。首次使用需要重新配置只读账户。

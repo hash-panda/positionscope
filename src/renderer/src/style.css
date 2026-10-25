@@ -1524,3 +1524,7 @@ input[type='range'] {
 .overview-body { padding-top:16px; }
 .position-item:not(.sorting-list .position-item) { padding-top:8px; padding-bottom:5px; }
 .position-details>summary { min-height:24px; }
+
+.scenario-table { width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:11px; }
+.scenario-table th,.scenario-table td { padding:6px 2px;text-align:right;border-bottom:1px solid var(--border); }
+.scenario-table th:first-child {text-align:left;} .scenario-table caption {text-align:left;padding:8px 0;}

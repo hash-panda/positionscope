@@ -17,11 +17,9 @@ test('reordering preserves equal symbols across exchanges and hedge sides', () =
   ]);
   assert.equal(new Set(positions.map(positionKey)).size, positions.length);
 });
-test('existing symbol-only preferences retain every matching position', () => {
-  assert.deepEqual(orderPositions(positions, ['ETHUSDT', 'BTCUSDT']), [
-    positions[3],
-    ...positions.slice(0, 3),
-  ]);
+test('native position IDs distinguish same-symbol same-side margin positions', () => {
+ const a={...positions[0],positionId:'a',instrumentId:'BTCUSDT'},b={...a,positionId:'b'};
+ assert.notEqual(positionKey(a),positionKey(b));assert.deepEqual(orderPositions([a,b],[positionKey(b)]),[b,a]);
 });
 test('closed positions and duplicate saved IDs never drop new positions', () => {
   const key = positionKey(positions[1]);

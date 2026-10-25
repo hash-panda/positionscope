@@ -1,3 +1,4 @@
+import { sumKnown } from '../../../main/utils/position-math';
 import { diffPositions, type PositionEvent } from '../../../main/utils/position-diff';
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import type { UnwrapNestedRefs } from 'vue';
@@ -96,19 +97,12 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
       currentView.value === 'sort' ? editingOrder.value : savedOrder.value
     )
   );
-  const totals = computed(() =>
-    accounts.value.reduce(
-      (sum, account) => ({
-        totalAssets:
-          sum.totalAssets +
-          (account.totalAssets ?? (account.spotTotalUSDT ?? 0) + account.totalMarginBalance),
-        spot: sum.spot + (account.spotTotalUSDT ?? 0),
-        margin: sum.margin + account.totalMarginBalance,
-        available: sum.available + account.availableBalance,
-      }),
-      { totalAssets: 0, spot: 0, margin: 0, available: 0 }
-    )
-  );
+  const totals = computed(() => ({
+    totalAssets: sumKnown(accounts.value.map(a => a.totalAssets)),
+    spot: sumKnown(accounts.value.map(a => a.spotTotalUSDT)),
+    margin: sumKnown(accounts.value.map(a => a.totalMarginBalance)),
+    available: sumKnown(accounts.value.map(a => a.availableBalance)),
+  }));
   const totalPnL = computed(() =>
     positions.value.reduce((sum, position) => sum + Number(position.unRealizedProfit || 0), 0)
   );
@@ -361,22 +355,7 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
     try {
       const result = await api.aiAnalyzeHealth(
         JSON.parse(JSON.stringify(positions.value)),
-        {
-          exchange: 'ALL',
-          totalAssets: totals.value.totalAssets,
-          totalMarginBalance: totals.value.margin,
-          totalWalletBalance: accounts.value.reduce(
-            (sum, account) => sum + account.totalWalletBalance,
-            0
-          ),
-          spotTotalUSDT: totals.value.spot,
-          availableBalance: totals.value.available,
-          maxWithdrawAmount: accounts.value.reduce(
-            (sum, account) => sum + account.maxWithdrawAmount,
-            0
-          ),
-          totalUnrealizedProfit: totalPnL.value,
-        },
+        JSON.parse(JSON.stringify(accounts.value)),
         selectedProvider,
         true
       );

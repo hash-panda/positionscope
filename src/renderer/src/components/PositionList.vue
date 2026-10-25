@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ArrowDown, ArrowUp, ChevronDown } from 'lucide-vue-next';
 import type { Position, Exchange } from '../types';
+import { liquidationDistance } from '../../../main/utils/position-math';
 import { positionKey } from '../../../main/utils/position-order';
 import { amount, direction, price, priceChange, signed, symbol } from '../utils/format';
 import ExchangeLogo from './ExchangeLogo.vue';
@@ -11,6 +12,9 @@ defineProps<{
   staleExchanges?: Exchange[];
 }>();
 defineEmits<{ move: [index: number, offset: number] }>();
+const mode = (value: Position['marginType']) => ({cross:'全仓',isolated:'逐仓',portfolio:'组合保证金',unknown:'模式不可用'}[value] || '模式不可用');
+const distance = (p: Position) => { const n = liquidationDistance(p); return n === null ? '不可用' : `${(n*100).toFixed(2)}%`; };
+
 </script>
 
 <template>
@@ -46,7 +50,7 @@ defineEmits<{ move: [index: number, offset: number] }>();
             <span class="tag" :class="Number(position.positionAmt) > 0 ? 'positive' : 'negative'">{{
               Number(position.positionAmt) > 0 ? '做多' : '做空'
             }}</span
-            ><span class="tag">{{ position.leverage }}×</span>
+            ><span class="tag">{{ position.leverage ? `${position.leverage}×` : '杠杆不可用' }}</span>
           </div>
         </div>
         <div class="sort-actions">
@@ -73,7 +77,7 @@ defineEmits<{ move: [index: number, offset: number] }>();
             <ExchangeLogo :exchange="position.exchange" /><strong>{{
               symbol(position.symbol)
             }}</strong
-            ><span class="tag leverage-tag">{{ position.leverage }}×</span
+            ><span class="tag leverage-tag">{{ position.leverage ? `${position.leverage}×` : '杠杆不可用' }}</span
             ><span
               class="tag"
               :class="Number(position.positionAmt) > 0 ? 'positive' : 'negative'"
@@ -135,8 +139,17 @@ defineEmits<{ move: [index: number, offset: number] }>();
               }}
             </dd>
           </div>
+          <div><dt>参考强平价</dt><dd class="numeric">{{ price(position.liquidationPrice) }}</dd></div>
+          <div><dt>强平参考距离</dt><dd class="numeric">{{ distance(position) }}</dd></div>
+          <div><dt>维持保证金 · {{ position.marginCurrency || '单位未知' }}</dt><dd class="numeric">{{ hidden ? '••••' : amount(position.maintenanceMargin) }}</dd></div>
+          <div><dt>初始保证金 · {{ position.marginCurrency || '单位未知' }}</dt><dd class="numeric">{{ hidden ? '••••' : amount(position.initialMargin) }}</dd></div>
+          <div v-if="position.usedMargin != null"><dt>已用保证金</dt><dd class="numeric">{{ hidden ? '••••' : amount(position.usedMargin) }}</dd></div>
+          <div v-if="position.marginType === 'isolated'"><dt>逐仓抵押</dt><dd class="numeric">{{ hidden ? '••••' : amount(position.isolatedMargin) }}</dd></div>
         </dl>
-          <p class="position-margin helper">{{ position.marginType === 'isolated' ? '逐仓' : '全仓' }} · {{ hidden ? '••••' : Math.abs(Number(position.positionAmt)) }} {{ symbol(position.symbol) }}</p>
+          <p class="position-margin helper">{{ mode(position.marginType) }} · {{ hidden ? '••••' : Math.abs(Number(position.positionAmt)) }} {{ position.baseAsset || symbol(position.symbol) }}</p>
+          <p v-if="position.rawQuantityUnit === 'contracts'" class="helper">原始张数 {{ hidden ? '••••' : amount(position.rawQuantity, 4) }} · 已按合约规格换算币数</p>
+          <p class="helper">强平价是平台参考值，会随保证金与其他仓位变化；距离远不代表长期持有安全。</p>
+          <p class="helper">{{ position.priceSource === 'position_value_derived' ? '标记价由名义价值/币数推导' : '交易所标记价' }} · 获取 {{ position.fetchedAt ? new Date(position.fetchedAt).toLocaleTimeString('zh-CN') : '时间不可用' }}</p>
         </details>
       </template>
     </li>

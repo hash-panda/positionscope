@@ -119,7 +119,9 @@ test('negative equity never yields negative available margin, and position mappi
   assert.equal((await service.getFuturesAccountInfo()).availableBalance, 0);
   const [position] = await service.getFuturesPositions();
   assert.equal(position.marginType, 'isolated');
-  assert.equal(position.isolatedMargin, '25');
+  assert.equal(position.isolatedMargin, null);
+  assert.equal(position.usedMargin, '25');
+  assert.equal(position.maintenanceMargin, null);
   assert.equal(position.positionAmt, '-2');
   assert.equal(position.markPrice, '2050');
   assert.equal(position.leverage, '2');

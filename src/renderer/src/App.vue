@@ -366,7 +366,7 @@ onUnmounted(() => {
                     </dd>
                   </div>
                   <div>
-                    <dt>合约权益</dt>
+                    <dt>监控权益</dt>
                     <dd class="numeric">
                       {{ app.accounts.length ? app.mask(amount(app.totals.margin)) : '暂无' }}
                     </dd>
@@ -417,21 +417,21 @@ onUnmounted(() => {
                             app.mask(
                               amount(
                                 exchange.id === 'okx'
-                                  ? (account.fundingAccountUSDT ?? 0)
-                                  : (account.spotTotalUSDT ?? 0)
+                                  ? account.fundingAccountUSDT
+                                  : account.spotTotalUSDT
                               )
                             )
                           }}
                         </dd>
                       </div>
                       <div>
-                        <dt>{{ exchange.id === 'okx' ? '交易账户' : '合约权益' }}</dt>
+                        <dt>{{ exchange.id === 'okx' ? '交易账户' : '监控权益' }}</dt>
                         <dd>
                           {{
                             app.mask(
                               amount(
                                 exchange.id === 'okx'
-                                  ? (account.tradingAccountUSDT ?? 0)
+                                  ? account.tradingAccountUSDT
                                   : account.totalMarginBalance
                               )
                             )
