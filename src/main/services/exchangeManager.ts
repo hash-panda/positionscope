@@ -129,6 +129,9 @@ export class ExchangeManager {
    * 根据错误代码生成建议
    */
   private getSuggestionForError(errorCode: string, errorMessage: string): string {
+    if (errorCode === 'HYPERLIQUID_UNSUPPORTED_ACCOUNT') return 'Hyperliquid 暂仅支持标准账户（disabled）；统一、组合保证金及未知模式不生成汇总。应用不会更改账户模式。';
+    if (errorCode === 'HYPERLIQUID_INCOMPLETE_ACCOUNT') return 'Hyperliquid 余额或估值数据不完整，已停止汇总；请稍后重试。';
+    if (errorCode === 'HYPERLIQUID_READ_FAILED') return 'Hyperliquid 只读请求失败，请检查网络后重试。';
     if (errorCode === 'ECONNREFUSED' || errorCode === 'ECONNABORTED' || errorMessage.includes('timeout')) {
       return '网络连接失败，请检查：\n1. 网络连接是否正常\n2. 是否需要配置代理（设置 → 系统 → 网络代理）\n3. 防火墙是否阻止了连接';
     }

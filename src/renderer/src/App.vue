@@ -375,6 +375,7 @@ onUnmounted(() => {
                   </div>
                 </dl>
               </section>
+              <details v-if="app.configuredExchanges.some(item => item.id === 'hyperliquid')" class="account-disclosure"><summary>Hyperliquid · 统计范围与估值假设</summary><p class="small-text muted">仅统计标准账户的默认永续 DEX 与现货；按 USDC 与 USDT 1:1 估算，可用余额为未占用保证金估算。其他 DEX、质押与借贷未计入。</p></details>
               <details class="account-disclosure"><summary><span>账户连接 <span class="count numeric">{{ app.configuredExchanges.length }}</span></span><span class="muted">{{ app.stale ? '连接需关注' : '查看明细' }} <ChevronRight :size="13" /></span></summary>              <div class="exchange-status-list" aria-label="交易所连接状态">
                 <div
                   v-for="exchange in app.configuredExchanges"
