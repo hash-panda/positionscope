@@ -79,6 +79,8 @@ jobs:
       - run: pnpm build
       - name: Verify native settings storage with a synthetic profile
         run: bash scripts/verify-secure-settings-native.sh
+      - name: Verify app artwork and menu-bar template resources
+        run: bash scripts/verify-branding-native.sh
       - name: Sign, notarize, staple and verify
         run: python3 scripts/release-signed-mac.py --arch '${{ matrix.arch }}'
         env:

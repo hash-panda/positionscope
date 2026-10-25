@@ -221,15 +221,18 @@ function stopAutoRefresh() {
 }
 
 function createTray() {
-  // 文字模式：使用空图标，只显示文字
-  // 创建一个小的透明图标，让菜单栏只显示文字
-  const icon = nativeImage.createEmpty();
+  const iconPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'brand', 'trayTemplate.png')
+    : path.join(app.getAppPath(), 'assets', 'brand', 'trayTemplate.png');
+  const icon = nativeImage.createFromPath(iconPath);
+  if (icon.isEmpty()) throw new Error('PositionScope menu-bar icon is missing');
+  icon.setTemplateImage(true);
 
   tray = new Tray(icon);
   tray.setToolTip('PositionScope · 仓位镜');
   tray.setTitle('--'); // 初始显示
 
-  console.log('[Tray] Created with text-only mode (no icon)');
+  console.log('[Tray] Created with PositionScope template icon');
 
   // 点击托盘图标显示/隐藏窗口
   tray.on('click', () => {

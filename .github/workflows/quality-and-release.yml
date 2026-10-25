@@ -38,6 +38,7 @@ jobs:
       - run: corepack enable && corepack prepare pnpm@10.11.0 --activate
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:main && bash scripts/verify-secure-settings-native.sh
+      - run: bash scripts/verify-branding-native.sh
       - name: Verify direct package download despite an unavailable local proxy
         run: |
           export https_proxy=http://127.0.0.1:1

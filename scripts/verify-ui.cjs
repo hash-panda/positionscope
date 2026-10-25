@@ -112,7 +112,7 @@ async function fixture(page, options = {}) {
       getDebugMode: async () => false,
       getWindowOpacity: async () => 1,
       getAutoLaunch: async () => false,
-      getAppVersion: async () => '1.0.0',
+      getAppVersion: async () => options.appVersion,
       getPositionOrder: async () => [],
       getAISettings: async () => ai,
       saveAISettings: async (value) => {
@@ -200,7 +200,7 @@ async function fixture(page, options = {}) {
         result('quitApp');
       },
     };
-  }, options);
+  }, { ...options, appVersion: require('../package.json').version });
 }
 
 (async () => {

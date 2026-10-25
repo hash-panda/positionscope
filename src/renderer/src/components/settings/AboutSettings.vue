@@ -2,6 +2,7 @@
 import { onUnmounted, ref } from 'vue';
 import { Check, ChevronRight, Copy, Trash2, Wrench } from 'lucide-vue-next';
 import type { AppModel } from '../../composables/useTradingApp';
+import appIcon from '../../../../../assets/brand/app-icon-128.png';
 
 const props = defineProps<{ model: AppModel }>();
 const emit = defineEmits<{ confirm: [action: 'reset' | 'delete'] }>();
@@ -26,6 +27,7 @@ onUnmounted(() => {
 </script>
 <template>
   <div class="about-heading">
+    <img class="about-app-icon" :src="appIcon" width="64" height="64" alt="" aria-hidden="true" />
     <h2>PositionScope · 仓位镜</h2>
     <p>菜单栏持仓监控工具</p>
   </div>
@@ -69,3 +71,6 @@ onUnmounted(() => {
     <p class="helper">操作前会再次确认。</p>
   </section>
 </template>
+<style scoped>
+.about-app-icon { display: block; margin: 0 auto 8px; }
+</style>
