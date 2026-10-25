@@ -43,6 +43,15 @@ def notarize(artifact,profile,keychain):
     if response.get('status')!='Accepted': raise RuntimeError('Apple notarization did not return Accepted; no release will be published')
     return response['id']
 
+def verify_bundle_branding(resources,app_info,expected_icon,source_trays):
+    icon_file=app_info.get('CFBundleIconFile')
+    if icon_file!='icon.icns' or (resources/icon_file).read_bytes()!=expected_icon.read_bytes():
+        raise RuntimeError('Packaged application icon does not match the PositionScope artwork')
+    for name in ('trayTemplate.png','trayTemplate@2x.png'):
+        if (resources/'brand'/name).read_bytes()!=(source_trays/name).read_bytes():
+            raise RuntimeError('Packaged menu-bar icon mismatch')
+    return {'app_icon_file':icon_file,'app_icon_sha256':hashlib.sha256(expected_icon.read_bytes()).hexdigest(),'packaged_app_icon_matches':True,'packaged_tray_icons_match':True}
+
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--arch',choices=['arm64','x64'],required=True);parser.add_argument('--check',action='store_true');args=parser.parse_args()
     env=dict(os.environ);preflight(env)
@@ -54,6 +63,9 @@ def main():
     storage=json.loads((root/'test-results/storage-native.json').read_text())
     if storage.get('electron')!=package['devDependencies']['electron'] or not all(storage.get(key) is True for key in ('asynchronous_system_encryption','cross_process_reload','reset_preserves_credentials','targeted_removal','deletion','synthetic_profile_only')):
         raise RuntimeError('Native settings storage verification is missing or mismatched')
+    branding=json.loads((root/'test-results/branding-native.json').read_text())
+    if branding.get('electron')!=package['devDependencies']['electron'] or not all(branding.get(key) is True for key in ('icns_decoded','app_artwork_matches','template_image','retina_representation')):
+        raise RuntimeError('Native branding verification is missing or mismatched')
     previous=shlex.split(run(['security','list-keychains','-d','user']))
     with tempfile.TemporaryDirectory(prefix='positionscope-sign-',dir=env.get('RUNNER_TEMP')) as directory:
         temporary=Path(directory);keychain=temporary/'signing.keychain-db';p12=temporary/'certificate.p12';password=secrets.token_urlsafe(32)
@@ -74,6 +86,8 @@ def main():
             app=root/'release'/('mac-arm64' if args.arch=='arm64' else 'mac')/'PositionScope.app'
             with (app/'Contents/Info.plist').open('rb') as source: app_info=plistlib.load(source)
             if app_info.get('CFBundleIdentifier')!=package['build']['appId']: raise RuntimeError('Application bundle identity mismatch')
+            expected_icon=root/package['build']['mac']['icon']
+            bundled_branding=verify_bundle_branding(app/'Contents/Resources',app_info,expected_icon,root/'assets/brand')
             run(['codesign','--verify','--deep','--strict',str(app)])
             info=subprocess.run(['codesign','-dv','--verbose=4',str(app)],capture_output=True,text=True,check=True).stderr
             if f'TeamIdentifier={env["APPLE_TEAM_ID"]}' not in info or 'Authority=Developer ID Application:' not in info: raise RuntimeError('Signed app identity/team mismatch')
@@ -96,6 +110,7 @@ def main():
             dmg_submission=notarize(dmg,profile,keychain);run(['xcrun','stapler','staple',str(dmg)]);run(['xcrun','stapler','validate',str(dmg)])
             evidence={'version':version,'architecture':args.arch,'app_notarization':app_submission,'dmg_notarization':dmg_submission,'signature_verified':True,'staple_validated':True,'gatekeeper_assessment':'accepted','artifacts':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in (zip_path,dmg)}}
             evidence.update(app_id=app_info['CFBundleIdentifier'],minimum_macos_version=app_info.get('LSMinimumSystemVersion'),settings_storage_smoke=storage)
+            evidence.update(branding={**bundled_branding,'native_smoke':branding})
             (output/f'{stem}-verification.json').write_text(json.dumps(evidence,indent=2)+'\n')
             print(f'Verified signed and notarized {args.arch} ZIP and DMG; no credentials included in artifacts')
         finally:

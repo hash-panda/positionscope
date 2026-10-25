@@ -1,5 +1,7 @@
 # PositionScope · 仓位镜
 
+<img src="assets/brand/app-icon-128.png" width="64" height="64" alt="PositionScope 取景框与仓位刻度标识">
+
 macOS 菜单栏中的多交易所持仓监控与按需 AI 风险解读。
 
 官网：https://positionscope.funagent.app/ 。当前为签名、公证的 Beta；发布产物以 Releases 为准。

@@ -57,7 +57,9 @@ test-*.js
 test-*.ts
 
 # Assets (temporary/local files)
-assets/
+assets/*
+!assets/brand/
+!assets/brand/**
 
 # pnpm
 pnpm-workspace.yaml

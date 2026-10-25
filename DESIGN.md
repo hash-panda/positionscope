@@ -1,5 +1,11 @@
 # PositionScope · 仓位镜 · UI design system
 
+## 应用标识（2026-10-25）
+
+“取景框＋仓位刻度”：上方留有开口的圆角框、两条错位但平衡的仓位刻度，表达观察与比较。深墨色 #171D24、暖金色 #F4CA55；不用利润箭头、货币符号或交易所图形。主图标为1024透明PNG及多尺寸ICNS，见assets/brand。菜单栏采用18pt黑色透明Template图，提供36px/144dpi Retina版本，由macOS适配深浅菜单栏；保留现有文字盈亏展示与Dock隐藏行为。
+
+必须通过Mac iconutil解包、Electron像素/Retina/Template检查；签名流水线还须核对CFBundleIconFile及实际Resources内图标字节与源文件一致。仅改网页或BrowserWindow图标不能视为修复应用包图标。原生外观仍以用户Mac实测为准。
+
 本规范针对 480 × 600 的 macOS 菜单栏持仓监控窗口。视觉参考 Binance 的深色产品界面；产品以 PositionScope · 仓位镜命名，交易所标志仅用于识别数据来源。
 
 ## 设计依据

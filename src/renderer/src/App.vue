@@ -29,6 +29,7 @@ import NotificationCenter from './components/NotificationCenter.vue';
 import PositionList from './components/PositionList.vue';
 import SettingsPanel from './components/SettingsPanel.vue';
 import ActivityPanel from './components/ActivityPanel.vue';
+import brandMark from '../../../assets/brand/mark.svg';
 
 const notificationCenter = ref<InstanceType<typeof NotificationCenter>>();
 const notificationsOpen = ref(false);
@@ -213,7 +214,7 @@ onUnmounted(() => {
       </section>
       <section v-else class="screen overview-screen" aria-labelledby="overview-title">
         <header class="screen-header overview-header">
-          <div class="wordmark"><span class="brand-mark" aria-hidden="true">p.</span><div><h1 id="overview-title" ref="mainTitle" tabindex="-1">持仓盈亏</h1><span class="product-caption">PositionScope · 仓位镜</span></div></div>
+          <div class="wordmark"><img class="brand-mark" :src="brandMark" alt="" aria-hidden="true" /><div><h1 id="overview-title" ref="mainTitle" tabindex="-1">持仓盈亏</h1><span class="product-caption">PositionScope · 仓位镜</span></div></div>
           <div class="header-actions">
             <button
               ref="notificationButton"
