@@ -135,6 +135,12 @@ async function updateTrayTitle(snapshot?: Position[]) {
       return;
     }
 
+    // A partial/failed read is unknown, never proof of a flat account.
+    if (exchangeManager.hasAnyErrors()) {
+      tray.setTitle('数据异常');
+      return;
+    }
+
     if (!positions || positions.length === 0) {
       tray.setTitle('无持仓');
       console.log('[Tray] Set title to: 无持仓 (no positions)');
