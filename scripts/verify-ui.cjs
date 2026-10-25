@@ -19,6 +19,7 @@ async function fixture(page, options = {}) {
       isolatedMargin: '0',
       leverage: '10',
     };
+    if (options.riskDetails) Object.assign(position, {symbol:'BTCUSDT', positionAmt:'1', entryPrice:'90', markPrice:'100', unRealizedProfit:'10', liquidationPrice:'40', initialMargin:'20', maintenanceMargin:'1', marginCurrency:'USDT', baseAsset:'BTC', fetchedAt:Date.now()});
     const positions = options.empty
       ? []
       : options.multiple
@@ -160,7 +161,7 @@ async function fixture(page, options = {}) {
         return {
           success: true,
           data: {
-            facts:{version:'risk-facts-v1',positionCount:1,grossNotional:919.32,netNotional:919.32,marginEquity:445.4,grossToEquity:2.06,largestAsset:'FOLKS',largestAssetShare:1,longNotional:919.32,shortNotional:0,adverseMove5Percent:45.966,adverseMoveToEquity:.1032,limitations:['仅为快照，缺少历史数据与强平价。']},
+            facts:{version:'risk-facts-v2',positionCount:1,grossNotional:919.32,netNotional:919.32,marginEquity:445.4,grossToEquity:2.06,largestAsset:'FOLKS',largestAssetShare:1,longNotional:919.32,shortNotional:0,adverseMove5Percent:45.966,adverseMoveToEquity:.1032,positions:options.riskDetails?[{exchange:'binance',symbol:'BTCUSDT',side:'long',liquidationPrice:40,liquidationDistance:.6,initialMargin:20,maintenanceMargin:1,currency:'USDT'}]:[],accounts:options.riskDetails?[{exchange:'binance',mode:'single-asset',equity:100,riskEquity:100,scope:'futures',currency:'USDT',maintenanceMargin:1,notes:['合成验收数据']}]:[],scenarios:options.riskDetails?[1,.75,.5].flatMap(retainedShare=>[-.2,-.1,-.05,.05,.1,.2].map(priceMove=>({retainedShare,priceMove,pricePnl:100*retainedShare*priceMove}))):[],limitations:['仅为快照，缺少历史数据与强平价。']},
             snapshotId:'demo-synthetic',model:'demo-model',provider:'deepseek',analyzedAt:'2026-10-24T10:00:00Z',
             summary: '当前持仓集中，需关注杠杆与风险敞口。',
             warnings: ['持仓较集中', '10× 杠杆会放大波动影响'],
@@ -508,6 +509,21 @@ async function fixture(page, options = {}) {
     assert(await activity.getByText('binance · 多仓 · ••••', { exact: true }).isVisible());
     await activity.close();
     results.push('session changes, animation pause, outage rebaseline, private amounts and 320px trading room');
+    const risk = await open({riskDetails:true},320);
+    await risk.getByText('价格与仓位详情', {exact:true}).click();
+    assert(await risk.getByText('强平参考距离',{exact:true}).isVisible());
+    assert(await risk.getByText('60.00%',{exact:true}).isVisible());
+    await capture(risk,'20-risk-position-details');
+    await risk.getByText('价格与仓位详情', {exact:true}).click();
+    await risk.getByRole('button',{name:'AI 持仓分析',exact:true}).click();
+    await risk.getByText('逐仓强平与保证金',{exact:true}).click();
+    await risk.getByText('各交易所独立账户口径',{exact:true}).click();
+    await risk.getByText('保持 / 缩减仓位的价格情景',{exact:true}).click();
+    assert.equal(await risk.locator('.scenario-table tbody tr').count(),6);
+    assert(await risk.evaluate(()=>Array.isArray(window.__qa.aiRequests[0][1]) && window.__qa.aiRequests[0][1][0].exchange==='binance'));
+    await capture(risk,'21-risk-scenarios');
+    await risk.close();
+    results.push('320px liquidation/margin details, independent account AI input and six comparable coherent price scenarios');
     assert.deepEqual(errors, [], 'browser errors');
     console.log(JSON.stringify({ results, errors, screenshots }, null, 2));
   } finally {

@@ -1,3 +1,5 @@
+import { normalizeBinancePosition } from './position-normalize';
+import { numeric, optionalNumber, sumKnown } from '../utils/position-math';
 import axios, { AxiosInstance } from 'axios';
 import * as crypto from 'crypto';
 import { logger } from '../utils/logger';
@@ -147,7 +149,6 @@ export class BinanceService implements IExchangeService {
     const signature = this.sign(params);
 
     logger.log('[BinanceService] Request URL:', this.spotClient.defaults.baseURL + '/api/v3/account');
-    logger.log('[BinanceService] Request params:', { ...params, signature: signature.substring(0, 10) + '...' });
 
     try {
       const response = await this.spotClient.get('/api/v3/account', {
@@ -206,121 +207,46 @@ export class BinanceService implements IExchangeService {
         }
       });
     } catch (error) {
-      logger.error('Error fetching prices:', error);
+      logger.error('[BinanceService] Public valuation prices unavailable');
     }
+  }
+
+  private async futuresGet(path: string): Promise<any> {
+    const params = { timestamp: Date.now() };
+    const response = await this.futuresClient.get(path, {
+      params: {...params, signature: this.sign(params)}, headers: {'X-MBX-APIKEY': this.apiKey},
+    });
+    return response.data;
   }
 
   async getFuturesPositions(): Promise<Position[]> {
-    logger.log('[BinanceService] Getting futures positions...');
-    const timestamp = Date.now();
-    const params = { timestamp };
-    const signature = this.sign(params);
-
-    logger.log('[BinanceService] Request URL:', this.futuresClient.defaults.baseURL + '/fapi/v2/positionRisk');
-    logger.log('[BinanceService] Request params:', { ...params, signature: signature.substring(0, 10) + '...' });
-
-    try {
-      const response = await this.futuresClient.get('/fapi/v2/positionRisk', {
-        params: { ...params, signature },
-        headers: { 'X-MBX-APIKEY': this.apiKey },
-      });
-
-      logger.log('[BinanceService] Futures positions response status:', response.status);
-      logger.log('[BinanceService] Futures positions count:', response.data?.length);
-
-      // 只返回有持仓的合约，并添加交易所标识
-      const positions: Position[] = response.data
-        .filter((p: any) => parseFloat(p.positionAmt) !== 0)
-        .map((p: any) => ({
-          exchange: this.exchangeType,
-          symbol: p.symbol,
-          positionAmt: p.positionAmt,
-          entryPrice: p.entryPrice,
-          markPrice: p.markPrice,
-          unRealizedProfit: p.unRealizedProfit,
-          marginType: p.marginType,
-          isolatedMargin: p.isolatedMargin,
-          leverage: p.leverage,
-        }));
-
-      logger.log('[BinanceService] Active positions count:', positions.length);
-
-      return positions;
-    } catch (error: any) {
-      logger.error('[BinanceService] Error getting futures positions:');
-      logger.error('[BinanceService] Error message:', error.message);
-      logger.error('[BinanceService] Error status:', error.response?.status);
-      logger.error('[BinanceService] Error code:', error.code);
-      throw error;
-    }
+    const [positions, configs] = await Promise.all([
+      this.futuresGet('/fapi/v3/positionRisk'), this.futuresGet('/fapi/v1/symbolConfig'),
+    ]);
+    if (!Array.isArray(positions) || !Array.isArray(configs)) throw new Error('Binance持仓或配置列表缺失');
+    const configMap = new Map(configs.map((c: any) => [c.symbol, c]));
+    return positions.filter((p: any) => numeric(p.positionAmt) !== 0)
+      .map((p: any) => normalizeBinancePosition(p, configMap.get(p.symbol)));
   }
 
-  async getAccountBalance(): Promise<any> {
-    logger.log('[BinanceService] Getting account balance...');
-    const timestamp = Date.now();
-    const params = { timestamp };
-    const signature = this.sign(params);
+  async getAccountBalance(): Promise<any> { return this.futuresGet('/fapi/v3/balance'); }
 
-    try {
-      const response = await this.futuresClient.get('/fapi/v2/balance', {
-        params: { ...params, signature },
-        headers: { 'X-MBX-APIKEY': this.apiKey },
-      });
-
-      logger.log('[BinanceService] Account balance retrieved successfully');
-      return response.data;
-    } catch (error: any) {
-      logger.error('[BinanceService] Error getting account balance:', error.message);
-      throw error;
-    }
-  }
-
-  // 获取合约账户信息（包括总余额、可用余额、未实现盈亏等）
   async getFuturesAccountInfo(): Promise<AccountInfo> {
-    logger.log('[BinanceService] Getting futures account info...');
-    const timestamp = Date.now();
-    const params = { timestamp };
-    const signature = this.sign(params);
-
-    try {
-      // 并行获取合约账户信息和现货账户信息
-      const [futuresResponse, spotBalances] = await Promise.all([
-        this.futuresClient.get('/fapi/v2/account', {
-          params: { ...params, signature },
-          headers: { 'X-MBX-APIKEY': this.apiKey },
-        }),
-        this.getSpotBalances().catch((err) => {
-          logger.error('[BinanceService] Error getting spot balances for account info:', err.message);
-          return [];
-        }),
-      ]);
-
-      logger.log('[BinanceService] Futures account info retrieved successfully');
-
-      // 计算现货账户总资产（USDT价值）
-      const spotTotalUSDT = spotBalances.reduce((sum, balance) => sum + (balance.usdValue || 0), 0);
-      logger.log('[BinanceService] Spot total USDT:', spotTotalUSDT);
-
-      // 提取关键信息
-      const totalMarginBalance = parseFloat(futuresResponse.data.totalMarginBalance || '0');
-      const accountInfo: AccountInfo = {
-        exchange: this.exchangeType,
-        totalWalletBalance: parseFloat(futuresResponse.data.totalWalletBalance || '0'),
-        totalUnrealizedProfit: parseFloat(futuresResponse.data.totalUnrealizedProfit || '0'),
-        totalMarginBalance: totalMarginBalance,
-        availableBalance: parseFloat(futuresResponse.data.availableBalance || '0'),
-        maxWithdrawAmount: parseFloat(futuresResponse.data.maxWithdrawAmount || '0'),
-        spotTotalUSDT: spotTotalUSDT,
-        totalAssets: spotTotalUSDT + totalMarginBalance,
-      };
-
-      logger.log('[BinanceService] Total assets (spot + futures):', accountInfo.totalAssets);
-
-      return accountInfo;
-    } catch (error: any) {
-      logger.error('[BinanceService] Error getting futures account info:', error.message);
-      throw error;
-    }
+    const [data, config, spot] = await Promise.all([
+      this.futuresGet('/fapi/v3/account'), this.futuresGet('/fapi/v1/accountConfig'),
+      this.getSpotBalances().catch(() => null),
+    ]);
+    if (typeof config.multiAssetsMargin !== 'boolean') throw new Error('Binance保证金计价模式缺失');
+    const spotTotalUSDT = spot === null ? null : sumKnown(spot.map(b => b.usdValue));
+    const equity = optionalNumber(data.totalMarginBalance);
+    return {exchange: this.exchangeType, totalWalletBalance: optionalNumber(data.totalWalletBalance),
+      totalUnrealizedProfit: optionalNumber(data.totalUnrealizedProfit), totalMarginBalance: equity,
+      availableBalance: optionalNumber(data.availableBalance), maxWithdrawAmount: optionalNumber(data.maxWithdrawAmount),
+      spotTotalUSDT, totalAssets: sumKnown([spotTotalUSDT, equity]), fetchedAt: Date.now(),
+      valuationNotes: [...(spotTotalUSDT === null ? ['现货请求失败或部分币种缺少估值，总资产不可用。'] : []),
+        ...(config.multiAssetsMargin ? ['多资产保证金以USD计价；USD与USDT按1:1估算。'] : [])],
+      marginFacts: {scope: 'USD-M futures', currency: config.multiAssetsMargin ? 'USD' : 'USDT', mode: config.multiAssetsMargin ? 'multi-asset' : 'single-asset',
+        equity, initialMargin: optionalNumber(data.totalInitialMargin), maintenanceMargin: optionalNumber(data.totalMaintMargin)},
+    };
   }
 }
-

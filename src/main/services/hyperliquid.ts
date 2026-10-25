@@ -1,3 +1,4 @@
+import { optionalNumber } from '../utils/position-math';
 import axios, { AxiosInstance } from 'axios';
 import { logger } from '../utils/logger';
 import { decimal, finiteTotal, invalidAccount, spotBalances, valueSpotBalances } from './hyperliquid-account';
@@ -175,8 +176,12 @@ export class HyperliquidService implements IExchangeService {
         positions.push({
           exchange: this.exchangeType, symbol: p.coin, positionAmt: p.szi,
           entryPrice: p.entryPx, markPrice: String(mark), unRealizedProfit: p.unrealizedPnl,
-          marginType: p.leverage.type, isolatedMargin: p.leverage.type === 'isolated' ? String(margin) : '0',
-          leverage: String(p.leverage.value),
+          marginType: p.leverage.type, isolatedMargin: null, usedMargin: String(margin),
+          leverage: String(p.leverage.value), instrumentId: p.coin, positionId: p.coin,
+          baseAsset: p.coin, settlementAsset: 'USDC', marginCurrency: 'USDC', rawQuantity: p.szi, rawQuantityUnit: 'base',
+          liquidationPrice: optionalNumber(p.liquidationPx) !== null && Number(p.liquidationPx) > 0 ? String(p.liquidationPx) : null,
+          initialMargin: null, maintenanceMargin: null, fetchedAt: Date.now(),
+          sourceUpdatedAt: optionalNumber(response.data.time), priceSource: 'position_value_derived',
         });
       }
 
@@ -229,7 +234,11 @@ export class HyperliquidService implements IExchangeService {
         availableBalance: Math.max(0, finiteTotal(totalMarginBalance - marginUsed)),
         maxWithdrawAmount: withdrawable,
         spotTotalUSDT,
-        totalAssets: finiteTotal(spotTotalUSDT + totalMarginBalance),
+        totalAssets: finiteTotal(spotTotalUSDT + totalMarginBalance), fetchedAt: Date.now(),
+        valuationNotes: ['标准账户默认永续DEX加现货；USDC/USDT按1:1估算。', 'marginUsed是已用保证金，不作为维持保证金。'],
+        marginFacts: {scope: 'default_perps_cross_only', currency: 'USDC', mode: 'standard',
+          equity: optionalNumber(accountData.crossMarginSummary?.accountValue), initialMargin: null,
+          maintenanceMargin: optionalNumber(accountData.crossMaintenanceMarginUsed)},
       };
 
       return accountInfo;

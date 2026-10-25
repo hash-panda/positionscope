@@ -119,7 +119,7 @@ export interface DailySummary {
  */
 export interface AnalysisRequest {
   positions: Position[];
-  accountInfo: AccountInfo;
+  accountInfo: AccountInfo[];
   marketData?: any;              // 市场数据（可选）
 }
 

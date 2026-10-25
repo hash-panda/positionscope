@@ -1,24 +1,25 @@
-export function amount(value: number | string, decimals = 2): string {
-  const number = Number(value);
+export function amount(value: number | string | null | undefined, decimals = 2): string {
+  const number = value == null || (typeof value === 'string' && !value.trim()) ? NaN : Number(value);
   return Number.isFinite(number)
     ? number.toLocaleString('en-US', {
         minimumFractionDigits: decimals,
         maximumFractionDigits: decimals,
       })
-    : '暂无';
+    : '不可用';
 }
-export function signed(value: number | string): string {
-  const number = Number(value);
-  return `${number >= 0 ? '+' : ''}${amount(number)}`;
+export function signed(value: number | string | null | undefined): string {
+  const number = value == null || (typeof value === 'string' && !value.trim()) ? NaN : Number(value);
+  return Number.isFinite(number) ? `${number >= 0 ? '+' : ''}${amount(number)}` : '不可用';
 }
-export function price(value: string): string {
-  const number = Number(value);
+export function price(value: string | null | undefined): string {
+  const number = value == null || (typeof value === 'string' && !value.trim()) ? NaN : Number(value);
+  if (!Number.isFinite(number)) return '不可用';
   return amount(number, number >= 1000 ? 2 : number >= 1 ? 4 : number >= 0.01 ? 6 : 8);
 }
 export function symbol(value: string): string {
   return value.replace(/(USDT|BUSD)$/, '');
 }
-export function direction(value: number | string): string {
+export function direction(value: number | string | null | undefined): string {
   return Number(value) > 0 ? 'positive' : Number(value) < 0 ? 'negative' : '';
 }
 export function priceChange(position: {
