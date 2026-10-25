@@ -1,4 +1,4 @@
-# PositionScope · 仓位镜
+# PositionScope
 
 > Independent, read-only macOS menu-bar position monitor. Current release v0.2.0-beta.10 is signed and notarized for Apple Silicon and Intel; native UI and real-account tests are still pending. Planned features are not released features.
 
