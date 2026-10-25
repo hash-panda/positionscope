@@ -1,0 +1,21 @@
+/* Shared by the desktop UI and the public website. */
+:root {
+  --ps-canvas: #14171c;
+  --ps-surface: #1c2027;
+  --ps-raised: #262c35;
+  --ps-border: #2c333e;
+  --ps-text: #eaecef;
+  --ps-muted: #9ca6b5;
+  --ps-brand: #f4ca55;
+  --ps-brand-ink: #171d24;
+  --ps-brand-soft: rgba(244,202,85,.08);
+  --ps-positive: #0ecb81;
+  --ps-negative: #f6465d;
+  --ps-light-canvas: #f8f9fb;
+  --ps-light-surface: #fff;
+  --ps-light-raised: #e9edf2;
+  --ps-light-border: #dce1e8;
+  --ps-light-text: #181a20;
+  --ps-light-muted: #566373;
+  --ps-light-brand: #735011;
+}

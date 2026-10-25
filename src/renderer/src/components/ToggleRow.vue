@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { SwitchRoot, SwitchThumb } from 'reka-ui';
 defineProps<{ modelValue: boolean; label: string; description?: string; disabled?: boolean }>();
 defineEmits<{ 'update:modelValue': [value: boolean]; change: [] }>();
 </script>
@@ -9,19 +10,6 @@ defineEmits<{ 'update:modelValue': [value: boolean]; change: [] }>();
       ><span class="row-label">{{ label }}</span
       ><span v-if="description" class="helper">{{ description }}</span></span
     >
-    <span class="switch">
-      <input
-        type="checkbox"
-        role="switch"
-        :aria-label="label"
-        :checked="modelValue"
-        :disabled="disabled"
-        @change="
-          $emit('update:modelValue', ($event.target as HTMLInputElement).checked);
-          $emit('change');
-        "
-      />
-      <span class="switch-track" aria-hidden="true"><span /></span>
-    </span>
+    <SwitchRoot class="ui-switch" :aria-label="label" :model-value="modelValue" :disabled="disabled" @update:model-value="value => { $emit('update:modelValue', value); $emit('change'); }"><SwitchThumb class="ui-switch-thumb" /></SwitchRoot>
   </label>
 </template>

@@ -125,7 +125,9 @@ function closeMenu(event: PointerEvent) {
     moreOpen.value = false;
 }
 function handleEscape(event: KeyboardEvent) {
-  if (event.key !== 'Escape' || confirmation.value) return;
+  if (event.defaultPrevented || event.key !== 'Escape' || confirmation.value) return;
+  // Let the component dismiss its own overlay and restore focus first.
+  if (document.querySelector('[data-app-overlay][data-state="open"]')) return;
   if (moreOpen.value) {
     moreOpen.value = false;
     moreButton.value?.focus();

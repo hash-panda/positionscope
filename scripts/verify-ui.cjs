@@ -81,6 +81,7 @@ async function fixture(page, options = {}) {
       aiRequests: [],
       fetchCount: 0,
       failSave: false,
+      blockDisplaySave: false,
     };
     const result = (method, ...args) => {
       calls.push([method, ...args]);
@@ -138,7 +139,10 @@ async function fixture(page, options = {}) {
         return r;
       },
       savePositionOrder: async (value) => result('savePositionOrder', value),
-      saveDisplaySettings: async (value) => result('saveDisplaySettings', value),
+      saveDisplaySettings: async (value) => {
+        if (state.blockDisplaySave) await new Promise(resolve => { state.releaseDisplaySave = resolve; });
+        return result('saveDisplaySettings', value);
+      },
       saveTheme: async (value) => {
         return result('saveTheme', value);
       },
@@ -354,10 +358,38 @@ async function fixture(page, options = {}) {
         assert(await page.getByText('仅使用公开钱包地址，无需私钥。暂仅支持标准账户（disabled），其他模式不生成汇总。', { exact: true }).isVisible());
       }
       if (section === '外观') {
+        const slider = page.getByRole('slider', { name: '窗口透明度', exact: true });
+        await slider.focus();
+        await slider.press('ArrowLeft');
+        await page.getByText('95%', { exact: true }).waitFor();
+        assert.equal(await slider.getAttribute('aria-valuenow'), '0.95');
         await page.getByRole('button', { name: '浅色', exact: true }).click();
         await page.locator('.app.light-mode').waitFor();
         await capture(page, '04-light-appearance');
         await page.getByRole('button', { name: '深色', exact: true }).click();
+      }
+      if (section === '显示设置') {
+        const picker = page.getByRole('combobox', { name: '菜单栏显示数量', exact: true });
+        const original = await picker.innerText();
+        const before = await page.evaluate(() => window.__calls.filter(c => c[0] === 'saveDisplaySettings').length);
+        await picker.focus();
+        await picker.press('Enter');
+        await page.getByRole('listbox').waitFor();
+        await page.keyboard.press('End');
+        await page.keyboard.press('Escape');
+        await page.getByRole('listbox').waitFor({ state: 'detached' });
+        assert.equal(await picker.innerText(), original);
+        assert(await picker.evaluate(element => element === document.activeElement));
+        assert.equal(await page.evaluate(() => window.__calls.filter(c => c[0] === 'saveDisplaySettings').length), before);
+        await page.evaluate(() => { window.__qa.blockDisplaySave = true; });
+        await picker.press('Enter');
+        await page.getByRole('option', { name: '1 个', exact: true }).click();
+        assert(await picker.isDisabled());
+        await page.evaluate(() => { window.__qa.blockDisplaySave = false; window.__qa.releaseDisplaySave(); });
+        await page.getByRole('combobox', { name: '菜单栏显示数量', exact: true }).getByText('1 个', { exact: true }).waitFor();
+        await page.waitForFunction(() => !document.querySelector('[aria-label="菜单栏显示数量"]').disabled);
+        assert(await picker.evaluate(element => element === document.activeElement));
+        assert(await page.evaluate(() => window.__calls.some(c => c[0] === 'saveDisplaySettings' && c[1].maxDisplayCount === 1)));
       }
       if (section === '系统') {
         await page.evaluate(() => {
@@ -372,7 +404,8 @@ async function fixture(page, options = {}) {
         await page.evaluate(() => {
           window.__qa.failSave = false;
         });
-        await page.getByLabel('代理地址（可选）').fill('invalid proxy');
+        assert.equal(await page.getByLabel('代理地址（可选）', { exact: true }).getAttribute('type'), 'password');
+        await page.getByLabel('代理地址（可选）', { exact: true }).fill('invalid proxy');
         await page.getByRole('button', { name: '保存代理' }).click();
         assert(
           await page.getByText('请输入有效的 HTTP / HTTPS 代理地址，或留空以直连').isVisible()
@@ -470,6 +503,17 @@ async function fixture(page, options = {}) {
     await narrow.getByRole('button', { name: /^API 配置/ }).click();
     await capture(narrow, '15-narrow-form');
     results.push('320px width overflow checks');
+    await narrow.getByRole('button', { name: '返回设置', exact: true }).click();
+    await narrow.getByRole('button', { name: /^显示设置/ }).click();
+    const compactPicker = narrow.getByRole('combobox', { name: '刷新间隔', exact: true });
+    await compactPicker.click();
+    const popup = narrow.getByRole('listbox');
+    await popup.waitFor();
+    assert(await popup.evaluate(element => { const r=element.getBoundingClientRect(); return r.left>=0 && r.right<=320 && r.top>=0 && r.bottom<=600; }));
+    await capture(narrow, '20-component-select-320');
+    await narrow.keyboard.press('Escape');
+    await popup.waitFor({ state: 'detached' });
+    results.push('component select keyboard cancel/focus and typed save, slider keyboard commit, private proxy, 320px popover bounds');
     const large = await open({large:true,multiple:true},320);
     await capture(large,'16-large-amounts');
     await large.close();

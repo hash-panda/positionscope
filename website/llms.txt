@@ -14,4 +14,4 @@
 
 Hyperliquid is limited to confirmed standard (disabled) accounts, default perp DEX and spot; other account modes are rejected. USDC/USDT parity is an estimate. Other DEX, staking and lending assets are excluded.
 
-No exchange affiliation. No profit forecasts or verified performance claims. Settings use macOS Keychain-managed keys for asynchronous local encryption; no plaintext fallback. This is a fresh app identity without pre-release compatibility. AI processing is opt-in and sends sensitive risk aggregates to the selected model provider.
+No exchange affiliation. No profit forecasts or verified performance claims. Settings use macOS Keychain-managed keys for asynchronous local encryption; no plaintext fallback. This is a fresh app identity without pre-release compatibility. AI processing is opt-in and sends sensitive position-level risk facts and account equity to the selected model provider.

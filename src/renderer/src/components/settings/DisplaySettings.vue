@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { CircleHelp } from 'lucide-vue-next';
 import ToggleRow from '../ToggleRow.vue';
+import AppSelect from '../ui/AppSelect.vue';
 import { menuValues } from '../../../../main/utils/menu-format';
 import type { AppModel } from '../../composables/useTradingApp';
 
@@ -18,28 +19,23 @@ const previewValues = computed(() =>
         ><span class="row-label">菜单栏显示数量</span
         ><span class="helper">在菜单栏展示前 1–2 个持仓</span></span
       >
-      <select
-        v-model.number="model.preferences.maxDisplayCount"
-        aria-label="菜单栏显示数量"
+      <AppSelect
+        v-model="model.preferences.maxDisplayCount"
+        label="菜单栏显示数量"
+        :options="[{ value: 1, label: '1 个' }, { value: 2, label: '2 个' }]"
         :disabled="!!model.saving"
         @change="model.savePreference('display')"
-      >
-        <option :value="1">1 个</option>
-        <option :value="2">2 个</option>
-      </select>
+      />
     </label>
     <label class="setting-row"
       ><span>刷新间隔</span
-      ><select
-        v-model.number="model.preferences.refreshInterval"
-        aria-label="刷新间隔"
+      ><AppSelect
+        v-model="model.preferences.refreshInterval"
+        label="刷新间隔"
+        :options="[3, 5, 10, 30, 60].map(value => ({ value, label: value === 60 ? '1 分钟' : `${value} 秒` }))"
         :disabled="!!model.saving"
         @change="model.savePreference('display')"
-      >
-        <option v-for="seconds in [3, 5, 10, 30, 60]" :key="seconds" :value="seconds">
-          {{ seconds === 60 ? '1 分钟' : `${seconds} 秒` }}
-        </option>
-      </select></label
+      /></label
     >
     <ToggleRow
       v-model="model.preferences.hideAmounts"
