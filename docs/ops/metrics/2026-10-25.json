@@ -1,0 +1,58 @@
+{
+  "observed_date": "2026-10-25",
+  "observed_timezone": "Asia/Shanghai",
+  "repository": "hash-panda/positionscope",
+  "visibility": "public",
+  "stars": 0,
+  "forks": 0,
+  "releases": [
+    {
+      "tag": "v0.2.0-beta.10",
+      "published_at": "2026-10-25T11:34:13Z",
+      "downloads": [
+        {
+          "name": "PositionScope-0.2.0-beta.10-arm64-verification.json",
+          "count": 0
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.10-arm64.dmg",
+          "count": 0
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.10-arm64.zip",
+          "count": 0
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.10-x64-verification.json",
+          "count": 0
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.10-x64.dmg",
+          "count": 0
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.10-x64.zip",
+          "count": 0
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "count": 0
+        }
+      ]
+    }
+  ],
+  "website_visitors": null,
+  "activations": null,
+  "retention": null,
+  "paying_customers": null,
+  "revenue": null,
+  "notes": [
+    "Counts are public request counters at API read time, not unique users or paying customers.",
+    "Search Console remains at its sign-in entry; no verified-property analytics read.",
+    "One site-scoped public search returned no results; indexing status remains unknown."
+  ],
+  "sources": [
+    "https://api.github.com/repos/hash-panda/positionscope",
+    "https://api.github.com/repos/hash-panda/positionscope/releases/tags/v0.2.0-beta.10"
+  ]
+}

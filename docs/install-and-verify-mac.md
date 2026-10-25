@@ -1,6 +1,6 @@
 # 本机替换安装与验证
 
-此脚本仅安装已发布的 v0.2.0-beta.5，不构建二进制。使用系统 Bash 3.2，无需 Homebrew、Python 或 Xcode。需要 macOS 13.0+，自动按实际硬件选择 Apple Silicon 或 Intel（包括 Rosetta 终端）。
+此脚本仅安装已发布的 v0.2.0-beta.10，不构建二进制。使用系统 Bash 3.2，无需 Homebrew、Python 或 Xcode。需要 macOS 13.0+，自动按实际硬件选择 Apple Silicon 或 Intel（包括 Rosetta 终端）。
 
 运行 `bash scripts/install-verified-mac.sh`：下载固定版本 ZIP，核对固定 SHA256，检查 Bundle ID/版本、codesign 与 Gatekeeper；任何一项失败都不替换旧应用。不关闭 Gatekeeper、不删除 quarantine 属性。
 

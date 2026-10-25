@@ -12,7 +12,7 @@ GEO每月人工抽样5个固定问题（Mac菜单栏多所持仓、只读配置�
 
 ## 内容与渠道实验
 
-一篇内容对应一个真实问题，必须能复算或操作：第一批已做只读配置和集中度说明；下一批在实际实现后写持仓变化与成交区别、资金费如何影响成本。合成数据明确标记，截图遮蔽敏感信息。每次发布先核对当前可下载版本与签名状态。
+一篇内容对应一个真实问题，必须能复算或操作：第一批已做只读配置和集中度说明；方法页已补持仓数量与成交区别、条件资金费/强平距离/价格历史口径；继续用真实反馈决定下一篇内容。合成数据明确标记，截图遮蔽敏感信息。每次发布先核对当前可下载版本与签名状态。
 
 首周先在自有GitHub README/Release/Issue和官网提供试用入口，自愿Star/Watch，不给予虚假奖励。签名可用后，选择一个用户提供的品牌社交账号与一个允许产品反馈的社区，发布一次演示+限制+问题邀请；不同时铺量。为各渠道链接加utm_source/medium/campaign，但当前没有访问统计，不能声称已追踪转化。用自愿反馈的来源字段做最小验证。
 
@@ -25,3 +25,7 @@ GEO每月人工抽样5个固定问题（Mac菜单栏多所持仓、只读配置�
 English: PositionScope is an open-source Mac menu-bar position monitor. We are testing whether read-only multi-exchange snapshots and reproducible risk facts help users spot changes faster. A signed and notarized beta is now available; settings use macOS Keychain-managed encryption; packaged-app permission prompts, native UI and real-account validation are still pending. We welcome feedback from Mac users with multi-exchange workflows. No API keys or account balances are needed for feedback. https://positionscope.funagent.app/en/
 
 建立群时优先提供公开规则、隐私提醒与反馈模板，用户主动加入；没有具体账号前不创建无人维护的邀请入口。收集问题进入Issue并合并重复项，公开周报回链到真实修复。
+
+## 2026-10-25 真实可见度证据
+
+GitHub公开API读取时仓库为Public，Stars=0、Forks=0；这不是激活或收入数据。当前Search Console打开到登录入口，没有可读属性/效果报表；本次一次站点限定搜索无返回，不能据此断言未收录。Bing报表未验证。网站访问、激活、留存、收入仍未知，不填0；外部品牌/社区渠道尚无具体授权入口，未代发或付费。相关源与时点保留在ops报告和metrics快照。
