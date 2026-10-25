@@ -44,6 +44,12 @@ const ratio = (v: number | null, unit = '×') => v === null ? '不可计算' : `
             <tr v-for="move in [-.2,-.1,-.05,.05,.1,.2]" :key="move"><th>{{ move*100 }}%</th><td v-for="share in [1,.75,.5]" :key="share">{{ amount(facts.scenarios.find(s => s.retainedShare === share && s.priceMove === move)?.pricePnl) }}</td></tr>
           </tbody></table>
         </details>
+        <details v-if="score.market" class="analysis-method"><summary>市场背景与条件资金费</summary>
+          <p class="helper">{{ score.market.source }} · {{ new Date(score.market.fetchedAt).toLocaleString('zh-CN') }} · {{ score.market.status === 'available' ? '齐全' : '部分缺失或不可用' }}</p>
+          <p v-if="score.market.breadth">平台USDT永续24h：涨 {{ score.market.breadth.rising }} / 跌 {{ score.market.breadth.falling }}；涨跌中位数 {{ ratio(score.market.breadth.medianChange24h, '%') }}</p>
+          <ul><li v-for="(f,index) in score.fundingScenarios" :key="index">{{ f.symbol }} · 保留{{ f.retainedShare*100 }}% · 假设下次费率等于{{ ratio(f.referenceRate,'%') }}，单次现金流 {{ amount(f.estimatedCashflow) }} USDT（正为收取，负为支付）</li></ul>
+          <p class="helper">仅Binance同合约适用，按当前仓位与当前标记价估算；实际结算受价格、仓位和费率变化影响。其他平台、交易手续费与滑点未估算。详细行情可在“公共市场 · 研究观察”查看。</p>
+        </details>
         <section class="analysis-section"><h2>AI 解读</h2><p>{{ score.summary }}</p></section>
         <section v-if="score.warnings?.length" class="analysis-warning"><h2><AlertTriangle :size="16" />需要关注</h2><ul><li v-for="(warning,index) in score.warnings" :key="index">{{ warning }}</li></ul></section>
         <section v-if="score.suggestions?.length" class="analysis-section"><h2>建议复核</h2><ul><li v-for="(suggestion,index) in score.suggestions" :key="index">{{ suggestion }}</li></ul></section>

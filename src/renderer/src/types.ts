@@ -88,6 +88,7 @@ export interface ElectronAPI {
   savePositionOrder(order: string[]): Promise<Result>;
   getAISettings(): Promise<AISettings | null>;
   saveAISettings(settings: AISettings): Promise<Result>;
+  getPublicMarket(symbols: string[]): Promise<Result & {data?: import('../../main/types/market').MarketSnapshot}>;
   aiAnalyzeHealth(
     positions: Position[],
     accountInfo: AccountInfo[],

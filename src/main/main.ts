@@ -1,3 +1,5 @@
+import { buildRiskFacts } from './services/ai/risk-facts';
+import { publicMarketService } from './services/public-market';
 import { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell } from 'electron';
 
 import * as path from 'path';
@@ -648,6 +650,12 @@ ipcMain.handle('save-ai-settings', async (_, aiSettings: AISettings) => {
 /**
  * 分析持仓健康度
  */
+ipcMain.handle('get-public-market', async (_, symbols: string[]) => {
+  try {
+    publicMarketService.setProxy(settingsManager.getProxyUrl());
+    return {success:true,data:await publicMarketService.snapshot(symbols)};
+  } catch { return {success:false,error:'公共市场数据暂不可用，请检查网络或稍后重试。'}; }
+});
 ipcMain.handle('ai-analyze-health', async (_, positions, accountInfo, provider?: AIProvider, forceRefresh = false) => {
   try {
     if (!aiService.isAvailable()) {
@@ -656,7 +664,11 @@ ipcMain.handle('ai-analyze-health', async (_, positions, accountInfo, provider?:
 
     if (forceRefresh) aiService.clearCache();
     console.log('[IPC] AI health analysis requested');
-    const result = await aiService.analyzePortfolioHealth(positions, accountInfo, provider);
+    buildRiskFacts(positions, accountInfo);
+    publicMarketService.setProxy(settingsManager.getProxyUrl());
+    const symbols = [...new Set<string>((positions as any[]).map(p => /^[A-Z0-9]{1,40}USDT$/.test(p.symbol) ? p.symbol : /^[A-Z0-9]{1,40}$/.test(p.baseAsset) ? `${p.baseAsset}USDT` : '').filter(Boolean))];
+    const market = await publicMarketService.snapshot(symbols);
+    const result = await aiService.analyzePortfolioHealth(positions, accountInfo, provider, market);
 
     return { success: true, data: result };
   } catch (error: any) {

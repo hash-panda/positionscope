@@ -73,11 +73,13 @@ async function fixture(page, options = {}) {
       availableBalance: 0,
       maxWithdrawAmount: 0,
     };
+    const market = {version:'market-context-v1',source:'Binance USD-M public REST',status:'partial',fetchedAt:Date.now(),breadth:{eligibleContracts:2,pricedContracts:2,rising:1,falling:1,flat:0,medianChange24h:0,quoteVolume24h:2000},active:[{symbol:'BTCUSDT',baseAsset:'BTC',lastPrice:100,change24h:.01,quoteVolume24h:1500,onboardAt:Date.now()-86400000,exchangeTimestamp:Date.now(),fetchedAt:Date.now()}],recentListings:[{symbol:'ASSETUSDT',baseAsset:'ASSET',lastPrice:1,change24h:-.01,quoteVolume24h:500,onboardAt:Date.now()-86400000,exchangeTimestamp:Date.now(),fetchedAt:Date.now()}],assets:[{symbol:'BTCUSDT',baseAsset:'BTC',fetchedAt:Date.now(),mark:{price:100,lastFundingRate:.001,nextFundingAt:Date.now()+3600000,exchangeTimestamp:Date.now()},funding:{intervalHours:4,intervalBasis:'observed',lastSettledRate:.001,lastSettledAt:Date.now()-3600000},openInterest:null,history:{interval:'1h',samples:30,start:Date.now()-30*3600000,end:Date.now()-3600000,priceChange:.05,maxDrawdown:.1,annualizedPriceVolatility:.5},gaps:['未平仓量不可用或过期']}],unavailableSymbols:[],notes:['合成市场fixture，不是实时行情。'],sources:['https://fapi.binance.com/fapi/v1/klines']};
     const state = {
       positions,
       errors,
       failData: false,
       failAI: false,
+      failMarket: false,
       aiRequests: [],
       fetchCount: 0,
       failSave: false,
@@ -159,6 +161,7 @@ async function fixture(page, options = {}) {
         return result('saveAutoLaunch', value);
       },
       saveProxySettings: async (value) => result('saveProxySettings', value),
+      getPublicMarket: async (symbols) => {calls.push(['getPublicMarket',symbols]);return state.failMarket ? {success:false,error:'模拟市场失败'} : {success:true,data:market};},
       aiAnalyzeHealth: async (...args) => {
         state.aiRequests.push(args);
         if (state.failAI) return { success: false, error: '模拟 AI 请求失败' };
@@ -166,6 +169,7 @@ async function fixture(page, options = {}) {
           success: true,
           data: {
             facts:{version:'risk-facts-v2',positionCount:1,grossNotional:919.32,netNotional:919.32,marginEquity:445.4,grossToEquity:2.06,largestAsset:'FOLKS',largestAssetShare:1,longNotional:919.32,shortNotional:0,adverseMove5Percent:45.966,adverseMoveToEquity:.1032,positions:options.riskDetails?[{exchange:'binance',symbol:'BTCUSDT',side:'long',liquidationPrice:40,liquidationDistance:.6,initialMargin:20,maintenanceMargin:1,currency:'USDT'}]:[],accounts:options.riskDetails?[{exchange:'binance',mode:'single-asset',equity:100,riskEquity:100,scope:'futures',currency:'USDT',maintenanceMargin:1,notes:['合成验收数据']}]:[],scenarios:options.riskDetails?[1,.75,.5].flatMap(retainedShare=>[-.2,-.1,-.05,.05,.1,.2].map(priceMove=>({retainedShare,priceMove,pricePnl:100*retainedShare*priceMove}))):[],limitations:['仅为快照，缺少历史数据与强平价。']},
+            market:options.riskDetails?market:undefined,fundingScenarios:options.riskDetails?[{exchange:'binance',symbol:'BTCUSDT',retainedShare:1,referenceRate:.001,nextFundingAt:Date.now()+3600000,estimatedCashflow:-.1}]:[],
             snapshotId:'demo-synthetic',model:'demo-model',provider:'deepseek',analyzedAt:'2026-10-24T10:00:00Z',
             summary: '当前持仓集中，需关注杠杆与风险敞口。',
             warnings: ['持仓较集中', '10× 杠杆会放大波动影响'],
@@ -565,9 +569,28 @@ async function fixture(page, options = {}) {
     await risk.getByText('保持 / 缩减仓位的价格情景',{exact:true}).click();
     assert.equal(await risk.locator('.scenario-table tbody tr').count(),6);
     assert(await risk.evaluate(()=>Array.isArray(window.__qa.aiRequests[0][1]) && window.__qa.aiRequests[0][1][0].exchange==='binance'));
+    await risk.getByText('市场背景与条件资金费',{exact:true}).click();
+    assert(await risk.getByText(/假设下次费率等于/).isVisible());
     await capture(risk,'21-risk-scenarios');
     await risk.close();
     results.push('320px liquidation/margin details, independent account AI input and six comparable coherent price scenarios');
+    const research = await open({},320);
+    assert.equal(await research.evaluate(()=>window.__calls.filter(c=>c[0]==='getPublicMarket').length),0);
+    await research.getByRole('button',{name:'更多操作',exact:true}).click();
+    await research.getByRole('button',{name:'公共市场 · 研究观察',exact:true}).click();
+    await research.getByRole('heading',{name:'公共市场 · 研究观察',exact:true}).waitFor();
+    await research.getByRole('heading',{name:'平台合约市场宽度 · 滚动24h',exact:true}).waitFor();
+    await research.getByText('新上市观察 · 最近30天，最多5个',{exact:true}).click();
+    await research.getByText('BTCUSDT · 资金费 / OI / 价格历史',{exact:true}).click();
+    assert(await research.getByText('未平仓量不可用或过期',{exact:true}).isVisible());
+    await capture(research,'22-public-market');
+    assert(await research.evaluate(()=>window.__calls.filter(c=>c[0]==='getPublicMarket').every(c=>Array.isArray(c[1])&&c[1].every(s=>typeof s==='string'))));
+    await research.evaluate(()=>window.__qa.failMarket=true);
+    await research.getByRole('button',{name:'刷新研究',exact:true}).click();
+    await research.getByRole('alert').filter({hasText:'公开行情获取失败'}).waitFor();
+    await capture(research,'23-public-market-failure');
+    await research.close();
+    results.push('on-demand public research only, 320px breadth/listings/history, explicit missing OI and failed-refresh snapshot retention');
     assert.deepEqual(errors, [], 'browser errors');
     console.log(JSON.stringify({ results, errors, screenshots }, null, 2));
   } finally {

@@ -74,8 +74,8 @@ export function buildRiskFacts(positions: Position[], accounts: AccountInfo[]): 
       ...(positions.some(p => p.exchange === 'hyperliquid') ? ['Hyperliquid仅支持标准账户默认永续DEX，不含其他DEX、质押、借贷或统一账户。'] : []),
     ]};
 }
-export function analysisCacheKey(positions: Position[], accounts: AccountInfo[], provider: string, model: string): string {
-  return createHash('sha256').update(JSON.stringify({positions, accounts, provider, model, version:'risk-facts-v2'})).digest('hex');
+export function analysisCacheKey(positions: Position[], accounts: AccountInfo[], provider: string, model: string, market?: import('../../types/market').MarketSnapshot): string {
+  return createHash('sha256').update(JSON.stringify({positions, accounts, provider, model, market, version:'risk-facts-v2'})).digest('hex');
 }
 export interface AnalysisNarrative { summary: string; warnings: string[]; suggestions: string[] }
 export function validateNarrative(value: unknown): AnalysisNarrative {

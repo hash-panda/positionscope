@@ -51,7 +51,7 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
   const exchangeErrors = ref<ExchangeError[]>([]);
   const error = ref('');
   const lastUpdated = ref<Date | null>(null);
-  const currentView = ref<'overview' | 'settings' | 'sort' | 'health' | 'activity'>('overview');
+  const currentView = ref<'overview' | 'settings' | 'sort' | 'health' | 'activity' | 'market'>('overview');
   const preferences = reactive<Preferences>({
     maxDisplayCount: 2,
     refreshInterval: 5,
@@ -78,6 +78,9 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
   const formSuccess = ref('');
   const analyzing = ref(false);
   const healthScore = ref<HealthScore | null>(null);
+  const marketSnapshot = ref<import('../../../main/types/market').MarketSnapshot | null>(null);
+  const marketLoading = ref(false);
+  const marketError = ref('');
   const analysisTime = ref<Date | null>(null);
   const analysisProvider = ref('');
   let timer: ReturnType<typeof setInterval> | undefined;
@@ -334,6 +337,21 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
     }
   }
 
+  async function loadMarket() {
+    if (!api || marketLoading.value) return;
+    marketLoading.value = true; marketError.value = '';
+    const requestGeneration = generation;
+    try {
+      const symbols = [...new Set(positions.value.map(p => /^[A-Z0-9]{1,40}USDT$/.test(p.symbol) ? p.symbol : p.baseAsset ? `${p.baseAsset}USDT` : '').filter(s => /^[A-Z0-9]{1,40}USDT$/.test(s)))];
+      const result = await api.getPublicMarket(symbols);
+      if (disposed || requestGeneration !== generation) return;
+      check(result);
+      if (!result.data || result.data.version !== 'market-context-v1') throw new Error('市场结果格式无效');
+      marketSnapshot.value = result.data;
+    } catch { marketError.value = '公开行情获取失败；若保留上次快照，请核对其时间。'; }
+    finally { marketLoading.value = false; }
+  }
+
   async function analyze() {
     if (!api || analyzing.value || !positions.value.length || stale.value || loading.value) return;
     if (
@@ -585,6 +603,10 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
     healthScore,
     analysisTime,
     analysisProvider,
+    marketSnapshot,
+    marketLoading,
+    marketError,
+    loadMarket,
     configuredExchanges,
     sortedPositions,
     totals,
