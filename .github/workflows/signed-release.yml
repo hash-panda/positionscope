@@ -77,6 +77,8 @@ jobs:
       - run: corepack enable && corepack prepare pnpm@10.11.0 --activate
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+      - name: Verify native settings storage with a synthetic profile
+        run: bash scripts/verify-secure-settings-native.sh
       - name: Sign, notarize, staple and verify
         run: python3 scripts/release-signed-mac.py --arch '${{ matrix.arch }}'
         env:

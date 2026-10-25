@@ -69,7 +69,6 @@ export class BinanceService implements IExchangeService {
       // 旧的调用方式（向后兼容）
       this.apiKey = credentialsOrApiKey;
       this.apiSecret = apiSecret || '';
-      logger.log('[BinanceService] Credentials set - API Key:', credentialsOrApiKey.substring(0, 8) + '...');
 
       if (typeof proxyUrl === 'string') {
         this.setProxy(proxyUrl.trim());
@@ -79,7 +78,6 @@ export class BinanceService implements IExchangeService {
       const credentials = credentialsOrApiKey;
       this.apiKey = credentials.apiKey;
       this.apiSecret = credentials.apiSecret;
-      logger.log('[BinanceService] Credentials set - API Key:', credentials.apiKey.substring(0, 8) + '...');
 
       if (typeof credentials.proxyUrl === 'string') {
         this.setProxy(credentials.proxyUrl.trim());
@@ -92,7 +90,7 @@ export class BinanceService implements IExchangeService {
     let proxyConfig: any = false;
 
     if (proxyUrl) {
-      logger.log('[BinanceService] Setting proxy:', proxyUrl);
+      logger.log('[Exchange] Configuring proxy');
       try {
         // 解析代理 URL
         const url = new URL(proxyUrl);
@@ -103,7 +101,7 @@ export class BinanceService implements IExchangeService {
         };
         logger.log('[BinanceService] Proxy config:', proxyConfig);
       } catch (error) {
-        logger.error('[BinanceService] Invalid proxy URL:', error);
+        logger.error('[Exchange] Invalid proxy URL');
         return;
       }
     } else {
@@ -150,7 +148,6 @@ export class BinanceService implements IExchangeService {
 
     logger.log('[BinanceService] Request URL:', this.spotClient.defaults.baseURL + '/api/v3/account');
     logger.log('[BinanceService] Request params:', { ...params, signature: signature.substring(0, 10) + '...' });
-    logger.log('[BinanceService] API Key:', this.apiKey.substring(0, 8) + '...');
 
     try {
       const response = await this.spotClient.get('/api/v3/account', {
@@ -183,7 +180,6 @@ export class BinanceService implements IExchangeService {
     } catch (error: any) {
       logger.error('[BinanceService] Error getting spot balances:');
       logger.error('[BinanceService] Error message:', error.message);
-      logger.error('[BinanceService] Error response:', error.response?.data);
       logger.error('[BinanceService] Error status:', error.response?.status);
       logger.error('[BinanceService] Error code:', error.code);
       throw error;
@@ -222,7 +218,6 @@ export class BinanceService implements IExchangeService {
 
     logger.log('[BinanceService] Request URL:', this.futuresClient.defaults.baseURL + '/fapi/v2/positionRisk');
     logger.log('[BinanceService] Request params:', { ...params, signature: signature.substring(0, 10) + '...' });
-    logger.log('[BinanceService] API Key:', this.apiKey.substring(0, 8) + '...');
 
     try {
       const response = await this.futuresClient.get('/fapi/v2/positionRisk', {
@@ -254,7 +249,6 @@ export class BinanceService implements IExchangeService {
     } catch (error: any) {
       logger.error('[BinanceService] Error getting futures positions:');
       logger.error('[BinanceService] Error message:', error.message);
-      logger.error('[BinanceService] Error response:', error.response?.data);
       logger.error('[BinanceService] Error status:', error.response?.status);
       logger.error('[BinanceService] Error code:', error.code);
       throw error;

@@ -65,6 +65,7 @@ pnpm-workspace.yaml
 
 # Local settings and credentials are never source artifacts
 settings.json
+settings.vault.json
 *.pem
 *.key
 

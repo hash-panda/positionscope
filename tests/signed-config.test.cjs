@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-test('signed builder uses the unprefixed selector required by electron-builder 24', () => {
+test('signed builder uses the unprefixed selector required by electron-builder', () => {
   const previous = process.env.APPLE_SIGNING_IDENTITY;
   try {
     process.env.APPLE_SIGNING_IDENTITY = 'Developer ID Application: Synthetic Test (TEST123456)';

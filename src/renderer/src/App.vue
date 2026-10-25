@@ -273,6 +273,9 @@ onUnmounted(() => {
               <div class="skeleton group" /></div
           ></template>
           <template v-else>
+            <div v-if="app.storageStatus.state === 'blocked'" class="connection-warning" role="alert">
+              <AlertTriangle :size="17" /><div><strong>配置未能安全读取</strong><p>{{ app.storageStatus.message }}</p><p>已暂停读取账户；不会用空配置覆盖原文件。</p><div class="inline-actions"><button class="text-button" @click="app.api?.restartForStorage()">重启并重新读取</button><button class="text-button subdued" @click="openSettings('about')">数据管理</button></div></div>
+            </div>
             <div
               v-if="app.error || app.exchangeErrors.length"
               class="connection-warning"
@@ -304,7 +307,7 @@ onUnmounted(() => {
                 </div>
               </div>
             </div>
-            <div v-if="!app.hasCredentials" class="empty-state onboarding">
+            <div v-if="!app.hasCredentials && app.storageStatus.state !== 'blocked'" class="empty-state onboarding">
               <span class="empty-symbol"><KeyRound :size="28" /></span>
               <h2>连接你的第一个交易所</h2>
               <p>配置只读凭证，在菜单栏查看资产与持仓。</p>
@@ -323,7 +326,7 @@ onUnmounted(() => {
                 配置交易所</button
               ><span class="helper">支持 Binance、Bybit、OKX、Hyperliquid</span>
             </div>
-            <template v-else>
+            <template v-else-if="app.hasCredentials">
               <section class="asset-summary" aria-label="资产概览">
                 <div class="asset-label">
                   <span>总资产</span

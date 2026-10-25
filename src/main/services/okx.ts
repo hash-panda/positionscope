@@ -51,7 +51,6 @@ export class OKXService implements IExchangeService {
       this.apiKey = credentialsOrApiKey;
       this.apiSecret = apiSecret || '';
       // OKX passphrase should be passed as part of credentials
-      logger.log('[OKXService] Credentials set - API Key:', credentialsOrApiKey.substring(0, 8) + '...');
 
       if (typeof proxyUrl === 'string') {
         this.setProxy(proxyUrl.trim());
@@ -61,7 +60,6 @@ export class OKXService implements IExchangeService {
       this.apiKey = credentials.apiKey;
       this.apiSecret = credentials.apiSecret;
       this.apiPassphrase = credentials.passphrase || ''; // OKX specific
-      logger.log('[OKXService] Credentials set - API Key:', credentials.apiKey.substring(0, 8) + '...');
 
       if (typeof credentials.proxyUrl === 'string') {
         this.setProxy(credentials.proxyUrl.trim());
@@ -74,7 +72,7 @@ export class OKXService implements IExchangeService {
     let proxyConfig: any = false;
 
     if (proxyUrl) {
-      logger.log('[OKXService] Setting proxy:', proxyUrl);
+      logger.log('[Exchange] Configuring proxy');
       try {
         const url = new URL(proxyUrl);
         proxyConfig = {
@@ -84,7 +82,7 @@ export class OKXService implements IExchangeService {
         };
         logger.log('[OKXService] Proxy config:', proxyConfig);
       } catch (error) {
-        logger.error('[OKXService] Invalid proxy URL:', error);
+        logger.error('[Exchange] Invalid proxy URL');
         return;
       }
     } else {

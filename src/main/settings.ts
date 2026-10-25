@@ -1,405 +1,192 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomBytes } from 'crypto';
-import { app } from 'electron';
 import { AIProvider, AICredentials, AISettings } from './types/ai';
 
-// 单个交易所的凭证
-interface ExchangeCredentials {
-  apiKey: string;
-  apiSecret: string;
-  passphrase?: string; // OKX 需要
-}
-
-// 所有交易所的凭证
-interface ExchangesCredentials {
-  binance?: ExchangeCredentials;
-  bybit?: ExchangeCredentials;
-  okx?: ExchangeCredentials;
-  hyperliquid?: ExchangeCredentials;
-}
-
+interface ExchangeCredentials { apiKey: string; apiSecret: string; passphrase?: string }
+type Exchange = 'binance' | 'bybit' | 'okx' | 'hyperliquid';
+type ExchangesCredentials = Partial<Record<Exchange, ExchangeCredentials>>;
 interface AppSettings {
-  // 向后兼容：保留旧的单个 API Key（用于 Binance）
-  apiKey?: string;
-  apiSecret?: string;
-  proxyUrl?: string;
-
-  // 新的多交易所凭证存储
   exchanges?: ExchangesCredentials;
-
-  // AI 设置
   ai?: AISettings;
-
+  proxyUrl?: string;
   maxDisplayCount?: number;
   refreshInterval?: number;
   theme?: 'light' | 'dark' | 'auto';
-  positionOrder?: string[]; // 用户自定义的持仓顺序
-  hideAmounts?: boolean; // 是否隐藏金额
-  debugMode?: boolean; // 是否开启调试模式
-  windowOpacity?: number; // 窗口透明度 (0.1 - 1.0)
-  autoLaunch?: boolean; // 是否开机自动启动
+  positionOrder?: string[];
+  hideAmounts?: boolean;
+  debugMode?: boolean;
+  windowOpacity?: number;
+  autoLaunch?: boolean;
 }
+export interface StorageStatus { state: 'empty' | 'encrypted' | 'blocked'; message: string }
+export interface SettingsCipher {
+  available(): Promise<boolean>;
+  encrypt(value: string): Promise<Buffer>;
+  decrypt(value: Buffer): Promise<{ result: string; shouldReEncrypt?: boolean; isTemporarilyUnavailable?: boolean }>;
+}
+const clone = <T>(value: T): T => structuredClone(value);
 
 export class SettingsManager {
-  private settingsPath: string;
   private settings: AppSettings = {};
-  private persisted: AppSettings = {};
+  private state: StorageStatus['state'] = 'empty';
+  private pending: Promise<void> = Promise.resolve();
+  private constructor(private vaultPath: string, private cipher: SettingsCipher) {}
 
-  constructor() {
-    const userDataPath = app.getPath('userData');
-    this.settingsPath = path.join(userDataPath, 'settings.json');
-    this.loadSettings();
-    this.persisted = JSON.parse(JSON.stringify(this.settings));
+  static async open(directory: string, cipher: SettingsCipher): Promise<SettingsManager> {
+    const manager = new SettingsManager(path.join(directory, 'settings.vault.json'), cipher);
+    await manager.load();
+    return manager;
   }
 
-  private loadSettings() {
-    try {
-      if (fs.existsSync(this.settingsPath)) {
-        const data = fs.readFileSync(this.settingsPath, 'utf-8');
-        this.settings = JSON.parse(data);
-        console.log('[SettingsManager] Settings loaded from:', this.settingsPath);
-      } else {
-        console.log('[SettingsManager] No settings file found, using defaults');
+  getStorageStatus(): StorageStatus {
+    return { state: this.state, message: this.state === 'blocked'
+      ? '加密配置无法读取，原文件已保留。请解锁系统钥匙串并重启；若仍失败，请恢复自己的加密配置备份。'
+      : this.state === 'encrypted' ? '配置已使用系统钥匙串加密，密钥由 macOS 管理。'
+      : '首次保存即使用系统钥匙串加密；密钥不可用时不保存。' };
+  }
+
+  private validate(value: unknown): AppSettings {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('invalid settings');
+    const data = value as Record<string, unknown>;
+    const allowed = new Set(['exchanges', 'ai', 'proxyUrl', 'maxDisplayCount', 'refreshInterval', 'theme', 'positionOrder', 'hideAmounts', 'debugMode', 'windowOpacity', 'autoLaunch']);
+    if (Object.keys(data).some(key => !allowed.has(key))) throw new Error('unknown field');
+    if (data.proxyUrl !== undefined && typeof data.proxyUrl !== 'string') throw new Error('invalid proxy');
+    const object = (v: unknown): Record<string, unknown> => {
+      if (!v || typeof v !== 'object' || Array.isArray(v)) throw new Error('invalid object');
+      return v as Record<string, unknown>;
+    };
+    if (data.exchanges !== undefined) for (const [name, v] of Object.entries(object(data.exchanges))) {
+      if (!['binance', 'bybit', 'okx', 'hyperliquid'].includes(name)) throw new Error('unknown exchange');
+      const credentials = object(v);
+      if (typeof credentials.apiKey !== 'string' || typeof credentials.apiSecret !== 'string' ||
+          (credentials.passphrase !== undefined && typeof credentials.passphrase !== 'string')) throw new Error('invalid credentials');
+    }
+    if (data.ai !== undefined) {
+      const ai = object(data.ai);
+      if (typeof ai.enabled !== 'boolean' || typeof ai.useCustomKeys !== 'boolean' || !Object.values(AIProvider).includes(ai.defaultProvider as AIProvider)) throw new Error('invalid ai');
+      for (const [name, v] of Object.entries(object(ai.credentials))) {
+        const credentials = object(v);
+        if (!Object.values(AIProvider).includes(name as AIProvider) || credentials.provider !== name || typeof credentials.apiKey !== 'string') throw new Error('invalid ai credentials');
+        for (const key of ['baseURL', 'model']) if (credentials[key] !== undefined && typeof credentials[key] !== 'string') throw new Error('invalid ai field');
       }
-    } catch (error) {
-      console.error('[SettingsManager] Error loading settings:', error);
+    }
+    for (const key of ['maxDisplayCount', 'refreshInterval', 'windowOpacity']) if (data[key] !== undefined && (typeof data[key] !== 'number' || !Number.isFinite(data[key]))) throw new Error('invalid number');
+    for (const key of ['hideAmounts', 'debugMode', 'autoLaunch']) if (data[key] !== undefined && typeof data[key] !== 'boolean') throw new Error('invalid boolean');
+    if (data.theme !== undefined && !['light', 'dark', 'auto'].includes(data.theme as string)) throw new Error('invalid theme');
+    if (data.positionOrder !== undefined && (!Array.isArray(data.positionOrder) || data.positionOrder.some(x => typeof x !== 'string'))) throw new Error('invalid order');
+    return value as AppSettings;
+  }
+
+  private async requireEncryption() {
+    if (!await this.cipher.available()) throw new Error('encryption unavailable');
+  }
+  private async load() {
+    if (!fs.existsSync(this.vaultPath)) return;
+    try {
+      await this.requireEncryption();
+      const envelope = JSON.parse(fs.readFileSync(this.vaultPath, 'utf8'));
+      if (envelope.format !== 'positionscope-settings' || envelope.version !== 1 || typeof envelope.ciphertext !== 'string' ||
+          !envelope.ciphertext || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(envelope.ciphertext)) throw new Error('invalid envelope');
+      const decrypted = await this.cipher.decrypt(Buffer.from(envelope.ciphertext, 'base64'));
+      if (decrypted.isTemporarilyUnavailable) throw new Error('key temporarily unavailable');
+      const settings = this.validate(JSON.parse(decrypted.result));
+      if (decrypted.shouldReEncrypt) await this.write(settings);
+      this.settings = settings;
+      this.state = 'encrypted';
+    } catch {
+      console.error('[SettingsManager] Encrypted configuration unavailable; file retained');
+      this.state = 'blocked';
       this.settings = {};
     }
   }
 
-  private saveSettings() {
-    const temporary = `${this.settingsPath}.${randomBytes(8).toString('hex')}.tmp`;
+  private async write(settings: AppSettings) {
+    await this.requireEncryption();
+    const text = JSON.stringify(this.validate(settings));
+    const encrypted = await this.cipher.encrypt(text);
+    const verified = await this.cipher.decrypt(encrypted);
+    if (!encrypted.length || verified.isTemporarilyUnavailable || verified.result !== text || verified.shouldReEncrypt) throw new Error('encryption verification failed');
+    const temporary = `${this.vaultPath}.${randomBytes(8).toString('hex')}.tmp`;
     try {
-      fs.mkdirSync(path.dirname(this.settingsPath), { recursive: true, mode: 0o700 });
-      const descriptor = fs.openSync(temporary, 'wx', 0o600);
+      fs.mkdirSync(path.dirname(this.vaultPath), { recursive: true, mode: 0o700 });
+      const fd = fs.openSync(temporary, 'wx', 0o600);
       try {
-        fs.writeFileSync(descriptor, JSON.stringify(this.settings, null, 2), 'utf-8');
-        fs.fsyncSync(descriptor);
-      } finally { fs.closeSync(descriptor); }
-      fs.renameSync(temporary, this.settingsPath);
-      this.persisted = JSON.parse(JSON.stringify(this.settings));
-    } catch {
-      try { fs.unlinkSync(temporary); } catch { /* No partial settings survive. */ }
-      this.settings = JSON.parse(JSON.stringify(this.persisted));
-      throw new Error('设置未保存，请检查本机存储权限后重试');
+        fs.writeFileSync(fd, JSON.stringify({ format: 'positionscope-settings', version: 1, ciphertext: encrypted.toString('base64') }), 'utf8');
+        fs.fsyncSync(fd);
+      } finally { fs.closeSync(fd); }
+      fs.renameSync(temporary, this.vaultPath);
+    } finally {
+      try { fs.unlinkSync(temporary); } catch { /* No temporary ciphertext left after failure. */ }
     }
   }
-
-  // ============ 旧版 API 凭证方法（向后兼容，用于 Binance）============
-  setCredentials(apiKey: string, apiSecret: string, proxyUrl?: string) {
-    this.settings.apiKey = apiKey;
-    this.settings.apiSecret = apiSecret;
-    this.settings.proxyUrl = proxyUrl || '';
-
-    // 同时也设置到新的 exchanges 结构中
-    if (!this.settings.exchanges) {
-      this.settings.exchanges = {};
-    }
-    this.settings.exchanges.binance = { apiKey, apiSecret };
-
-    this.saveSettings();
+  private enqueue(action: () => Promise<void>): Promise<void> {
+    const result = this.pending.then(action);
+    this.pending = result.catch(() => {});
+    return result;
   }
-
-  getCredentials(): { apiKey: string; apiSecret: string; proxyUrl: string } | null {
-    if (this.settings.apiKey && this.settings.apiSecret) {
-      return {
-        apiKey: this.settings.apiKey,
-        apiSecret: this.settings.apiSecret,
-        proxyUrl: this.settings.proxyUrl || ''
-      };
-    }
-    return null;
-  }
-
-  hasCredentials(): boolean {
-    return !!(this.settings.apiKey && this.settings.apiSecret);
+  private update(change: (draft: AppSettings) => void): Promise<void> {
+    return this.enqueue(async () => {
+      if (this.state === 'blocked') throw new Error(this.getStorageStatus().message);
+      const draft = clone(this.settings);
+      try {
+        change(draft);
+        await this.write(draft);
+      } catch { throw new Error('设置未保存，请检查系统钥匙串与存储权限；不会使用明文保存'); }
+      this.settings = draft;
+      this.state = 'encrypted';
+    });
   }
 
   getProxyUrl(): string { return this.settings.proxyUrl || ''; }
-
-  setProxyUrl(proxyUrl: string) { this.settings.proxyUrl = proxyUrl; this.saveSettings(); }
-
-  // ============ 新版多交易所 API 凭证方法 ============
-
-  /**
-   * 设置单个交易所的凭证
-   */
-  setExchangeCredentials(
-    exchange: 'binance' | 'bybit' | 'okx' | 'hyperliquid',
-    credentials: ExchangeCredentials
-  ) {
-    if (!this.settings.exchanges) {
-      this.settings.exchanges = {};
-    }
-
-    this.settings.exchanges[exchange] = credentials;
-
-    // 如果是 Binance，也更新旧的字段（向后兼容）
-    if (exchange === 'binance') {
-      this.settings.apiKey = credentials.apiKey;
-      this.settings.apiSecret = credentials.apiSecret;
-    }
-
-    this.saveSettings();
-    console.log(`[SettingsManager] Credentials set for ${exchange}`);
+  setProxyUrl(value: string) { return this.update(draft => { draft.proxyUrl = value; }); }
+  getAllExchangesCredentials(): ExchangesCredentials { return clone(this.settings.exchanges || {}); }
+  getExchangeCredentials(exchange: Exchange): ExchangeCredentials | null { return clone(this.settings.exchanges?.[exchange] || null); }
+  hasExchangeCredentials(exchange: Exchange): boolean {
+    const value = this.settings.exchanges?.[exchange];
+    return !!(value?.apiKey && (exchange === 'hyperliquid' || value.apiSecret));
   }
-
-  /**
-   * 获取单个交易所的凭证
-   */
-  getExchangeCredentials(
-    exchange: 'binance' | 'bybit' | 'okx' | 'hyperliquid'
-  ): ExchangeCredentials | null {
-    return this.settings.exchanges?.[exchange] || null;
+  setExchangeCredentials(exchange: Exchange, value: ExchangeCredentials) {
+    const credentials = clone(value);
+    return this.update(draft => { draft.exchanges = { ...draft.exchanges, [exchange]: credentials }; });
   }
-
-  /**
-   * 获取所有交易所的凭证
-   */
-  getAllExchangesCredentials(): ExchangesCredentials {
-    return this.settings.exchanges || {};
-  }
-
-  /**
-   * 检查某个交易所是否有凭证
-   */
-  hasExchangeCredentials(exchange: 'binance' | 'bybit' | 'okx' | 'hyperliquid'): boolean {
-    const creds = this.settings.exchanges?.[exchange];
-    return !!(creds?.apiKey && (exchange === 'hyperliquid' || creds.apiSecret));
-  }
-
-  /**
-   * 删除某个交易所的凭证
-   */
-  removeExchangeCredentials(exchange: 'binance' | 'bybit' | 'okx' | 'hyperliquid') {
-    if (this.settings.exchanges) {
-      delete this.settings.exchanges[exchange];
-
-      // 如果是 Binance，也清除旧的字段
-      if (exchange === 'binance') {
-        delete this.settings.apiKey;
-        delete this.settings.apiSecret;
-      }
-
-      this.saveSettings();
-      console.log(`[SettingsManager] Credentials removed for ${exchange}`);
-    }
-  }
-
-  // 显示设置
-  setDisplaySettings(maxDisplayCount: number, refreshInterval: number) {
-    this.settings.maxDisplayCount = maxDisplayCount;
-    this.settings.refreshInterval = refreshInterval;
-    this.saveSettings();
-  }
-
-  getDisplaySettings(): { maxDisplayCount: number; refreshInterval: number } {
-    return {
-      maxDisplayCount: this.settings.maxDisplayCount || 2,
-      refreshInterval: this.settings.refreshInterval || 5
-    };
-  }
-
-  // 主题设置
-  setTheme(theme: 'light' | 'dark' | 'auto') {
-    this.settings.theme = theme;
-    this.saveSettings();
-  }
-
-  getTheme(): 'light' | 'dark' | 'auto' {
-    return this.settings.theme || 'auto';
-  }
-
-  // 持仓顺序
-  setPositionOrder(order: string[]) {
-    this.settings.positionOrder = order;
-    this.saveSettings();
-  }
-
-  getPositionOrder(): string[] {
-    return this.settings.positionOrder || [];
-  }
-
-  // 隐藏金额设置
-  setHideAmounts(hide: boolean) {
-    this.settings.hideAmounts = hide;
-    this.saveSettings();
-  }
-
-  getHideAmounts(): boolean {
-    return this.settings.hideAmounts || false;
-  }
-
-  // 调试模式设置
-  setDebugMode(debug: boolean) {
-    this.settings.debugMode = debug;
-    this.saveSettings();
-  }
-
-  getDebugMode(): boolean {
-    return this.settings.debugMode || false;
-  }
-
-  // 窗口透明度设置
-  setWindowOpacity(opacity: number) {
-    // 限制范围在 0.3 - 1.0 之间
-    const clampedOpacity = Math.max(0.3, Math.min(1.0, opacity));
-    this.settings.windowOpacity = clampedOpacity;
-    this.saveSettings();
-  }
-
-  getWindowOpacity(): number {
-    return this.settings.windowOpacity || 1.0;
-  }
-
-  // 开机自动启动设置
-  setAutoLaunch(autoLaunch: boolean) {
-    this.settings.autoLaunch = autoLaunch;
-    this.saveSettings();
-
-    // 应用到系统
-    app.setLoginItemSettings({
-      openAtLogin: autoLaunch,
-      openAsHidden: false,
-    });
-  }
-
-  getAutoLaunch(): boolean {
-    return this.settings.autoLaunch || false;
-  }
-
-  // 清除所有设置
-  clearSettings() {
-    this.settings = {};
-    this.saveSettings();
-  }
-
-  // 重置为默认设置
+  removeExchangeCredentials(exchange: Exchange) { return this.update(draft => { delete draft.exchanges?.[exchange]; }); }
+  getDisplaySettings() { return { maxDisplayCount: this.settings.maxDisplayCount ?? 2, refreshInterval: this.settings.refreshInterval ?? 5 }; }
+  setDisplaySettings(maxDisplayCount: number, refreshInterval: number) { return this.update(draft => { Object.assign(draft, { maxDisplayCount, refreshInterval }); }); }
+  getTheme() { return this.settings.theme || 'auto'; }
+  setTheme(value: 'light' | 'dark' | 'auto') { return this.update(draft => { draft.theme = value; }); }
+  getPositionOrder() { return clone(this.settings.positionOrder || []); }
+  setPositionOrder(order: string[]) { const value = [...order]; return this.update(draft => { draft.positionOrder = value; }); }
+  getHideAmounts() { return this.settings.hideAmounts || false; }
+  setHideAmounts(value: boolean) { return this.update(draft => { draft.hideAmounts = value; }); }
+  getDebugMode() { return this.settings.debugMode || false; }
+  setDebugMode(value: boolean) { return this.update(draft => { draft.debugMode = value; }); }
+  getWindowOpacity() { return this.settings.windowOpacity ?? 1; }
+  setWindowOpacity(value: number) { return this.update(draft => { draft.windowOpacity = Math.max(0.3, Math.min(1, value)); }); }
+  getAutoLaunch() { return this.settings.autoLaunch || false; }
+  setAutoLaunch(value: boolean) { return this.update(draft => { draft.autoLaunch = value; }); }
   resetToDefaults() {
-    const apiKey = this.settings.apiKey;
-    const apiSecret = this.settings.apiSecret;
-    const exchanges = this.settings.exchanges;
-    const ai = this.settings.ai;
-
-    this.settings = {
-      apiKey,
-      apiSecret,
-      exchanges,
-      ai,
-      maxDisplayCount: 2,
-      refreshInterval: 5,
-      theme: 'dark',
-      hideAmounts: false,
-      debugMode: false,
-      windowOpacity: 1.0,
-      autoLaunch: false,
-      positionOrder: [],
-    };
-    this.saveSettings();
-
-    // 重置开机启动
-    app.setLoginItemSettings({
-      openAtLogin: false,
-      openAsHidden: false,
+    return this.update(draft => { const { exchanges, ai } = draft; for (const key of Object.keys(draft)) delete (draft as Record<string, unknown>)[key]; Object.assign(draft, { exchanges, ai }); });
+  }
+  clearSettings() {
+    return this.enqueue(async () => {
+      try { if (fs.existsSync(this.vaultPath)) fs.unlinkSync(this.vaultPath); }
+      catch { throw new Error('删除未完成，原加密配置已保留，请检查存储权限'); }
+      this.settings = {}; this.state = 'empty';
     });
   }
-
-  // ============ AI 设置方法 ============
-
-  /**
-   * 获取AI设置
-   */
   getAISettings(): AISettings {
-    // 默认配置（不预设任何 API Key，由用户自行配置）
-    const defaultConfig: AISettings = {
-      enabled: false, // 默认关闭 AI 功能，等待用户配置
-      defaultProvider: AIProvider.ANTHROPIC, // Claude 作为默认推荐
-      useCustomKeys: true, // 默认使用自定义 Key（用户需要自己配置）
-      credentials: {
-        [AIProvider.OPENAI]: { provider: AIProvider.OPENAI, apiKey: '' },
-        [AIProvider.ANTHROPIC]: { provider: AIProvider.ANTHROPIC, apiKey: '' },
-        [AIProvider.DEEPSEEK]: { provider: AIProvider.DEEPSEEK, apiKey: '' },
-        [AIProvider.QWEN]: { provider: AIProvider.QWEN, apiKey: '' },
-        [AIProvider.GROK]: { provider: AIProvider.GROK, apiKey: '' },
-        [AIProvider.GEMINI]: { provider: AIProvider.GEMINI, apiKey: '' },
-      },
-    };
-
-    // 如果没有AI设置，返回默认配置
-    if (!this.settings.ai) {
-      return defaultConfig;
-    }
-
-    // 如果有AI设置，合并默认配置（确保所有provider都有定义）
-    const merged: AISettings = {
-      enabled: this.settings.ai.enabled ?? defaultConfig.enabled,
-      defaultProvider: this.settings.ai.defaultProvider ?? defaultConfig.defaultProvider,
-      useCustomKeys: this.settings.ai.useCustomKeys ?? defaultConfig.useCustomKeys,
-      credentials: {
-        ...defaultConfig.credentials, // 先应用默认配置
-        ...this.settings.ai.credentials, // 再覆盖用户配置
-      },
-    };
-
-    return merged;
+    const credentials = Object.fromEntries(Object.values(AIProvider).map(provider => [provider, { provider, apiKey: '' }])) as AISettings['credentials'];
+    return clone({ enabled: this.settings.ai?.enabled ?? false, defaultProvider: this.settings.ai?.defaultProvider ?? AIProvider.ANTHROPIC,
+      useCustomKeys: this.settings.ai?.useCustomKeys ?? true, credentials: { ...credentials, ...this.settings.ai?.credentials } });
   }
-
-  /**
-   * 保存AI设置
-   */
-  setAISettings(aiSettings: AISettings) {
-    this.settings.ai = aiSettings;
-    this.saveSettings();
-    console.log('[SettingsManager] AI settings saved');
-  }
-
-  /**
-   * 设置AI启用状态
-   */
-  setAIEnabled(enabled: boolean) {
-    if (!this.settings.ai) {
-      this.settings.ai = this.getAISettings();
-    }
-    this.settings.ai.enabled = enabled;
-    this.saveSettings();
-  }
-
-  /**
-   * 设置AI默认提供商
-   */
-  setAIDefaultProvider(provider: AIProvider) {
-    if (!this.settings.ai) {
-      this.settings.ai = this.getAISettings();
-    }
-    this.settings.ai.defaultProvider = provider;
-    this.saveSettings();
-  }
-
-  /**
-   * 设置某个AI提供商的凭证
-   */
+  setAISettings(settings: AISettings) { const value = clone(settings); return this.update(draft => { draft.ai = value; }); }
+  setAIEnabled(value: boolean) { return this.update(draft => { draft.ai = { ...this.getAISettings(), enabled: value }; }); }
+  setAIDefaultProvider(value: AIProvider) { return this.update(draft => { draft.ai = { ...this.getAISettings(), defaultProvider: value }; }); }
   setAIProviderCredentials(provider: AIProvider, credentials: AICredentials) {
-    if (!this.settings.ai) {
-      this.settings.ai = this.getAISettings();
-    }
-    this.settings.ai.credentials[provider] = credentials;
-    this.saveSettings();
-    console.log(`[SettingsManager] AI credentials set for ${provider}`);
+    const value = clone(credentials);
+    return this.update(draft => { const ai = this.getAISettings(); ai.credentials[provider] = value; draft.ai = ai; });
   }
-
-  /**
-   * 获取某个AI提供商的凭证
-   */
-  getAIProviderCredentials(provider: AIProvider): AICredentials | null {
-    return this.settings.ai?.credentials[provider] || null;
-  }
-
-  /**
-   * 检查AI功能是否启用
-   */
-  isAIEnabled(): boolean {
-    return this.settings.ai?.enabled || false;
-  }
+  getAIProviderCredentials(provider: AIProvider): AICredentials | null { return clone(this.settings.ai?.credentials[provider] || null); }
+  isAIEnabled(): boolean { return this.settings.ai?.enabled || false; }
 }
-

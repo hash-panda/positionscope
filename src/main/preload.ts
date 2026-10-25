@@ -1,10 +1,9 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  // 旧版 API（向后兼容）
-  saveApiKeys: (apiKey: string, apiSecret: string, proxyUrl?: string) =>
-    ipcRenderer.invoke('save-api-keys', apiKey, apiSecret, proxyUrl),
-
+  getProxySettings: () => ipcRenderer.invoke('get-proxy-settings'),
+  getStorageStatus: () => ipcRenderer.invoke('get-storage-status'),
+  restartForStorage: () => ipcRenderer.invoke('restart-for-storage'),
   hasCredentials: () =>
     ipcRenderer.invoke('has-credentials'),
 
