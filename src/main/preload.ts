@@ -103,6 +103,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveAISettings: (settings: any) =>
     ipcRenderer.invoke('save-ai-settings', settings),
 
+  getPublicMarket: (symbols: string[]) => ipcRenderer.invoke('get-public-market', symbols),
   aiAnalyzeHealth: (positions: any, accountInfo: any, provider?: string, forceRefresh = false) =>
     ipcRenderer.invoke('ai-analyze-health', positions, accountInfo, provider, forceRefresh),
 

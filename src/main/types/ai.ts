@@ -65,6 +65,8 @@ export interface ChatMessage {
  */
 export interface HealthScore {
   facts: RiskFacts;
+  market?: import('./market').MarketSnapshot;
+  fundingScenarios?: import('./market').FundingScenario[];
   snapshotId: string;
   analyzedAt: string;
   provider: string;

@@ -1491,3 +1491,5 @@ select:hover:not(:disabled) {
 .ui-text-input { appearance:none; min-width:0; }
 .ui-text-input[aria-invalid="true"] { border-color:var(--negative); }
 @media(prefers-reduced-motion:reduce) { .ui-switch-thumb { transition:none; } }
+
+.market-source {overflow-wrap:anywhere;font-size:10px;}

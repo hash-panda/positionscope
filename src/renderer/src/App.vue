@@ -24,6 +24,7 @@ import { exchanges } from './types';
 import { amount, direction, signed } from './utils/format';
 import ConfirmDialog from './components/ConfirmDialog.vue';
 import ExchangeLogo from './components/ExchangeLogo.vue';
+import MarketPanel from './components/MarketPanel.vue';
 import HealthPanel from './components/HealthPanel.vue';
 import NotificationCenter from './components/NotificationCenter.vue';
 import PositionList from './components/PositionList.vue';
@@ -167,6 +168,7 @@ onUnmounted(() => {
         @confirm="askConfirmation"
       />
       <ActivityPanel v-else-if="app.currentView === 'activity'" :model="app" @close="app.currentView = 'overview'" />
+      <MarketPanel v-else-if="app.currentView === 'market'" :snapshot="app.marketSnapshot" :loading="app.marketLoading" :error="app.marketError" @close="app.currentView = 'overview'" @refresh="app.loadMarket()" />
       <HealthPanel
         v-else-if="app.currentView === 'health' && app.healthScore"
         :score="app.healthScore"
@@ -243,6 +245,7 @@ onUnmounted(() => {
                 <MoreHorizontal :size="20" />
               </button>
               <div v-if="moreOpen" ref="menu" class="more-menu">
+                <button @click="app.currentView = 'market'; moreOpen = false; app.loadMarket()"><Sparkles :size="15" />公共市场 · 研究观察</button>
                 <button @click="app.currentView = 'activity'; moreOpen = false"><SlidersHorizontal :size="15" />持仓动态 · 交易室</button>
                 <button
                   :disabled="!app.hasCredentials || app.loading"

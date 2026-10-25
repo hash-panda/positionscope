@@ -1,5 +1,9 @@
 # PositionScope 质量评审与迭代
 
+## 公共市场迭代（2026-10-25，候选beta.9）
+
+[市场证据](ops/2026-10-25-market-context.md)：按需读取有边界的公共市场，不把平台合约范围等同全市场；53项Node与UI/axe本地通过，真实账户/模型仍未知。
+
 ## 最新风险基础迭代（2026-10-25，候选beta.7）
 
 详见[本轮证据与官方来源](ops/2026-10-25-risk-foundation.md)。修正OKX合约单位/空仓方向、Bybit GET签名与UNIFIED口径，补Binance v3/参考强平价/保证金/独立账户时间；未知总额不补零。risk-facts-v2增加条件情景，AI不再机械复述缺口。发布状态必须核对实际Release，以下历史beta.5状态不替代当前记录。

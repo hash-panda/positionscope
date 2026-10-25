@@ -1,6 +1,10 @@
 # 产品 Review 与下一步
 
-## 当前状态（2026-10-25，v0.2.0-beta.5）
+## 最近实现（2026-10-25，候选beta.9）
+
+PR #25补齐风险事实/独立口径并修正适配器；PR #24统一品牌与组件控件。候选beta.9增加按需公共市场研究和条件资金费场景，证据见[市场报告](ops/2026-10-25-market-context.md)。下载和发布状态以最新Release及docs/releases为准。原生/真实账户/模型质量与全市场基本面仍未验证。
+
+## 历史状态（2026-10-25，v0.2.0-beta.5）
 
 按维护者要求采用全新实现，不兼容或迁移此前预览版。PR [#17](https://github.com/hash-panda/positionscope/pull/17) 已合并：独立应用身份 `app.funagent.positionscope` 与 PositionScope 数据目录，Electron 45 异步 safeStorage 加密完整配置；失败保留原密文，串行原子提交，移除明文保存和旧凭据接口。首次使用需要重新配置只读账户。
 
