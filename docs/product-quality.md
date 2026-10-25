@@ -1,14 +1,23 @@
 # PositionScope 质量评审与迭代
 
-## 公共市场迭代（2026-10-25，候选beta.9）
+## 当前已发布版本（2026-10-25，v0.2.0-beta.10）
+
+本轮已合并PR [#24](https://github.com/hash-panda/positionscope/pull/24)、[#25](https://github.com/hash-panda/positionscope/pull/25)、[#26](https://github.com/hash-panda/positionscope/pull/26)、[#27](https://github.com/hash-panda/positionscope/pull/27)：应用图标/官网色板/组件控件统一；纠正OKX单位及方向、Bybit签名及账户口径；增加参考强平/保证金、独立平台事实、保持/缩减敞口情景和按需公共市场研究；模型ID显式选择，不静默升级费用。
+
+[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.0-beta.10) 与[发布运行40188968613](https://github.com/hash-panda/positionscope/actions/runs/40188968613)已完成arm64/x64签名、公证、装订和Gatekeeper。两份验证JSON与校验文件本地重算摘要，四个二进制声明与GitHub资产digest一致，包内ICNS/Template字节与源一致。记录在[docs/releases/v0.2.0-beta.10](releases/v0.2.0-beta.10/release.json)。57项Node、5项Python、类型、构建与UI/axe已通过源码/PR验证；用户Mac安装、签名包钥匙串弹窗、真实账户与真实模型质量仍未验证。签名通过不代替这些验收。
+
+市场范围仅Binance USDT永续合约，不是全市场；基本面、解锁、盘口与长期账户历史未接入。按平台资产代码匹配仍未完成面额/重名项目身份映射，真实字段对照仍重要。详见[风险基础](ops/2026-10-25-risk-foundation.md)、[市场研究](ops/2026-10-25-market-context.md)、[模型生命周期](ops/2026-10-25-model-lifecycle.md)。Apple现有Secrets和证书保持，不要求重新配置；证书到期2027-11-23。
+
+
+## 公共市场迭代记录（2026-10-25，beta.9）
 
 [市场证据](ops/2026-10-25-market-context.md)：按需读取有边界的公共市场，不把平台合约范围等同全市场；53项Node与UI/axe本地通过，真实账户/模型仍未知。
 
-## 最新风险基础迭代（2026-10-25，候选beta.7）
+## 风险基础迭代记录（2026-10-25，beta.7）
 
 详见[本轮证据与官方来源](ops/2026-10-25-risk-foundation.md)。修正OKX合约单位/空仓方向、Bybit GET签名与UNIFIED口径，补Binance v3/参考强平价/保证金/独立账户时间；未知总额不补零。risk-facts-v2增加条件情景，AI不再机械复述缺口。发布状态必须核对实际Release，以下历史beta.5状态不替代当前记录。
 
-## 当前状态（2026-10-25，v0.2.0-beta.5）
+## 历史状态（2026-10-25，v0.2.0-beta.5）
 
 按维护者要求采用全新实现，不兼容或迁移此前预览版。PR [#17](https://github.com/hash-panda/positionscope/pull/17) 已合并：独立应用身份 `app.funagent.positionscope` 与 PositionScope 数据目录，Electron 45 异步 safeStorage 加密完整配置；失败保留原密文，串行原子提交，移除明文保存和旧凭据接口。首次使用需要重新配置只读账户。
 
