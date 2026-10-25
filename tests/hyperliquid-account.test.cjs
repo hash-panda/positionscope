@@ -9,10 +9,11 @@ function serviceFor(assetPositions) {
   const calls = [];
   service.client = { post: async (path, body) => {
     calls.push({ path, type: body.type });
+    if (body.type === 'userAbstraction') return { data: 'disabled' };
     if (body.type === 'spotClearinghouseState') return { data: { balances: [] } };
     assert.equal(body.type, 'clearinghouseState');
     return { data: {
-      marginSummary: { accountValue: '1000', totalMarginUsed: '100', totalNtlPos: '90000' },
+      marginSummary: { accountValue: '1000', totalMarginUsed: '100', totalNtlPos: '90000' }, withdrawable: '400',
       assetPositions,
     } };
   } };
@@ -31,7 +32,7 @@ test('Hyperliquid account sums signed position PnL from the same snapshot, never
     const account = await service.getFuturesAccountInfo();
     assert.equal(account.totalUnrealizedProfit, expected);
     assert.equal(account.totalMarginBalance, 1000);
-    assert.deepEqual(calls.map(c => c.type).sort(), ['clearinghouseState', 'spotClearinghouseState']);
+    assert.deepEqual(calls.map(c => c.type).sort(), ['clearinghouseState', 'spotClearinghouseState', 'userAbstraction']);
     assert.ok(calls.every(c => c.path === '/info'));
   }
 });
@@ -64,5 +65,5 @@ test('invalid account PnL is visible through ExchangeManager; next valid snapsho
 test('Hyperliquid account HTTP failures remain failures', async () => {
   const { service } = serviceFor([]);
   service.client.post = async () => { throw new Error('synthetic timeout'); };
-  await assert.rejects(service.getFuturesAccountInfo(), /synthetic timeout/);
+  await assert.rejects(service.getFuturesAccountInfo(), /Hyperliquid 读取失败/);
 });

@@ -97,7 +97,7 @@ function exchangeTabKey(event: KeyboardEvent) {
     <p class="inline-note">
       <ShieldCheck :size="15" /><span>{{
         exchange === 'hyperliquid'
-          ? '仅使用公开钱包地址读取，无需私钥。'
+          ? '仅使用公开钱包地址，无需私钥。暂仅支持标准账户（disabled），其他模式不生成汇总。'
           : '请仅授予查询权限，不开启交易或提现权限。'
       }}</span>
     </p>

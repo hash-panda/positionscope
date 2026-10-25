@@ -47,7 +47,9 @@ async function fixture(page, options = {}) {
           ]
         : [position];
     let configured = !options.unconfigured;
+    if (options.hyperliquid) positions.forEach(p => { p.exchange = 'hyperliquid'; });
     let stored = { binance: { apiKey: 'demo-key-not-real', apiSecret: 'demo-secret-not-real' } };
+    if (options.hyperliquid) stored = { hyperliquid: { apiKey: '0x' + '1'.repeat(40), apiSecret: '' } };
     let errors = options.partial
       ? [{ exchange: 'okx', errorCode: 'ETIMEDOUT', suggestion: '请求超时，请检查网络或代理。' }]
       : [];
@@ -61,7 +63,7 @@ async function fixture(page, options = {}) {
     };
     const calls = [];
     const account = {
-      exchange: 'binance',
+      exchange: options.hyperliquid ? 'hyperliquid' : 'binance',
       totalAssets: options.large ? 1234567890123.45 : 445.47,
       spotTotalUSDT: 0.06,
       totalWalletBalance: 13.67,
@@ -345,6 +347,7 @@ async function fixture(page, options = {}) {
         await page.getByRole('tab', { name: 'Hyperliquid', exact: true }).click();
         assert(await page.getByLabel('钱包地址', { exact: true }).isVisible());
         assert.equal(await page.getByLabel('API Secret', { exact: true }).count(), 0);
+        assert(await page.getByText('仅使用公开钱包地址，无需私钥。暂仅支持标准账户（disabled），其他模式不生成汇总。', { exact: true }).isVisible());
       }
       if (section === '外观') {
         await page.getByRole('button', { name: '浅色', exact: true }).click();
@@ -466,6 +469,12 @@ async function fixture(page, options = {}) {
     const large = await open({large:true,multiple:true},320);
     await capture(large,'16-large-amounts');
     await large.close();
+    const hyperliquid = await open({ hyperliquid: true }, 320);
+    await hyperliquid.getByText('Hyperliquid · 统计范围与估值假设', { exact: true }).click();
+    assert(await hyperliquid.getByText(/按 USDC 与 USDT 1:1 估算/).isVisible());
+    await capture(hyperliquid, '18-hyperliquid-assumptions');
+    await hyperliquid.close();
+    results.push('Hyperliquid valuation assumptions and account-scope disclosure at 320px');
     const activity = await open({}, 320);
     await activity.getByRole('button', { name: '更多操作', exact: true }).click();
     await activity.getByRole('button', { name: '持仓动态 · 交易室', exact: true }).click();

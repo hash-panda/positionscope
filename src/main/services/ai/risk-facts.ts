@@ -56,6 +56,7 @@ export function buildRiskFacts(positions: Position[], account: AccountInfo): Ris
     longNotional,shortNotional,adverseMove5Percent:grossNotional*.05,
     adverseMoveToEquity:ratio === null ? null : ratio*.05,
     limitations:[
+      ...(positions.some(p => p.exchange === 'hyperliquid') ? ['Hyperliquid 仅覆盖标准账户的默认永续 DEX，USDC 与 USDT 按 1:1 等值估算；不覆盖其他 DEX、质押、借贷或统一账户。'] : []),
       '仅为线性 USDT/USD 计价仓位快照；未覆盖现货净敞口、期权和反向合约。',
       '不同交易所的保证金不能互相抵扣；汇总名义价值/权益不代表各交易所强平风险。',
       '5% 不利变化按每笔仓位各自不利方向计算，是机械压力情景；不代表共同市场路径或损失概率，未计费用、资金费和滑点。',

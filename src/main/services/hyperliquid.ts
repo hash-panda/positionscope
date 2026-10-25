@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { logger } from '../utils/logger';
+import { decimal, finiteTotal, invalidAccount, spotBalances, valueSpotBalances } from './hyperliquid-account';
 import {
   IExchangeService,
   ExchangeType,
@@ -30,7 +31,6 @@ function accountUnrealizedPnl(account: any): number {
 
 export class HyperliquidService implements IExchangeService {
   private apiKey: string = ''; // Hyperliquid uses wallet address
-  private apiSecret: string = ''; // Hyperliquid may use private key for signing
   private client: AxiosInstance;
   private proxyUrl: string = '';
   private readonly exchangeType = ExchangeType.HYPERLIQUID;
@@ -66,8 +66,7 @@ export class HyperliquidService implements IExchangeService {
   setCredentials(credentialsOrApiKey: ExchangeCredentials | string, apiSecret?: string, proxyUrl?: string): void {
     if (typeof credentialsOrApiKey === 'string') {
       this.apiKey = credentialsOrApiKey; // Wallet address
-      this.apiSecret = apiSecret || '';
-      logger.log('[HyperliquidService] Credentials set - Address:', credentialsOrApiKey.substring(0, 8) + '...');
+      logger.log('[HyperliquidService] Wallet address configured');
 
       if (typeof proxyUrl === 'string') {
         this.setProxy(proxyUrl.trim());
@@ -75,8 +74,7 @@ export class HyperliquidService implements IExchangeService {
     } else {
       const credentials = credentialsOrApiKey;
       this.apiKey = credentials.apiKey; // Wallet address
-      this.apiSecret = credentials.apiSecret;
-      logger.log('[HyperliquidService] Credentials set - Address:', credentials.apiKey.substring(0, 8) + '...');
+      logger.log('[HyperliquidService] Wallet address configured');
 
       if (typeof credentials.proxyUrl === 'string') {
         this.setProxy(credentials.proxyUrl.trim());
@@ -89,7 +87,7 @@ export class HyperliquidService implements IExchangeService {
     let proxyConfig: any = false;
 
     if (proxyUrl) {
-      logger.log('[HyperliquidService] Setting proxy:', proxyUrl);
+      logger.log('[HyperliquidService] Configuring proxy');
       try {
         const url = new URL(proxyUrl);
         proxyConfig = {
@@ -99,7 +97,7 @@ export class HyperliquidService implements IExchangeService {
         };
         logger.log('[HyperliquidService] Proxy config:', proxyConfig);
       } catch (error) {
-        logger.error('[HyperliquidService] Invalid proxy URL:', error);
+        logger.error('[HyperliquidService] Invalid proxy URL');
         return;
       }
     } else {
@@ -119,81 +117,74 @@ export class HyperliquidService implements IExchangeService {
     return !!this.apiKey;
   }
 
-  async getSpotBalances(): Promise<SpotBalance[]> {
-    logger.log('[HyperliquidService] Getting spot balances...');
-
+  private async readInfo(type: string): Promise<any> {
     try {
-      const response = await this.client.post('/info', {
-        type: 'spotClearinghouseState',
-        user: this.apiKey,
-      });
-
-      logger.log('[HyperliquidService] Spot balances response status:', response.status);
-
-      const balances: SpotBalance[] = [];
-
-      if (response.data && response.data.balances) {
-        for (const [asset, balance] of Object.entries(response.data.balances as Record<string, any>)) {
-          const total = parseFloat(balance.total || '0');
-          if (total > 0) {
-            balances.push({
-              exchange: this.exchangeType,
-              asset,
-              free: balance.hold?.toString() || '0',
-              locked: '0',
-              total,
-            });
-          }
-        }
-      }
-
-      logger.log('[HyperliquidService] Filtered balances count:', balances.length);
-      return balances;
-    } catch (error: any) {
-      logger.error('[HyperliquidService] Error getting spot balances:');
-      logger.error('[HyperliquidService] Error message:', error.message);
-      throw error;
+      return (await this.client.post('/info', { type, ...(
+        type === 'spotMetaAndAssetCtxs' ? {} : { user: this.apiKey }
+      ) })).data;
+    } catch {
+      // Axios errors may carry the wallet address, request config or response body.
+      throw Object.assign(new Error('Hyperliquid 读取失败，请检查网络后重试'), { code: 'HYPERLIQUID_READ_FAILED' });
     }
+  }
+
+  private async requireStandardAccount(): Promise<void> {
+    const mode = await this.readInfo('userAbstraction');
+    if (mode !== 'disabled') {
+      throw Object.assign(new Error('Hyperliquid 暂仅支持标准账户；统一、组合保证金或未知模式已停止汇总'), {
+        code: 'HYPERLIQUID_UNSUPPORTED_ACCOUNT',
+      });
+    }
+  }
+
+  private async readSpotBalances(): Promise<SpotBalance[]> {
+    const balances = spotBalances(await this.readInfo('spotClearinghouseState'));
+    if (!balances.length) return [];
+    return valueSpotBalances(balances, await this.readInfo('spotMetaAndAssetCtxs'));
+  }
+
+  async getSpotBalances(): Promise<SpotBalance[]> {
+    await this.requireStandardAccount();
+    return this.readSpotBalances();
   }
 
   async getFuturesPositions(): Promise<Position[]> {
     logger.log('[HyperliquidService] Getting futures positions...');
 
     try {
-      const response = await this.client.post('/info', {
-        type: 'clearinghouseState',
-        user: this.apiKey,
-      });
-
-      logger.log('[HyperliquidService] Futures positions response status:', response.status);
-
+      await this.requireStandardAccount();
+      const response = { data: await this.readInfo('clearinghouseState') };
+      if (!Array.isArray(response.data?.assetPositions)) throw invalidAccount();
       const positions: Position[] = [];
-
-      if (response.data && response.data.assetPositions) {
-        for (const position of response.data.assetPositions) {
-          const positionAmt = parseFloat(position.position.szi);
-          if (positionAmt !== 0) {
-            positions.push({
-              exchange: this.exchangeType,
-              symbol: position.position.coin,
-              positionAmt: position.position.szi,
-              entryPrice: position.position.entryPx,
-              markPrice: position.position.positionValue ?
-                (parseFloat(position.position.positionValue) / Math.abs(positionAmt)).toString() : '0',
-              unRealizedProfit: position.position.unrealizedPnl,
-              marginType: 'cross',
-              isolatedMargin: '0',
-              leverage: position.position.leverage?.value || '1',
-            });
-          }
-        }
+      const symbols = new Set<string>();
+      for (const entry of response.data.assetPositions) {
+        const p = entry?.position;
+        const quantity = decimal(p?.szi);
+        if (quantity === 0) continue;
+        if (typeof p.coin !== 'string' || !/^[a-zA-Z0-9._:/-]{1,60}$/.test(p.coin) || symbols.has(p.coin)) throw invalidAccount();
+        symbols.add(p.coin);
+        const entryPrice = decimal(p.entryPx);
+        const value = decimal(p.positionValue);
+        decimal(p.unrealizedPnl);
+        if (entryPrice <= 0 || value <= 0 || !Number.isSafeInteger(p.leverage?.value) || p.leverage.value < 1 ||
+            !['cross', 'isolated'].includes(p.leverage.type)) throw invalidAccount();
+        const mark = finiteTotal(value / Math.abs(quantity));
+        if (mark <= 0) throw invalidAccount();
+        const margin = decimal(p.marginUsed);
+        if (margin < 0) throw invalidAccount();
+        positions.push({
+          exchange: this.exchangeType, symbol: p.coin, positionAmt: p.szi,
+          entryPrice: p.entryPx, markPrice: String(mark), unRealizedProfit: p.unrealizedPnl,
+          marginType: p.leverage.type, isolatedMargin: p.leverage.type === 'isolated' ? String(margin) : '0',
+          leverage: String(p.leverage.value),
+        });
       }
 
       logger.log('[HyperliquidService] Active positions count:', positions.length);
       return positions;
-    } catch (error: any) {
+    } catch (error) {
       logger.error('[HyperliquidService] Error getting futures positions:');
-      logger.error('[HyperliquidService] Error message:', error.message);
+      logger.error('[HyperliquidService] Position request failed');
       throw error;
     }
   }
@@ -202,15 +193,13 @@ export class HyperliquidService implements IExchangeService {
     logger.log('[HyperliquidService] Getting account balance...');
 
     try {
-      const response = await this.client.post('/info', {
-        type: 'clearinghouseState',
-        user: this.apiKey,
-      });
+      await this.requireStandardAccount();
+      const response = { data: await this.readInfo('clearinghouseState') };
 
       logger.log('[HyperliquidService] Account balance retrieved successfully');
       return response.data;
     } catch (error: any) {
-      logger.error('[HyperliquidService] Error getting account balance:', error.message);
+      logger.error('[HyperliquidService] Account request failed');
       throw error;
     }
   }
@@ -219,45 +208,33 @@ export class HyperliquidService implements IExchangeService {
     logger.log('[HyperliquidService] Getting futures account info...');
 
     try {
-      // 并行获取合约账户信息和现货余额
-      const [futuresResponse, spotBalances] = await Promise.all([
-        this.client.post('/info', {
-          type: 'clearinghouseState',
-          user: this.apiKey,
-        }),
-        this.getSpotBalances().catch((err) => {
-          logger.error('[HyperliquidService] Error getting spot balances for account info:', err.message);
-          return [];
-        }),
+      await this.requireStandardAccount();
+      // A failed balance/price request must fail this account, not become zero.
+      const [accountData, balances] = await Promise.all([
+        this.readInfo('clearinghouseState'), this.readSpotBalances(),
       ]);
-
-      logger.log('[HyperliquidService] Futures account info retrieved successfully');
-
-      const accountData = futuresResponse.data;
-      const marginSummary = accountData.marginSummary;
-
-      // 计算现货账户总资产（USDT价值）
-      const spotTotalUSDT = spotBalances.reduce((sum, balance) => sum + (balance.usdValue || 0), 0);
-      logger.log('[HyperliquidService] Spot total USDT:', spotTotalUSDT);
-
-      const totalMarginBalance = parseFloat(marginSummary?.accountValue || '0');
+      const marginSummary = accountData?.marginSummary;
+      const totalMarginBalance = decimal(marginSummary?.accountValue);
+      const marginUsed = decimal(marginSummary?.totalMarginUsed);
+      const withdrawable = decimal(accountData?.withdrawable);
+      if (marginUsed < 0 || withdrawable < 0) throw invalidAccount();
+      const pnl = accountUnrealizedPnl(accountData);
+      const spotTotalUSDT = balances.reduce((sum, balance) => finiteTotal(sum + balance.usdValue!), 0);
       const accountInfo: AccountInfo = {
         exchange: this.exchangeType,
-        totalWalletBalance: totalMarginBalance,
-        totalUnrealizedProfit: accountUnrealizedPnl(accountData),
-        totalMarginBalance: totalMarginBalance,
-        availableBalance: parseFloat(marginSummary?.totalMarginUsed ?
-          (parseFloat(marginSummary.accountValue) - parseFloat(marginSummary.totalMarginUsed)).toString() : '0'),
-        maxWithdrawAmount: parseFloat(marginSummary?.withdrawable || '0'),
-        spotTotalUSDT: spotTotalUSDT,
-        totalAssets: spotTotalUSDT + totalMarginBalance,
+        totalWalletBalance: finiteTotal(totalMarginBalance - pnl),
+        totalUnrealizedProfit: pnl,
+        totalMarginBalance,
+        // Estimate of unused margin, not an order-size or withdrawal limit.
+        availableBalance: Math.max(0, finiteTotal(totalMarginBalance - marginUsed)),
+        maxWithdrawAmount: withdrawable,
+        spotTotalUSDT,
+        totalAssets: finiteTotal(spotTotalUSDT + totalMarginBalance),
       };
-
-      logger.log('[HyperliquidService] Total assets (spot + futures):', accountInfo.totalAssets);
 
       return accountInfo;
     } catch (error: any) {
-      logger.error('[HyperliquidService] Error getting futures account info:', error.message);
+      logger.error('[HyperliquidService] Account mapping failed');
       throw error;
     }
   }
