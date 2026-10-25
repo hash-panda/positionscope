@@ -38,3 +38,5 @@ GitHub读取时Public、Stars=0/Forks=0；[指标快照](metrics/2026-10-25.json
 同步PR [#28](https://github.com/hash-panda/positionscope/pull/28)已合并，其[质量运行40190191956](https://github.com/hash-panda/positionscope/actions/runs/40190191956)通过；Mac任务以失效代理负向对照及--verify-only --direct实际下载并验签beta.10，不能代替用户Mac安装。官网已在现有公开项目部署，浏览器确认[首页](https://positionscope.funagent.app/)与[下载页](https://positionscope.funagent.app/download/)显示beta.10，四个包/验证记录/CI链接准确；canonical为自有域名、加载的应用标识为128px、背景rgb(20,23,28)与共用tokens一致。生产截图为公开合成演示，不含用户账户数据。
 
 下载/上手文案另明确四个平台的合约与账户范围，避免把Hyperliquid标准模式限制理解为所有平台限制。最后部署状态仍见#7验收评论；搜索收录、原生Mac、真实账户与模型验证继续保持未知。
+
+浏览器也确认robots的Allow规则、sitemap七条自有域名URL和llms的beta.10边界说明可读取，但这不证明搜索引擎收录。纯文本索引标题的中文在浏览器被误解码，辅助索引改用全ASCII英文标题，HTML中文标识保持不变；不为此更改托管安全策略。
