@@ -46,7 +46,7 @@ async function fixture(page, options = {}) {
             },
           ]
         : [position];
-    let configured = !options.unconfigured;
+    let configured = !options.unconfigured && !options.storageBlocked;
     if (options.hyperliquid) positions.forEach(p => { p.exchange = 'hyperliquid'; });
     let stored = { binance: { apiKey: 'demo-key-not-real', apiSecret: 'demo-secret-not-real' } };
     if (options.hyperliquid) stored = { hyperliquid: { apiKey: '0x' + '1'.repeat(40), apiSecret: '' } };
@@ -88,8 +88,11 @@ async function fixture(page, options = {}) {
     window.__qa = state;
     window.__calls = calls;
     window.electronAPI = {
+      getProxySettings: async () => '',
+      getStorageStatus: async () => options.storageBlocked ? {state: 'blocked', message: '加密配置无法读取，原文件已保留。请解锁系统钥匙串并重启。'} : {state: 'encrypted', message: '配置已通过系统加密存储。'},
+      restartForStorage: async () => result('restartForStorage'),
       hasCredentials: async () => configured,
-      getAllExchangesCredentials: async () => (options.unconfigured ? {} : stored),
+      getAllExchangesCredentials: async () => (options.unconfigured || options.storageBlocked ? {} : stored),
       getFuturesPositions: async () => {
         state.fetchCount++;
         if (state.failData) throw new Error('offline');
@@ -475,6 +478,14 @@ async function fixture(page, options = {}) {
     await capture(hyperliquid, '18-hyperliquid-assumptions');
     await hyperliquid.close();
     results.push('Hyperliquid valuation assumptions and account-scope disclosure at 320px');
+    const storageBlocked = await open({ storageBlocked: true }, 320);
+    assert(await storageBlocked.getByText('配置未能安全读取', { exact: true }).isVisible());
+    assert.equal(await storageBlocked.getByRole('heading', { name: '连接你的第一个交易所' }).count(), 0);
+    await storageBlocked.getByRole('button', { name: '重启并重新读取', exact: true }).click();
+    assert(await storageBlocked.evaluate(() => window.__calls.some(c => c[0] === 'restartForStorage')));
+    await capture(storageBlocked, '19-storage-recovery');
+    await storageBlocked.close();
+    results.push('locked/corrupt storage recovery notice, no empty onboarding, explicit restart at 320px');
     const activity = await open({}, 320);
     await activity.getByRole('button', { name: '更多操作', exact: true }).click();
     await activity.getByRole('button', { name: '持仓动态 · 交易室', exact: true }).click();

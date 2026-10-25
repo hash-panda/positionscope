@@ -10,13 +10,13 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-仅配置只读交易所凭证。当前使用本地设置文件，尚未接入系统钥匙串；不会验证交易所 Key 的权限。AI 分析会发送计算后的风险汇总至用户选择的模型提供商，调用费用由提供商收取。
+仅配置只读交易所凭证。当前源码使用 macOS 系统钥匙串管理的异步加密配置（Electron 45）；不会验证交易所 Key 的权限。AI 分析会发送计算后的风险汇总至用户选择的模型提供商，调用费用由提供商收取。
 
 本地验证：`pnpm typecheck`、`pnpm test`、`pnpm build`；安装 Chromium 后 `pnpm test:ui`。设计见 [DESIGN.md](DESIGN.md)，评审与迭代见 [docs/product-quality.md](docs/product-quality.md)。
 
 支持 Binance、Bybit、OKX、Hyperliquid 的现有只读适配器；资产总额沿用各适配器口径。AI 只解释线性 USDT/USD 仓位快照，不产生交易指令；缺少历史与强平价等信息时不生成绩效或强平指标。
 
-产品/安装包名称改为 PositionScope，macOS App ID 与旧用户数据目录保留，以便升级。当前 Beta 已通过 macOS 双架构签名、公证、票据装订与 Gatekeeper 自动检查；原生交互和真实账户/模型连通性仍需实测。
+当前源码使用独立应用标识 app.funagent.positionscope 与 PositionScope 数据目录，不兼容此前预览版，需要重新配置只读账户。当前 Beta 已通过 macOS 双架构签名、公证、票据装订与 Gatekeeper 自动检查；原生交互和真实账户/模型连通性仍需实测。
 
 
 ## 下载与使用
@@ -52,3 +52,5 @@ Electron + Vue 3 + TypeScript + Vite。原项目作者 Wang（hash-panda）；�
 欢迎提交已脱敏的使用场景；如果项目有帮助，可以自愿 Star 或 Watch Releases。
 
 Hyperliquid beta.4 暂仅支持已确认的标准账户（disabled）：默认永续 DEX 与现货。其他模式停止汇总；USDC 按 1:1 USDT 等值估算，不含其他 DEX、质押与借贷。异常数据在菜单栏显示“数据异常”，不表示无持仓。
+
+加密配置与恢复机制见 [secure-storage.md](docs/secure-storage.md)。系统密钥不可用时保留原加密文件，不使用明文回退。源码与下载版本分别以当前分支和Release为准。

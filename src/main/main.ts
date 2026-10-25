@@ -1,9 +1,9 @@
 import { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell } from 'electron';
 
 import * as path from 'path';
-import * as fs from 'fs';
 import { ExchangeManager } from './services/exchangeManager';
 import { SettingsManager } from './settings';
+import { macSettingsCipher } from './settings-crypto';
 import { Position, ExchangeType } from './types/exchange';
 import { aiService } from './services/ai';
 import { AIProvider, AISettings } from './types/ai';
@@ -23,9 +23,9 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('[Main] Unhandled rejection at:', promise, 'reason:', reason);
 });
 
-// Preserve settings from the pre-PositionScope application.
-const previousDataDirectory = ['Binance Menubar', 'binance-menubar'].map(name => path.join(app.getPath('appData'), name)).find(directory => fs.existsSync(path.join(directory, 'settings.json')));
-if (previousDataDirectory) app.setPath('userData', previousDataDirectory);
+// Independent identity and data directory; no pre-release compatibility paths.
+app.setName('PositionScope');
+app.setPath('userData', path.join(app.getPath('appData'), 'PositionScope'));
 
 let tray: Tray | null = null;
 let window: BrowserWindow | null = null;
@@ -226,7 +226,7 @@ function createTray() {
   const icon = nativeImage.createEmpty();
 
   tray = new Tray(icon);
-  tray.setToolTip('Binance 合约持仓');
+  tray.setToolTip('PositionScope · 仓位镜');
   tray.setTitle('--'); // 初始显示
 
   console.log('[Tray] Created with text-only mode (no icon)');
@@ -249,18 +249,18 @@ function createTray() {
   // 不设置右键菜单，避免遮挡显示
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // 设置应用名称，方便在系统设置中识别
-  app.setName('Binance Menubar');
+  app.setName('PositionScope');
 
   // macOS 上隐藏 Dock 图标，让应用只在菜单栏显示
   // 这样系统会将应用识别为菜单栏应用
   if (process.platform === 'darwin') {
-    app.dock.hide();
+    app.dock?.hide();
   }
 
   // 初始化设置管理器
-  settingsManager = new SettingsManager();
+  settingsManager = await SettingsManager.open(app.getPath('userData'), macSettingsCipher);
 
   // 加载保存的所有交易所凭证
   const allCredentials = settingsManager.getAllExchangesCredentials();
@@ -327,23 +327,15 @@ app.whenReady().then(() => {
   }
 });
 
-app.on('window-all-closed', (e: Event) => {
-  e.preventDefault();
-});
+// Keep the menu-bar process alive after its window closes.
+app.on('window-all-closed', () => {});
 
 // IPC handlers
-ipcMain.handle('save-api-keys', async (_, apiKey: string, apiSecret: string, proxyUrl?: string) => {
-  // 为币安设置凭证（向后兼容）
-  exchangeManager.setCredentials({
-    exchange: ExchangeType.BINANCE,
-    apiKey,
-    apiSecret,
-    proxyUrl,
-  });
-  // 保存到持久化存储
-  settingsManager.setCredentials(apiKey, apiSecret, proxyUrl);
-  // 启动自动刷新
-  startAutoRefresh();
+ipcMain.handle('get-proxy-settings', () => settingsManager.getProxyUrl());
+ipcMain.handle('get-storage-status', () => settingsManager.getStorageStatus());
+ipcMain.handle('restart-for-storage', () => {
+  app.relaunch();
+  setImmediate(() => app.exit(0));
   return { success: true };
 });
 
@@ -384,7 +376,7 @@ ipcMain.handle('save-display-settings', async (_, settings: {
   refreshIntervalSeconds = settings.refreshInterval;
 
   // 保存到持久化存储
-  settingsManager.setDisplaySettings(settings.maxDisplayCount, settings.refreshInterval);
+  await settingsManager.setDisplaySettings(settings.maxDisplayCount, settings.refreshInterval);
 
   // 更新显示
   updateTrayTitle();
@@ -404,7 +396,7 @@ ipcMain.handle('get-display-settings', async () => {
 
 // 保存主题设置
 ipcMain.handle('save-theme', async (_, theme: 'light' | 'dark' | 'auto') => {
-  settingsManager.setTheme(theme);
+  await settingsManager.setTheme(theme);
 });
 
 // 获取主题设置
@@ -419,7 +411,7 @@ ipcMain.handle('quit-app', async () => {
 
 // 保存持仓顺序
 ipcMain.handle('save-position-order', async (_, order: string[]) => {
-  settingsManager.setPositionOrder(order);
+  await settingsManager.setPositionOrder(order);
   // 更新菜单栏显示以应用新顺序
   updateTrayTitle();
   return { success: true };
@@ -441,7 +433,7 @@ ipcMain.handle('get-futures-account-info', async () => {
 
 // 保存隐藏金额设置
 ipcMain.handle('save-hide-amounts', async (_, hide: boolean) => {
-  settingsManager.setHideAmounts(hide);
+  await settingsManager.setHideAmounts(hide);
   updateTrayTitle();
   return { success: true };
 });
@@ -453,7 +445,7 @@ ipcMain.handle('get-hide-amounts', async () => {
 
 // 保存调试模式设置
 ipcMain.handle('save-debug-mode', async (_, debug: boolean) => {
-  settingsManager.setDebugMode(debug);
+  await settingsManager.setDebugMode(debug);
 
   // 根据设置打开或关闭 DevTools
   if (window) {
@@ -474,7 +466,7 @@ ipcMain.handle('get-debug-mode', async () => {
 
 // 保存窗口透明度设置
 ipcMain.handle('save-window-opacity', async (_, opacity: number) => {
-  settingsManager.setWindowOpacity(opacity);
+  await settingsManager.setWindowOpacity(opacity);
 
   // 应用透明度到窗口
   if (window) {
@@ -491,7 +483,8 @@ ipcMain.handle('get-window-opacity', async () => {
 
 // 保存开机自动启动设置
 ipcMain.handle('save-auto-launch', async (_, autoLaunch: boolean) => {
-  settingsManager.setAutoLaunch(autoLaunch);
+  await settingsManager.setAutoLaunch(autoLaunch);
+  app.setLoginItemSettings({ openAtLogin: autoLaunch });
   return { success: true };
 });
 
@@ -507,7 +500,8 @@ ipcMain.handle('get-app-version', async () => {
 
 // 重置所有设置为默认值
 ipcMain.handle('reset-to-defaults', async () => {
-  settingsManager.resetToDefaults();
+  await settingsManager.resetToDefaults();
+  app.setLoginItemSettings({ openAtLogin: false });
   return { success: true };
 });
 
@@ -517,15 +511,13 @@ ipcMain.handle('delete-all-data', async () => {
     // 1. 停止自动刷新
     stopAutoRefresh();
 
-    // 2. 清除所有交易所的凭证（内存中的）
+    // Persist deletion before clearing running services; failed deletion keeps them intact.
+    await settingsManager.clearSettings();
     exchangeManager.removeAllCredentials();
-
-    // 3. 清空设置文件
-    settingsManager.clearSettings();
     aiService.setConfig(settingsManager.getAISettings());
     aiService.clearCache();
     tray?.setTitle('--');
-    app.setLoginItemSettings({ openAtLogin: false, openAsHidden: false });
+    app.setLoginItemSettings({ openAtLogin: false });
     if (window) {
       window.setOpacity(1);
       window.webContents.closeDevTools();
@@ -547,7 +539,7 @@ ipcMain.handle('save-exchange-credentials', async (_, exchange: string, credenti
     const exchangeType = exchange.toLowerCase() as ExchangeType;
 
     // 保存到设置管理器
-    settingsManager.setExchangeCredentials(
+    await settingsManager.setExchangeCredentials(
       exchange as 'binance' | 'bybit' | 'okx' | 'hyperliquid',
       credentials
     );
@@ -599,7 +591,7 @@ ipcMain.handle('remove-exchange-credentials', async (_, exchange: string) => {
     const exchangeType = exchange.toLowerCase() as ExchangeType;
 
     // 从设置管理器删除
-    settingsManager.removeExchangeCredentials(
+    await settingsManager.removeExchangeCredentials(
       exchange as 'binance' | 'bybit' | 'okx' | 'hyperliquid'
     );
 
@@ -635,7 +627,7 @@ ipcMain.handle('get-ai-settings', async () => {
  */
 ipcMain.handle('save-ai-settings', async (_, aiSettings: AISettings) => {
   try {
-    settingsManager.setAISettings(aiSettings);
+    await settingsManager.setAISettings(aiSettings);
 
     // 初始化AI服务
     if (aiSettings.enabled) {
@@ -794,9 +786,9 @@ ipcMain.handle('minimize-window', async () => {
  */
 ipcMain.handle('save-proxy-settings', async (_, proxyUrl: string) => {
   try {
-    console.log('[IPC] Saving proxy settings:', proxyUrl || '(no proxy)');
+    console.log('[IPC] Saving proxy settings');
 
-    settingsManager.setProxyUrl(proxyUrl);
+    await settingsManager.setProxyUrl(proxyUrl);
 
     // 获取所有已配置的交易所凭证
     const allCredentials = settingsManager.getAllExchangesCredentials();

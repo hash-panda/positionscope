@@ -77,6 +77,9 @@ export interface Result {
   error?: string;
 }
 export interface ElectronAPI {
+  getProxySettings(): Promise<string>;
+  getStorageStatus(): Promise<import('../../main/settings').StorageStatus>;
+  restartForStorage(): Promise<Result>;
   hasCredentials(): Promise<boolean>;
   getAllExchangesCredentials(): Promise<Partial<CredentialsMap>>;
   saveExchangeCredentials(

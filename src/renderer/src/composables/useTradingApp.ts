@@ -39,6 +39,7 @@ function check(result: Result | void) {
 export function useTradingApp(notify: (notice: NoticeInput) => void) {
   const api = window.electronAPI;
   const ready = ref(false);
+  const storageStatus = ref<import('../../../main/settings').StorageStatus>({state: 'empty', message: ''});
   const loading = ref(false);
   const hasCredentials = ref(false);
   const positions = ref<Position[]>([]);
@@ -176,6 +177,7 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
     formSuccess.value = '';
     try {
       await action();
+      storageStatus.value = await api.getStorageStatus();
       formSuccess.value = success;
       return true;
     } catch (cause) {
@@ -300,8 +302,6 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
       async () => {
         check(await api!.saveProxySettings(value));
         preferences.proxyUrl = value;
-        if (value) localStorage.setItem('proxyUrl', value);
-        else localStorage.removeItem('proxyUrl');
       },
       value ? '代理已保存，将应用于后续请求' : '代理已清除'
     );
@@ -483,7 +483,6 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
         await loadPreferences();
         savedOrder.value = await api!.getPositionOrder();
         preferences.proxyUrl = '';
-        localStorage.removeItem('proxyUrl');
         check(await api!.saveProxySettings(''));
         check(
           await api!.saveDisplaySettings({
@@ -520,7 +519,6 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
         savedOrder.value = [];
         editingOrder.value = [];
         preferences.proxyUrl = '';
-        localStorage.removeItem('proxyUrl');
         await loadPreferences();
         restartTimer();
       },
@@ -545,6 +543,7 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
       return;
     }
     try {
+      storageStatus.value = await api.getStorageStatus();
       await loadPreferences();
       const credentials = await api.getAllExchangesCredentials();
       for (const { id } of exchanges) {
@@ -553,7 +552,8 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
           Object.assign(credentialDrafts[id], credentials[id]);
         }
       }
-      preferences.proxyUrl = localStorage.getItem('proxyUrl') || '';
+      preferences.proxyUrl = await api.getProxySettings();
+
       appVersion.value = await api.getAppVersion();
       savedOrder.value = await api.getPositionOrder();
       hasCredentials.value = await api.hasCredentials();
@@ -581,6 +581,7 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
 
   return {
     api,
+    storageStatus,
     ready,
     loading,
     hasCredentials,

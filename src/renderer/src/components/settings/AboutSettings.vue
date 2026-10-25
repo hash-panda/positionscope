@@ -54,6 +54,8 @@ onUnmounted(() => {
   </section>
   <section class="settings-section">
     <h2>数据管理</h2>
+    <p class="helper" role="status">{{ model.storageStatus.message }}</p>
+    <p class="helper">加密文件依赖本机系统密钥，不能直接复制到另一台电脑解密。删除所有数据也会删除未能读取的加密配置。</p>
     <button class="settings-link" :disabled="!!model.saving" @click="emit('confirm', 'reset')">
       <Wrench :size="17" /><span>恢复默认设置</span
       ><ChevronRight :size="16" class="header-end" /></button

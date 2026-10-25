@@ -7,6 +7,7 @@ import base64
 import hashlib
 import json
 import os
+import plistlib
 from pathlib import Path
 import secrets
 import shlex
@@ -48,7 +49,11 @@ def main():
     if args.check: print('Apple signing inputs present and structurally valid; certificate usability not yet verified');return
     if sys.platform!='darwin':raise RuntimeError('Signing requires a macOS runner')
     root=Path(__file__).resolve().parent.parent;os.chdir(root)
-    version=json.loads((root/'package.json').read_text())['version'];identity=env['APPLE_SIGNING_IDENTITY']
+    package=json.loads((root/'package.json').read_text())
+    version=package['version'];identity=env['APPLE_SIGNING_IDENTITY']
+    storage=json.loads((root/'test-results/storage-native.json').read_text())
+    if storage.get('electron')!=package['devDependencies']['electron'] or not all(storage.get(key) is True for key in ('asynchronous_system_encryption','cross_process_reload','reset_preserves_credentials','targeted_removal','deletion','synthetic_profile_only')):
+        raise RuntimeError('Native settings storage verification is missing or mismatched')
     previous=shlex.split(run(['security','list-keychains','-d','user']))
     with tempfile.TemporaryDirectory(prefix='positionscope-sign-',dir=env.get('RUNNER_TEMP')) as directory:
         temporary=Path(directory);keychain=temporary/'signing.keychain-db';p12=temporary/'certificate.p12';password=secrets.token_urlsafe(32)
@@ -67,6 +72,8 @@ def main():
             print('Stage: build and sign application',flush=True)
             run(['pnpm','exec','electron-builder','--config','build/electron-signed.cjs','--mac','dir','--'+args.arch,'--publish','never'],env=build_env,diagnostics=True)
             app=root/'release'/('mac-arm64' if args.arch=='arm64' else 'mac')/'PositionScope.app'
+            with (app/'Contents/Info.plist').open('rb') as source: app_info=plistlib.load(source)
+            if app_info.get('CFBundleIdentifier')!=package['build']['appId']: raise RuntimeError('Application bundle identity mismatch')
             run(['codesign','--verify','--deep','--strict',str(app)])
             info=subprocess.run(['codesign','-dv','--verbose=4',str(app)],capture_output=True,text=True,check=True).stderr
             if f'TeamIdentifier={env["APPLE_TEAM_ID"]}' not in info or 'Authority=Developer ID Application:' not in info: raise RuntimeError('Signed app identity/team mismatch')
@@ -88,6 +95,7 @@ def main():
             print('Stage: submit signed DMG for Apple notarization',flush=True)
             dmg_submission=notarize(dmg,profile,keychain);run(['xcrun','stapler','staple',str(dmg)]);run(['xcrun','stapler','validate',str(dmg)])
             evidence={'version':version,'architecture':args.arch,'app_notarization':app_submission,'dmg_notarization':dmg_submission,'signature_verified':True,'staple_validated':True,'gatekeeper_assessment':'accepted','artifacts':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in (zip_path,dmg)}}
+            evidence.update(app_id=app_info['CFBundleIdentifier'],minimum_macos_version=app_info.get('LSMinimumSystemVersion'),settings_storage_smoke=storage)
             (output/f'{stem}-verification.json').write_text(json.dumps(evidence,indent=2)+'\n')
             print(f'Verified signed and notarized {args.arch} ZIP and DMG; no credentials included in artifacts')
         finally:

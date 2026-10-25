@@ -49,7 +49,6 @@ export class BybitService implements IExchangeService {
     if (typeof credentialsOrApiKey === 'string') {
       this.apiKey = credentialsOrApiKey;
       this.apiSecret = apiSecret || '';
-      logger.log('[BybitService] Credentials set - API Key:', credentialsOrApiKey.substring(0, 8) + '...');
 
       if (typeof proxyUrl === 'string') {
         this.setProxy(proxyUrl.trim());
@@ -58,7 +57,6 @@ export class BybitService implements IExchangeService {
       const credentials = credentialsOrApiKey;
       this.apiKey = credentials.apiKey;
       this.apiSecret = credentials.apiSecret;
-      logger.log('[BybitService] Credentials set - API Key:', credentials.apiKey.substring(0, 8) + '...');
 
       if (typeof credentials.proxyUrl === 'string') {
         this.setProxy(credentials.proxyUrl.trim());
@@ -71,7 +69,7 @@ export class BybitService implements IExchangeService {
     let proxyConfig: any = false;
 
     if (proxyUrl) {
-      logger.log('[BybitService] Setting proxy:', proxyUrl);
+      logger.log('[Exchange] Configuring proxy');
       try {
         const url = new URL(proxyUrl);
         proxyConfig = {
@@ -81,7 +79,7 @@ export class BybitService implements IExchangeService {
         };
         logger.log('[BybitService] Proxy config:', proxyConfig);
       } catch (error) {
-        logger.error('[BybitService] Invalid proxy URL:', error);
+        logger.error('[Exchange] Invalid proxy URL');
         return;
       }
     } else {
