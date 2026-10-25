@@ -95,6 +95,7 @@ export class AIService {
 
     // 清除旧的providers
     this.providers.clear();
+    if (!settings.enabled || !settings.useCustomKeys) return;
 
     // 初始化各个provider
     for (const [providerName, credentials] of Object.entries(settings.credentials)) {

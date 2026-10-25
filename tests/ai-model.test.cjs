@@ -18,3 +18,9 @@ test('providers cannot restore retired implicit defaults and selected models rea
  p.client={post:async(path,body)=>{sent=body;return {data:{choices:[{message:{content:'{"summary":"synthetic","warnings":[],"suggestions":[]}'}}]}};}};
  await p.chatJSON([{role:'user',content:'synthetic facts'}]);assert.equal(sent.model,'explicit-model');
 });
+
+test('disabling AI clears registered providers and cached narrative without new model requests',async()=>{
+ const {AIService}=require('../dist/main/services/ai/ai-service');const s=new AIService();s.providers.set('demo',{});assert.equal(s.isAvailable(),true);
+ s.setConfig({enabled:false,useCustomKeys:true,defaultProvider:'anthropic',credentials:{anthropic:{apiKey:'synthetic-key'}}});assert.equal(s.isAvailable(),false);
+ await assert.rejects(s.analyzePortfolioHealth([],[],'anthropic'),/未就绪/);
+});

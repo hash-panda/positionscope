@@ -637,10 +637,8 @@ ipcMain.handle('save-ai-settings', async (_, aiSettings: AISettings) => {
     await settingsManager.setAISettings(aiSettings);
 
     // 初始化AI服务
-    if (aiSettings.enabled) {
-      aiService.setConfig(aiSettings);
-      console.log('[IPC] AI service initialized');
-    }
+    aiService.setConfig(aiSettings);
+    console.log('[IPC] AI configuration applied');
 
     return { success: true };
   } catch (error: any) {
@@ -660,8 +658,9 @@ ipcMain.handle('get-public-market', async (_, symbols: string[]) => {
 });
 ipcMain.handle('ai-analyze-health', async (_, positions, accountInfo, provider?: AIProvider, forceRefresh = false) => {
   try {
-    if (!aiService.isAvailable()) {
-      throw new Error('AI service not initialized. Please configure AI settings first.');
+    const configured = settingsManager.getAISettings();
+    if (!configured.enabled || !configured.useCustomKeys || !aiService.isAvailable()) {
+      throw new Error('请先启用自定义AI并保存Key与模型ID。');
     }
 
     if (forceRefresh) aiService.clearCache();
