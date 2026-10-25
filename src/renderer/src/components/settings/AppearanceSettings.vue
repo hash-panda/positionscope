@@ -2,6 +2,7 @@
 import { Check } from 'lucide-vue-next';
 import { amount, signed } from '../../utils/format';
 import type { AppModel } from '../../composables/useTradingApp';
+import AppSlider from '../ui/AppSlider.vue';
 
 defineProps<{ model: AppModel }>();
 </script>
@@ -34,15 +35,15 @@ defineProps<{ model: AppModel }>();
     ><output for="opacity" class="numeric"
       >{{ Math.round(model.preferences.windowOpacity * 100) }}%</output
     >
-    <input
+    <AppSlider
       id="opacity"
-      v-model.number="model.preferences.windowOpacity"
-      type="range"
-      min="0.3"
-      max="1"
-      step="0.05"
+      v-model="model.preferences.windowOpacity"
+      label="窗口透明度"
+      :min="0.3"
+      :max="1"
+      :step="0.05"
       :disabled="!!model.saving"
-      @change="model.savePreference('windowOpacity')"
+      @commit="model.savePreference('windowOpacity')"
     />
     <span class="helper">30%</span><span class="helper align-right">100%</span>
   </div>

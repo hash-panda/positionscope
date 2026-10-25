@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { Eye, EyeOff } from 'lucide-vue-next';
+import AppTextInput from './ui/AppTextInput.vue';
 defineProps<{
   modelValue: string;
   label: string;
@@ -17,16 +18,16 @@ const revealed = ref(false);
   <div class="field">
     <label :for="id">{{ label }}</label>
     <div class="secret-control">
-      <input
+      <AppTextInput
         :id="id"
         :type="plain || revealed ? 'text' : 'password'"
-        :value="modelValue"
+        :model-value="modelValue"
         :placeholder="placeholder || `输入 ${label}`"
         :disabled="disabled"
         autocomplete="off"
         spellcheck="false"
         autocapitalize="off"
-        @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
+        @update:model-value="$emit('update:modelValue', $event)"
       />
       <button
         v-if="!plain"

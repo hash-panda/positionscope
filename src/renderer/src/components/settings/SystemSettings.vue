@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { CircleHelp } from 'lucide-vue-next';
 import ToggleRow from '../ToggleRow.vue';
+import SecretInput from '../SecretInput.vue';
 import type { AppModel } from '../../composables/useTradingApp';
 
 defineProps<{ model: AppModel }>();
@@ -16,17 +17,14 @@ defineProps<{ model: AppModel }>();
   <section class="settings-section">
     <h2>网络代理</h2>
     <form class="settings-form" @submit.prevent="model.saveProxy">
-      <div class="field">
-        <label for="proxy-url">代理地址（可选）</label
-        ><input
+      <SecretInput
           id="proxy-url"
+          label="代理地址（可选）"
           v-model="model.preferences.proxyUrl"
           placeholder="http://127.0.0.1:7890"
           autocomplete="off"
-          spellcheck="false"
           :disabled="!!model.saving"
-        />
-      </div>
+      />
       <p class="helper">留空则不使用代理。修改后需保存。</p>
       <button class="button primary full-width" :disabled="!!model.saving">
         {{ model.saving === 'proxy' ? '正在保存…' : '保存代理' }}
