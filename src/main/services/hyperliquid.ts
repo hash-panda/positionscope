@@ -9,6 +9,25 @@ import {
   SpotBalance,
 } from '../types/exchange';
 
+// Use the same account snapshot, not marginSummary.totalNtlPos (notional value).
+// Reject incomplete payloads so ExchangeManager exposes an account error
+// instead of publishing fabricated zero PnL.
+function accountUnrealizedPnl(account: any): number {
+  const invalid = () => new Error('Hyperliquid 未实现盈亏数据不完整，请重试');
+  if (!Array.isArray(account?.assetPositions)) throw invalid();
+  let total = 0;
+  for (const entry of account.assetPositions) {
+    const value = entry?.position?.unrealizedPnl;
+    if (typeof value !== 'string' || !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(value)) {
+      throw invalid();
+    }
+    const pnl = Number(value);
+    total += pnl;
+    if (!Number.isFinite(pnl) || !Number.isFinite(total)) throw invalid();
+  }
+  return total;
+}
+
 export class HyperliquidService implements IExchangeService {
   private apiKey: string = ''; // Hyperliquid uses wallet address
   private apiSecret: string = ''; // Hyperliquid may use private key for signing
@@ -225,7 +244,7 @@ export class HyperliquidService implements IExchangeService {
       const accountInfo: AccountInfo = {
         exchange: this.exchangeType,
         totalWalletBalance: totalMarginBalance,
-        totalUnrealizedProfit: parseFloat(marginSummary?.totalNtlPos || '0'),
+        totalUnrealizedProfit: accountUnrealizedPnl(accountData),
         totalMarginBalance: totalMarginBalance,
         availableBalance: parseFloat(marginSummary?.totalMarginUsed ?
           (parseFloat(marginSummary.accountValue) - parseFloat(marginSummary.totalMarginUsed)).toString() : '0'),
