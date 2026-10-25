@@ -82,7 +82,7 @@
 
 ## 实现边界
 
-Vue 3 + TypeScript + 原有 Lucide 图标；不迁移框架，不新增交易功能。`useTradingApp` 负责 IPC、状态与保存，页面组件负责展示。`position-order.ts` 同时供主进程与列表使用，兼容旧的币种排序记录，并区分交易所与多空方向。
+Vue 3 + TypeScript + 原有 Lucide 图标；不迁移框架，不新增交易功能。`useTradingApp` 负责 IPC、状态与保存，页面组件负责展示。`position-order.ts` 同时供主进程与列表使用，以独立配置中的排序键区分交易所与多空方向；不导入此前预览版记录。
 
 动态加载与动作反馈只使用短时过渡，遵循 `prefers-reduced-motion`。实际检查命令与运行限制见 [UI 验证记录](docs/ui-review.md)。
 

@@ -1,5 +1,15 @@
 # PositionScope 质量评审与迭代
 
+## 当前状态（2026-10-25，v0.2.0-beta.5）
+
+按维护者要求采用全新实现，不兼容或迁移此前预览版。PR [#17](https://github.com/hash-panda/positionscope/pull/17) 已合并：独立应用身份 `app.funagent.positionscope` 与 PositionScope 数据目录，Electron 45 异步 safeStorage 加密完整配置；失败保留原密文，串行原子提交，移除明文保存和旧凭据接口。首次使用需要重新配置只读账户。
+
+本地33项Node、4项Python、类型、生产构建与480×600/320px UI/axe回归通过。[PR CI](https://github.com/hash-panda/positionscope/actions/runs/40163118641) 的Mac任务使用真实系统API及隔离合成profile，两次进程启动验证加密、解密回读、重置、定向移除和删除。该检查也在两个签名前runner通过。
+
+[beta.5 Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.0-beta.5) 的双架构DMG/ZIP已经[发布运行](https://github.com/hash-panda/positionscope/actions/runs/40163284199)通过签名、公证、装订与Gatekeeper。公开记录见 [docs/releases/v0.2.0-beta.5](releases/v0.2.0-beta.5/release.json)。两份验证JSON和校验文件已本地重算摘要，四个二进制哈希与GitHub资产digest核对；没有在本地安装二进制。
+
+仍未验证：签名安装包的钥匙串权限弹窗、用户Mac原生UI/自动启动、真实账户和模型质量；全仓库日志脱敏亦未完成。Mac CI是开发Electron加合成凭据，不能代替这些验收。旧版迁移不再列入待办，不把签名通过当作全部隐私或金融准确性验证。
+
 产品名：PositionScope · 仓位镜。仓库：hash-panda/positionscope（Public），原名 trade-realtime-view。官网：https://positionscope.funagent.app/。官网来源位于 website/index.html，与 Sites 源同步时必须使用同一份内容。
 
 ## 100 分标准
@@ -15,7 +25,7 @@
 | 验证与发布 | 10 | 类型检查、逻辑回归、UI/可访问性、构建、Mac 实机、签名公证与校验和 |
 | 官网与上手 | 5 | 可用链接、合成数据标识、安装状态、真实能力与限制 |
 
-## 当前首轮证据与缺口
+## 首轮历史证据与缺口（2026-10-24，非当前状态）
 
 本轮本地类型检查、11 项逻辑测试、生产构建与 UI harness 通过。UI harness 使用合成账户，不访问交易所或模型。实际图见 test-results/ui（本地生成，不提交）。没有以自评断言设计达到任何奖项水准。
 
@@ -50,4 +60,4 @@ PR #10 修复 electron-builder 身份选择器，17 项 Node 与 4 项 Python �
 
 PR #14 修正 Hyperliquid 标准账户余额、估值、提现字段和模式边界；PR #15 区分菜单栏异常与无持仓。v0.2.0-beta.4 已经发布运行 40157740551 完成双架构签名、公证、装订及 Gatekeeper 自动验证。28项Node、4项Python、类型、构建及UI/axe回归通过。证据在 docs/releases/v0.2.0-beta.4（相对仓库根目录）；两份验证JSON和校验文件已和GitHub资产摘要核对，不代表Mac原生UI或真实账户验证。
 
-仅允许userAbstraction=disabled的标准模式，默认永续DEX加现货；其他模式明确不支持，不修改账户模式。缺余额或价格即报错，USDC/USDT按1:1估算；可用余额是未占用保证金估算，未含其他DEX、质押、借贷。凭据安全存储、原生UI、升级迁移和真实账户对照仍待完成。
+仅允许userAbstraction=disabled的标准模式，默认永续DEX加现货；其他模式明确不支持，不修改账户模式。缺余额或价格即报错，USDC/USDT按1:1估算；可用余额是未占用保证金估算，未含其他DEX、质押、借贷。该版本发布时，凭据安全存储、原生UI与真实账户对照尚未验收；最新状态见本文顶部。此前预览版迁移已取消。
