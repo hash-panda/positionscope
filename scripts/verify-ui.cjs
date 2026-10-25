@@ -328,6 +328,18 @@ async function fixture(page, options = {}) {
       await page.getByRole('button', { name: new RegExp('^' + section) }).click();
       await page.getByRole('heading', { name: section, exact: true }).waitFor();
       await capture(page, `settings-${index}-${section}`);
+      if (section === 'AI 分析') {
+        await page.getByRole('button',{name:'Anthropic',exact:true}).click();
+        await page.getByLabel('Anthropic API Key',{exact:true}).fill('synthetic-ai-key-not-real');
+        const before=await page.evaluate(()=>window.__calls.filter(c=>c[0]==='saveAISettings').length);
+        await page.getByRole('button',{name:'保存配置',exact:true}).click();
+        assert(await page.getByText(/anthropic需要填写当前可用的模型ID/).first().isVisible());
+        assert.equal(await page.evaluate(()=>window.__calls.filter(c=>c[0]==='saveAISettings').length),before);
+        await page.getByLabel('模型 ID（必填）',{exact:true}).fill('synthetic-model-v1');
+        await page.getByRole('button',{name:'保存配置',exact:true}).click();
+        assert(await page.evaluate(()=>window.__calls.filter(c=>c[0]==='saveAISettings').some(c=>c[1].credentials.anthropic.model==='synthetic-model-v1')));
+        await capture(page,'24-explicit-model-selection');
+      }
       if (section === 'API 配置') {
         assert.equal(
           await page.getByLabel('API Secret', { exact: true }).getAttribute('type'),

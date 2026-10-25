@@ -101,7 +101,7 @@ export class QwenProvider extends GenericProvider {
     super({
       ...config,
       baseURL: config.baseURL || 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-      model: config.model || 'qwen-turbo',
+      model: config.model,
     });
   }
 }
@@ -114,7 +114,7 @@ export class GrokProvider extends GenericProvider {
     super({
       ...config,
       baseURL: config.baseURL || 'https://api.x.ai/v1',
-      model: config.model || 'grok-beta',
+      model: config.model,
     });
   }
 }
@@ -124,6 +124,6 @@ export class GrokProvider extends GenericProvider {
  */
 export class GeminiProvider extends GenericProvider {
   constructor(config: AIModelConfig) {
-    super({...config, baseURL:config.baseURL || 'https://generativelanguage.googleapis.com/v1beta/openai', model:config.model || 'gemini-2.5-flash'});
+    super({...config, baseURL:config.baseURL || 'https://generativelanguage.googleapis.com/v1beta/openai', model:config.model});
   }
 }
