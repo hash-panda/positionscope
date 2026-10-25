@@ -23,6 +23,8 @@ pnpm dev
 
 [签名 Beta v0.2.0-beta.5](https://github.com/hash-panda/positionscope/releases/tag/v0.2.0-beta.5) 提供 Apple Silicon、Intel 的 DMG/ZIP、SHA256 和公证验证记录。四个安装包均通过签名、公证和 Gatekeeper 自动验证；真实只读账户与原生交互仍需试用核对。
 
+在自己的Mac替换旧应用，可使用[本机安装与验证脚本](docs/install-and-verify-mac.md)。它先核对固定版本的摘要、签名和Gatekeeper，再把旧应用移到废纸篓并安装新版；不会读取或删除旧凭证配置。系统权限弹窗仍需在本机处理。
+
 打开菜单栏窗口，进入设置 → API 配置，选择交易所并保存只读凭证；隐藏金额会同时作用于持仓与菜单栏。设置 → AI 分析中可配置提供商、Key 与模型 ID，点击「AI 持仓分析」才发送计算后的风险汇总。
 
 ## 分析方法
