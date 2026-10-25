@@ -2,7 +2,7 @@
 
 macOS 菜单栏中的多交易所持仓监控与按需 AI 风险解读。
 
-官网：https://positionscope.funagent.app/ 。当前为开发预览；发布产物以 Releases 为准。
+官网：https://positionscope.funagent.app/ 。当前为签名、公证的 Beta；发布产物以 Releases 为准。
 
 ```sh
 corepack enable
@@ -21,7 +21,7 @@ pnpm dev
 
 ## 下载与使用
 
-[签名 Beta v0.2.0-beta.2](https://github.com/hash-panda/positionscope/releases/tag/v0.2.0-beta.2) 提供 Apple Silicon、Intel 的 DMG/ZIP、SHA256 和公证验证记录。四个安装包均通过签名、公证和 Gatekeeper 自动验证；真实只读账户与原生交互仍需试用核对。
+[签名 Beta v0.2.0-beta.4](https://github.com/hash-panda/positionscope/releases/tag/v0.2.0-beta.4) 提供 Apple Silicon、Intel 的 DMG/ZIP、SHA256 和公证验证记录。四个安装包均通过签名、公证和 Gatekeeper 自动验证；真实只读账户与原生交互仍需试用核对。
 
 打开菜单栏窗口，进入设置 → API 配置，选择交易所并保存只读凭证；隐藏金额会同时作用于持仓与菜单栏。设置 → AI 分析中可配置提供商、Key 与模型 ID，点击「AI 持仓分析」才发送计算后的风险汇总。
 
@@ -50,3 +50,5 @@ Electron + Vue 3 + TypeScript + Vite。原项目作者 Wang（hash-panda）；�
 - [第0期报告](docs/ops/2026-10-24.md)
 
 欢迎提交已脱敏的使用场景；如果项目有帮助，可以自愿 Star 或 Watch Releases。
+
+Hyperliquid beta.4 暂仅支持已确认的标准账户（disabled）：默认永续 DEX 与现货。其他模式停止汇总；USDC 按 1:1 USDT 等值估算，不含其他 DEX、质押与借贷。异常数据在菜单栏显示“数据异常”，不表示无持仓。

@@ -1,6 +1,6 @@
 # PositionScope · 仓位镜
 
-> Independent, read-only macOS menu-bar position monitor. Current release v0.2.0-beta.2 is signed and notarized for Apple Silicon and Intel; native UI and real-account tests are still pending. Planned features are not released features.
+> Independent, read-only macOS menu-bar position monitor. Current release v0.2.0-beta.4 is signed and notarized for Apple Silicon and Intel; native UI and real-account tests are still pending. Planned features are not released features.
 
 ## Product
 - [Overview](https://positionscope.funagent.app/): Features and synthetic demonstration
@@ -11,5 +11,7 @@
 - [Privacy](https://positionscope.funagent.app/privacy/): Current data handling
 - [Roadmap](https://positionscope.funagent.app/roadmap/): Released versus planned capabilities
 - [Source](https://github.com/hash-panda/positionscope): MIT-declared source repository
+
+Hyperliquid beta.3 is limited to confirmed standard (disabled) accounts, default perp DEX and spot; other account modes are rejected. USDC/USDT parity is an estimate. Other DEX, staking and lending assets are excluded.
 
 No exchange affiliation. No profit forecasts or verified performance claims. Local credentials are not yet encrypted through Keychain. AI processing is opt-in and sends sensitive risk aggregates to the selected model provider.
