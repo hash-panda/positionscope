@@ -83,7 +83,7 @@ const selectedProvider = computed(() => providers.find((item) => item.id === pro
     </template>
     <p v-else class="inline-note">请开启自定义 API Key 并配置默认提供商。</p>
     <p class="inline-note">
-      <ShieldCheck :size="15" /><span>分析时仅将本地计算的风险汇总发送给所选 AI 提供商，不发送 API Key 或逐笔开仓信息。</span>
+      <ShieldCheck :size="15" /><span>仅点击分析时，会向所选 AI 提供商发送风险事实，包含逐仓币种、方向、数量、价格、强平与保证金，以及各平台权益；不发送交易所 API Key。</span>
     </p>
   </template>
   <div v-else class="empty-state compact">
