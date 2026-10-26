@@ -7,6 +7,7 @@
 
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { logger } from './logger';
+import { requestDiagnostic, aiRequestError } from './request-diagnostics';
 
 /**
  * 创建一个带有默认配置的 axios 实例
@@ -23,33 +24,24 @@ export function createHttpClient(config?: AxiosRequestConfig): AxiosInstance {
   // 请求拦截器 - 日志记录
   client.interceptors.request.use(
     (config) => {
-      logger.log(`[HTTP] ${config.method?.toUpperCase()} ${config.url}`);
+      logger.log('[HTTP] Request started');
       return config;
     },
     (error) => {
-      logger.error('[HTTP] Request error:', error.message);
-      return Promise.reject(error);
+      logger.error('[HTTP] Request failed:', requestDiagnostic(error));
+      return Promise.reject(aiRequestError(error));
     }
   );
 
   // 响应拦截器 - 错误处理和日志
   client.interceptors.response.use(
     (response) => {
-      logger.log(`[HTTP] ${response.status} ${response.config.url}`);
+      logger.log('[HTTP] Response received');
       return response;
     },
     (error) => {
-      if (error.response) {
-        // 服务器返回了错误状态码
-        logger.error(`[HTTP] ${error.response.status} ${error.config?.url}`, error.response.data);
-      } else if (error.request) {
-        // 请求已发送但没有收到响应
-        logger.error('[HTTP] No response received:', error.message);
-      } else {
-        // 请求配置出错
-        logger.error('[HTTP] Request setup error:', error.message);
-      }
-      return Promise.reject(error);
+      logger.error('[HTTP] Request failed:', requestDiagnostic(error));
+      return Promise.reject(aiRequestError(error));
     }
   );
 
@@ -98,7 +90,7 @@ export async function* streamSSE(
       }
     }
   } catch (error: any) {
-    logger.error('[HTTP Stream] Error:', error.message);
-    throw error;
+    logger.error('[HTTP Stream] Failed:', requestDiagnostic(error));
+    throw aiRequestError(error);
   }
 }

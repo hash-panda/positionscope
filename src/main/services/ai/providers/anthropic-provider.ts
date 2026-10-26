@@ -9,6 +9,7 @@ import { AxiosInstance } from 'axios';
 import { BaseAIProvider, ChatOptions } from '../base-provider';
 import { ChatMessage, AIModelConfig } from '../../../types/ai';
 import { logger } from '../../../utils/logger';
+import { requestDiagnostic, aiRequestError } from '../../../utils/request-diagnostics';
 import { createHttpClient, streamSSE } from '../../../utils/http-client';
 
 export class AnthropicProvider extends BaseAIProvider {
@@ -30,7 +31,7 @@ export class AnthropicProvider extends BaseAIProvider {
       },
     });
 
-    logger.log(`[Anthropic] Initialized with model: ${config.model}`);
+    logger.log('[Anthropic] Initialized');
   }
 
   /**
@@ -62,9 +63,8 @@ export class AnthropicProvider extends BaseAIProvider {
       logger.log(`[Anthropic] Response received, length: ${content.length}`);
       return content;
     } catch (error: any) {
-      const errorMsg = error.response?.data?.error?.message || error.message;
-      logger.error('[Anthropic] Chat request failed:', errorMsg);
-      throw new Error(`Claude API Error: ${errorMsg}`);
+      logger.error('[Anthropic] Chat request failed:', requestDiagnostic(error));
+      throw aiRequestError(error);
     }
   }
 
@@ -96,9 +96,8 @@ export class AnthropicProvider extends BaseAIProvider {
       logger.log('[Anthropic] JSON response parsed successfully');
       return parsed as T;
     } catch (error: any) {
-      const errorMsg = error.response?.data?.error?.message || error.message;
-      logger.error('[Anthropic] JSON request failed:', errorMsg);
-      throw new Error(`Claude JSON Error: ${errorMsg}`);
+      logger.error('[Anthropic] JSON request failed:', requestDiagnostic(error));
+      throw aiRequestError(error);
     }
   }
 
@@ -147,9 +146,8 @@ export class AnthropicProvider extends BaseAIProvider {
 
       logger.log('[Anthropic] Stream completed');
     } catch (error: any) {
-      const errorMsg = error.response?.data?.error?.message || error.message;
-      logger.error('[Anthropic] Stream failed:', errorMsg);
-      throw new Error(`Claude Stream Error: ${errorMsg}`);
+      logger.error('[Anthropic] Stream failed:', requestDiagnostic(error));
+      throw aiRequestError(error);
     }
   }
 }

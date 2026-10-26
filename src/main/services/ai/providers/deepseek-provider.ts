@@ -22,6 +22,6 @@ export class DeepSeekProvider extends OpenAIProvider {
     };
 
     super(deepseekConfig);
-    logger.log(`[DeepSeek] Initialized with model: ${deepseekConfig.model}`);
+    logger.log('[DeepSeek] Initialized');
   }
 }

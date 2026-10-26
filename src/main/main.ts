@@ -1,3 +1,4 @@
+import { requestDiagnostic } from './utils/request-diagnostics';
 import { validateAISettingsModels } from './utils/ai-model';
 import { buildRiskFacts } from './services/ai/risk-facts';
 import { publicMarketService } from './services/public-market';
@@ -19,11 +20,11 @@ process.on('uncaughtException', (error) => {
   if (error.message.includes('EPIPE')) {
     return;
   }
-  console.error('[Main] Uncaught exception:', error);
+  console.error('[Main] Uncaught exception:', requestDiagnostic(error));
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('[Main] Unhandled rejection at:', promise, 'reason:', reason);
+  console.error('[Main] Unhandled rejection:', requestDiagnostic(reason));
 });
 
 // Independent identity and data directory; no pre-release compatibility paths.
@@ -182,7 +183,7 @@ async function updateTrayTitle(snapshot?: Position[]) {
     tray.setTitle(titleText);
     console.log('[Tray] Updated with text for', displayData.length, 'positions');
   } catch (error) {
-    console.error('[Main] Error updating tray:', error);
+    console.error('[Main] Error updating tray:', requestDiagnostic(error));
     tray.setTitle('错误');
   }
 }
@@ -532,7 +533,7 @@ ipcMain.handle('delete-all-data', async () => {
     console.log('[IPC] All data deleted successfully');
     return { success: true };
   } catch (error: any) {
-    console.error('[IPC] Error deleting all data:', error);
+    console.error('[IPC] Error deleting all data:', requestDiagnostic(error));
     return { success: false, error: error.message };
   }
 });
@@ -564,7 +565,7 @@ ipcMain.handle('save-exchange-credentials', async (_, exchange: string, credenti
 
     return { success: true };
   } catch (error: any) {
-    console.error('[IPC] Error saving exchange credentials:', error);
+    console.error('[IPC] Error saving exchange credentials:', requestDiagnostic(error));
     return { success: false, error: error.message };
   }
 });
@@ -576,7 +577,7 @@ ipcMain.handle('get-exchange-credentials', async (_, exchange: string) => {
       exchange as 'binance' | 'bybit' | 'okx' | 'hyperliquid'
     );
   } catch (error: any) {
-    console.error('[IPC] Error getting exchange credentials:', error);
+    console.error('[IPC] Error getting exchange credentials:', requestDiagnostic(error));
     return null;
   }
 });
@@ -586,7 +587,7 @@ ipcMain.handle('get-all-exchanges-credentials', async () => {
   try {
     return settingsManager.getAllExchangesCredentials();
   } catch (error: any) {
-    console.error('[IPC] Error getting all exchanges credentials:', error);
+    console.error('[IPC] Error getting all exchanges credentials:', requestDiagnostic(error));
     return {};
   }
 });
@@ -609,7 +610,7 @@ ipcMain.handle('remove-exchange-credentials', async (_, exchange: string) => {
 
     return { success: true };
   } catch (error: any) {
-    console.error('[IPC] Error removing exchange credentials:', error);
+    console.error('[IPC] Error removing exchange credentials:', requestDiagnostic(error));
     return { success: false, error: error.message };
   }
 });
@@ -623,7 +624,7 @@ ipcMain.handle('get-ai-settings', async () => {
   try {
     return settingsManager.getAISettings();
   } catch (error: any) {
-    console.error('[IPC] Error getting AI settings:', error);
+    console.error('[IPC] Error getting AI settings:', requestDiagnostic(error));
     return null;
   }
 });
@@ -642,7 +643,7 @@ ipcMain.handle('save-ai-settings', async (_, aiSettings: AISettings) => {
 
     return { success: true };
   } catch (error: any) {
-    console.error('[IPC] Error saving AI settings:', error);
+    console.error('[IPC] Error saving AI settings:', requestDiagnostic(error));
     return { success: false, error: error.message };
   }
 });
@@ -673,7 +674,7 @@ ipcMain.handle('ai-analyze-health', async (_, positions, accountInfo, provider?:
 
     return { success: true, data: result };
   } catch (error: any) {
-    console.error('[IPC] AI health analysis failed:', error);
+    console.error('[IPC] AI health analysis failed:', requestDiagnostic(error));
     return { success: false, error: error.message };
   }
 });
@@ -687,12 +688,12 @@ ipcMain.handle('ai-chat', async (_, message: string, context?: any, provider?: A
       throw new Error('AI service not initialized. Please configure AI settings first.');
     }
 
-    console.log('[IPC] AI chat request:', message.substring(0, 50) + '...');
+    console.log('[IPC] AI chat requested');
     const response = await aiService.chat(message, context, provider);
 
     return { success: true, data: response };
   } catch (error: any) {
-    console.error('[IPC] AI chat failed:', error);
+    console.error('[IPC] AI chat failed:', requestDiagnostic(error));
     return { success: false, error: error.message };
   }
 });
@@ -705,7 +706,7 @@ ipcMain.handle('ai-clear-conversation', async () => {
     aiService.clearConversation();
     return { success: true };
   } catch (error: any) {
-    console.error('[IPC] Error clearing AI conversation:', error);
+    console.error('[IPC] Error clearing AI conversation:', requestDiagnostic(error));
     return { success: false, error: error.message };
   }
 });
@@ -717,7 +718,7 @@ ipcMain.handle('ai-is-available', async () => {
   try {
     return aiService.isAvailable();
   } catch (error: any) {
-    console.error('[IPC] Error checking AI availability:', error);
+    console.error('[IPC] Error checking AI availability:', requestDiagnostic(error));
     return false;
   }
 });
@@ -729,7 +730,7 @@ ipcMain.handle('ai-get-providers', async () => {
   try {
     return aiService.getAvailableProviders();
   } catch (error: any) {
-    console.error('[IPC] Error getting AI providers:', error);
+    console.error('[IPC] Error getting AI providers:', requestDiagnostic(error));
     return [];
   }
 });
@@ -743,7 +744,7 @@ ipcMain.handle('get-exchange-errors', async () => {
   try {
     return exchangeManager.getAllErrors();
   } catch (error: any) {
-    console.error('[IPC] Error getting exchange errors:', error);
+    console.error('[IPC] Error getting exchange errors:', requestDiagnostic(error));
     return [];
   }
 });
@@ -762,7 +763,7 @@ ipcMain.handle('clear-exchange-errors', async () => {
 
     return { success: true };
   } catch (error: any) {
-    console.error('[IPC] Error clearing exchange errors:', error);
+    console.error('[IPC] Error clearing exchange errors:', requestDiagnostic(error));
     return { success: false, error: error.message };
   }
 });
@@ -777,7 +778,7 @@ ipcMain.handle('open-external', async (_, url: string) => {
     await shell.openExternal(url);
     return { success: true };
   } catch (error: any) {
-    console.error('[IPC] Error opening external URL:', error);
+    console.error('[IPC] Error opening external URL:', requestDiagnostic(error));
     return { success: false, error: error.message };
   }
 });
@@ -792,7 +793,7 @@ ipcMain.handle('minimize-window', async () => {
     }
     return { success: true };
   } catch (error: any) {
-    console.error('[IPC] Error minimizing window:', error);
+    console.error('[IPC] Error minimizing window:', requestDiagnostic(error));
     return { success: false, error: error.message };
   }
 });
@@ -854,7 +855,7 @@ ipcMain.handle('save-proxy-settings', async (_, proxyUrl: string) => {
     console.log('[IPC] Proxy settings saved and applied to all exchanges');
     return { success: true };
   } catch (error: any) {
-    console.error('[IPC] Error saving proxy settings:', error);
+    console.error('[IPC] Error saving proxy settings:', requestDiagnostic(error));
     return { success: false, error: error.message };
   }
 });

@@ -9,6 +9,7 @@ import axios, { AxiosInstance } from 'axios';
 import { BaseAIProvider, ChatOptions } from '../base-provider';
 import { ChatMessage, AIModelConfig } from '../../../types/ai';
 import { logger } from '../../../utils/logger';
+import { requestDiagnostic, aiRequestError } from '../../../utils/request-diagnostics';
 
 /**
  * 通用AI Provider
@@ -30,7 +31,7 @@ export class GenericProvider extends BaseAIProvider {
       },
     });
 
-    logger.log(`[Generic] Initialized for ${config.provider} with model: ${config.model}`);
+    logger.log('[Generic] Initialized');
   }
 
   /**
@@ -54,8 +55,8 @@ export class GenericProvider extends BaseAIProvider {
 
       return content;
     } catch (error: any) {
-      logger.error(`[Generic/${this.config.provider}] Chat failed:`, error.message);
-      throw new Error(`${this.config.provider} API Error: ${error.message}`);
+      logger.error(`[Generic/${this.config.provider}] Chat failed:`, requestDiagnostic(error));
+      throw aiRequestError(error);
     }
   }
 
@@ -87,8 +88,8 @@ export class GenericProvider extends BaseAIProvider {
       logger.log(`[Generic/${this.config.provider}] JSON parsed successfully`);
       return parsed as T;
     } catch (error: any) {
-      logger.error(`[Generic/${this.config.provider}] JSON request failed:`, error.message);
-      throw new Error(`${this.config.provider} JSON Error: ${error.message}`);
+      logger.error(`[Generic/${this.config.provider}] JSON request failed:`, requestDiagnostic(error));
+      throw aiRequestError(error);
     }
   }
 }
