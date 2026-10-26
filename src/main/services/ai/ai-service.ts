@@ -26,6 +26,7 @@ import {
 } from '../../types/ai';
 import { Position, AccountInfo } from '../../types/exchange';
 import { logger } from '../../utils/logger';
+import { requestDiagnostic } from '../../utils/request-diagnostics';
 
 /**
  * AI分析结果缓存
@@ -45,11 +46,11 @@ class AIAnalysisCache {
 
     // 检查缓存是否有效
     if (cached && Date.now() - cached.timestamp < this.TTL) {
-      logger.log(`[AI Cache] Hit: ${key}`);
+      logger.log('[AI Cache] Hit');
       return cached.data as T;
     }
 
-    logger.log(`[AI Cache] Miss: ${key}, executing analysis`);
+    logger.log('[AI Cache] Miss, executing analysis');
     const data = await analyzeFunc();
 
     // 保存到缓存
@@ -111,7 +112,7 @@ export class AIService {
           this.providers.set(providerName as AIProvider, provider);
           logger.log(`[AI Service] Provider registered: ${providerName}`);
         } catch (error: any) {
-          logger.error(`[AI Service] Failed to initialize ${providerName}:`, error.message);
+          logger.error('[AI Service] Provider initialization failed:', requestDiagnostic(error));
         }
       }
     }
@@ -202,7 +203,7 @@ export class AIService {
       content: message,
     });
 
-    logger.log(`[AI Service] Chat request: ${message.substring(0, 50)}...`);
+    logger.log('[AI Service] Chat requested');
 
     // 调用AI
     const response = await provider.chat([

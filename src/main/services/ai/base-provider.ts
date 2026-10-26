@@ -8,6 +8,7 @@ import { resolveAIModel } from '../../utils/ai-model';
 
 import { ChatMessage, AIModelConfig } from '../../types/ai';
 import { logger } from '../../utils/logger';
+import { requestDiagnostic } from '../../utils/request-diagnostics';
 
 /**
  * AI Provider 抽象基类
@@ -81,7 +82,7 @@ export abstract class BaseAIProvider {
       await this.chat([{ role: 'user', content: 'Hi' }]);
       return true;
     } catch (error) {
-      logger.error(`[AI Provider] API key validation failed:`, error);
+      logger.error(`[AI Provider] API key validation failed:`, requestDiagnostic(error));
       return false;
     }
   }

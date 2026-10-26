@@ -9,6 +9,7 @@ import { AxiosInstance } from 'axios';
 import { BaseAIProvider, ChatOptions } from '../base-provider';
 import { ChatMessage, AIModelConfig } from '../../../types/ai';
 import { logger } from '../../../utils/logger';
+import { requestDiagnostic, aiRequestError } from '../../../utils/request-diagnostics';
 import { createHttpClient, streamSSE } from '../../../utils/http-client';
 
 export class OpenAIProvider extends BaseAIProvider {
@@ -29,7 +30,7 @@ export class OpenAIProvider extends BaseAIProvider {
       },
     });
 
-    logger.log(`[OpenAI] Initialized with model: ${config.model}`);
+    logger.log('[OpenAI] Initialized');
   }
 
   /**
@@ -52,9 +53,8 @@ export class OpenAIProvider extends BaseAIProvider {
 
       return content;
     } catch (error: any) {
-      const errorMsg = error.response?.data?.error?.message || error.message;
-      logger.error('[OpenAI] Chat request failed:', errorMsg);
-      throw new Error(`OpenAI API Error: ${errorMsg}`);
+      logger.error('[OpenAI] Chat request failed:', requestDiagnostic(error));
+      throw aiRequestError(error);
     }
   }
 
@@ -79,9 +79,8 @@ export class OpenAIProvider extends BaseAIProvider {
       logger.log('[OpenAI] JSON response parsed successfully');
       return parsed as T;
     } catch (error: any) {
-      const errorMsg = error.response?.data?.error?.message || error.message;
-      logger.error('[OpenAI] JSON request failed:', errorMsg);
-      throw new Error(`OpenAI JSON Error: ${errorMsg}`);
+      logger.error('[OpenAI] JSON request failed:', requestDiagnostic(error));
+      throw aiRequestError(error);
     }
   }
 
@@ -123,9 +122,8 @@ export class OpenAIProvider extends BaseAIProvider {
 
       logger.log('[OpenAI] Stream completed');
     } catch (error: any) {
-      const errorMsg = error.response?.data?.error?.message || error.message;
-      logger.error('[OpenAI] Stream failed:', errorMsg);
-      throw new Error(`OpenAI Stream Error: ${errorMsg}`);
+      logger.error('[OpenAI] Stream failed:', requestDiagnostic(error));
+      throw aiRequestError(error);
     }
   }
 }

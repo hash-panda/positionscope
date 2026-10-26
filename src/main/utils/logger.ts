@@ -13,7 +13,7 @@ function safeWrite(fn: Function, ...args: any[]): void {
     }
     // For other errors, try to report them but don't throw
     try {
-      process.stderr.write(`[Logger] Error: ${error.message}\n`);
+      process.stderr.write('[Logger] Write failed\n');
     } catch {
       // If we can't even write to stderr, just give up silently
     }
