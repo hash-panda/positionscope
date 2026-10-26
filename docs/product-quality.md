@@ -1,6 +1,11 @@
 # PositionScope 质量评审与迭代
 
-## 当前已发布版本（2026-10-25，v0.2.0-beta.10）
+## 当前已发布版本（2026-10-26，v0.2.0-beta.11）
+
+[PR #32](https://github.com/hash-panda/positionscope/pull/32)收口AI HTTP/SSE、Provider与主进程错误日志，移除聊天前缀及原始响应/错误返显；64项Node、5项Python、类型/构建/UI/axe与Mac基线通过。签名发布[40259459498](https://github.com/hash-panda/positionscope/actions/runs/40259459498)双架构签名、公证、装订、Gatekeeper及publish均成功；[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.0-beta.11)七项资产摘要及验证记录已核对，见docs/releases/v0.2.0-beta.11。完整交易所/渲染器日志审计、签名包权限弹窗、用户Mac、真实账户与模型仍未验证；详见docs/ops/2026-10-26-ai-log-privacy.md。未变更正常Apple凭证，不做旧预览版迁移。
+
+
+## 前序发布记录（2026-10-25，v0.2.0-beta.10）
 
 本轮已合并PR [#24](https://github.com/hash-panda/positionscope/pull/24)、[#25](https://github.com/hash-panda/positionscope/pull/25)、[#26](https://github.com/hash-panda/positionscope/pull/26)、[#27](https://github.com/hash-panda/positionscope/pull/27)：应用图标/官网色板/组件控件统一；纠正OKX单位及方向、Bybit签名及账户口径；增加参考强平/保证金、独立平台事实、保持/缩减敞口情景和按需公共市场研究；模型ID显式选择，不静默升级费用。
 
