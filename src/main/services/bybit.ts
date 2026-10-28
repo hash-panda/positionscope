@@ -79,7 +79,7 @@ export class BybitService implements IExchangeService {
           port: parseInt(url.port),
           protocol: url.protocol.replace(':', ''),
         };
-        logger.log('[BybitService] Proxy config:', proxyConfig);
+        logger.log('[BybitService] Proxy configured');
       } catch (error) {
         logger.error('[Exchange] Invalid proxy URL');
         return;
