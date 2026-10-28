@@ -23,7 +23,7 @@ pnpm dev
 
 ## 下载与使用
 
-[签名 Beta v0.2.0-beta.11](https://github.com/hash-panda/positionscope/releases/tag/v0.2.0-beta.11) 提供 Apple Silicon、Intel 的 DMG/ZIP、SHA256 和公证验证记录。四个安装包均通过签名、公证和 Gatekeeper 自动验证；真实只读账户与原生交互仍需试用核对。
+[签名 Beta v0.2.0-beta.12](https://github.com/hash-panda/positionscope/releases/tag/v0.2.0-beta.12) 提供 Apple Silicon、Intel 的 DMG/ZIP、SHA256 和公证验证记录。四个安装包均通过签名、公证和 Gatekeeper 自动验证；真实只读账户与原生交互仍需试用核对。
 
 在自己的Mac替换旧应用，可使用[本机安装与验证脚本](docs/install-and-verify-mac.md)。它先核对固定版本的摘要、签名和Gatekeeper，再把旧应用移到废纸篓并安装新版；不会读取或删除旧凭证配置。系统权限弹窗仍需在本机处理。
 
@@ -61,4 +61,4 @@ Electron + Vue 3 + TypeScript + Vite。原项目作者 Wang（hash-panda）；�
 
 Hyperliquid 当前暂仅支持已确认的标准账户（disabled）：默认永续 DEX 与现货。其他模式停止汇总；USDC 按 1:1 USDT 等值估算，不含其他 DEX、质押与借贷。异常数据在菜单栏显示“数据异常”，不表示无持仓。
 
-加密配置与恢复机制见 [secure-storage.md](docs/secure-storage.md)。系统密钥不可用时保留原加密文件，不使用明文回退。当前签名beta.11已包含该实现；Mac CI使用真实系统API验证加密回读，签名安装包权限弹窗和原生场景仍待实机验收。
+加密配置与恢复机制见 [secure-storage.md](docs/secure-storage.md)。系统密钥不可用时保留原加密文件，不使用明文回退。当前签名beta.12已包含该实现；Mac CI使用真实系统API验证加密回读，签名安装包权限弹窗和原生场景仍待实机验收。
