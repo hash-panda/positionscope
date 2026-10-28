@@ -82,7 +82,7 @@ export class OKXService implements IExchangeService {
           port: parseInt(url.port),
           protocol: url.protocol.replace(':', ''),
         };
-        logger.log('[OKXService] Proxy config:', proxyConfig);
+        logger.log('[OKXService] Proxy configured');
       } catch (error) {
         logger.error('[Exchange] Invalid proxy URL');
         return;

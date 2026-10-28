@@ -3,6 +3,7 @@ import { numeric, optionalNumber, sumKnown } from '../utils/position-math';
 import axios, { AxiosInstance } from 'axios';
 import * as crypto from 'crypto';
 import { logger } from '../utils/logger';
+import { requestDiagnostic } from '../utils/request-diagnostics';
 import {
   IExchangeService,
   ExchangeType,
@@ -101,7 +102,7 @@ export class BinanceService implements IExchangeService {
           port: parseInt(url.port),
           protocol: url.protocol.replace(':', ''),
         };
-        logger.log('[BinanceService] Proxy config:', proxyConfig);
+        logger.log('[BinanceService] Proxy configured');
       } catch (error) {
         logger.error('[Exchange] Invalid proxy URL');
         return;
@@ -179,10 +180,7 @@ export class BinanceService implements IExchangeService {
 
       return balances.sort((a, b) => (b.usdValue || 0) - (a.usdValue || 0));
     } catch (error: any) {
-      logger.error('[BinanceService] Error getting spot balances:');
-      logger.error('[BinanceService] Error message:', error.message);
-      logger.error('[BinanceService] Error status:', error.response?.status);
-      logger.error('[BinanceService] Error code:', error.code);
+      logger.error('[BinanceService] Spot request failed', requestDiagnostic(error));
       throw error;
     }
   }

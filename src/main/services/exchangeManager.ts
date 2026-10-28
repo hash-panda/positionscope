@@ -11,14 +11,15 @@ import {
   SpotBalance,
 } from '../types/exchange';
 import { logger } from '../utils/logger';
+import { exchangeFailure } from '../utils/exchange-diagnostics';
 
 /**
  * 交易所错误信息
  */
 export interface ExchangeError {
   exchange: ExchangeType;
-  errorCode: string;           // ECONNREFUSED, ETIMEDOUT, UNAUTHORIZED 等
-  errorMessage: string;         // 完整的错误消息
+  errorCode: string;           // 受限类别/HTTP状态或本地账户模式代码
+  errorMessage: string;         // 本地生成的诊断，不包含原始错误文本
   timestamp: number;            // 错误发生时间
   consecutiveFailures: number;  // 连续失败次数
   suggestion: string;           // 给用户的建议
@@ -126,41 +127,13 @@ export class ExchangeManager {
   }
 
   /**
-   * 根据错误代码生成建议
+   * 记录受限诊断；不将交易所原始错误内容传到日志或界面
    */
-  private getSuggestionForError(errorCode: string, errorMessage: string): string {
-    if (errorCode === 'HYPERLIQUID_UNSUPPORTED_ACCOUNT') return 'Hyperliquid 暂仅支持标准账户（disabled）；统一、组合保证金及未知模式不生成汇总。应用不会更改账户模式。';
-    if (errorCode === 'HYPERLIQUID_INCOMPLETE_ACCOUNT') return 'Hyperliquid 余额或估值数据不完整，已停止汇总；请稍后重试。';
-    if (errorCode === 'HYPERLIQUID_READ_FAILED') return 'Hyperliquid 只读请求失败，请检查网络后重试。';
-    if (errorCode === 'ECONNREFUSED' || errorCode === 'ECONNABORTED' || errorMessage.includes('timeout')) {
-      return '网络连接失败，请检查：\n1. 网络连接是否正常\n2. 是否需要配置代理（设置 → 系统 → 网络代理）\n3. 防火墙是否阻止了连接';
-    }
-    if (errorCode === 'ETIMEDOUT' || errorMessage.includes('timeout')) {
-      return '请求超时，可能原因：\n1. 网络速度较慢\n2. 需要配置代理访问交易所API\n3. 交易所服务暂时不可用';
-    }
-    if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
-      return 'API认证失败，请检查：\n1. API Key是否正确\n2. API Secret是否正确\n3. API权限是否开启（仅需查询权限）';
-    }
-    if (errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
-      return 'API权限不足，请检查：\n1. IP是否在白名单中\n2. API是否有查询权限\n3. API是否已过期';
-    }
-    if (errorMessage.includes('429') || errorMessage.includes('Too Many Requests')) {
-      return 'API请求频率过高，请稍后再试';
-    }
-    return '未知错误，请检查网络连接和API配置';
-  }
-
-  /**
-   * 记录错误状态
-   */
-  private recordError(exchangeType: ExchangeType, error: any, operation: string): void {
+  private recordError(exchangeType: ExchangeType, error: unknown, operation: string): void {
     const key = `${exchangeType}:${operation}`;
-    const errorCode = error.code || 'UNKNOWN';
-    const errorMessage = error.message || String(error);
     this.errorStates.set(key, {
-      exchange: exchangeType, errorCode, errorMessage, timestamp: Date.now(),
+      exchange: exchangeType, ...exchangeFailure(error), timestamp: Date.now(),
       consecutiveFailures: (this.errorStates.get(key)?.consecutiveFailures || 0) + 1,
-      suggestion: this.getSuggestionForError(errorCode, errorMessage),
     });
   }
 
@@ -248,7 +221,7 @@ export class ExchangeManager {
 
         return positions;
       } catch (error: any) {
-        logger.error(`[ExchangeManager] Error fetching positions from ${exchangeType}:`, error.message);
+        logger.error(`[ExchangeManager] Error fetching positions from ${exchangeType}:`, exchangeFailure(error));
 
         // 记录错误
         this.recordError(exchangeType, error, 'positions');
@@ -295,7 +268,7 @@ export class ExchangeManager {
 
         return accountInfo;
       } catch (error: any) {
-        logger.error(`[ExchangeManager] Error fetching account info from ${exchangeType}:`, error.message);
+        logger.error(`[ExchangeManager] Error fetching account info from ${exchangeType}:`, exchangeFailure(error));
 
         // 记录错误
         this.recordError(exchangeType, error, 'account');
@@ -334,7 +307,7 @@ export class ExchangeManager {
         logger.log(`[ExchangeManager] Got ${balances.length} balances from ${exchangeType}`);
         return balances;
       } catch (error: any) {
-        logger.error(`[ExchangeManager] Error fetching balances from ${exchangeType}:`, error.message);
+        logger.error(`[ExchangeManager] Error fetching balances from ${exchangeType}:`, exchangeFailure(error));
         return [];
       }
     });

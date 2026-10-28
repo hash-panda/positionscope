@@ -96,7 +96,7 @@ export class HyperliquidService implements IExchangeService {
           port: parseInt(url.port),
           protocol: url.protocol.replace(':', ''),
         };
-        logger.log('[HyperliquidService] Proxy config:', proxyConfig);
+        logger.log('[HyperliquidService] Proxy configured');
       } catch (error) {
         logger.error('[HyperliquidService] Invalid proxy URL');
         return;
