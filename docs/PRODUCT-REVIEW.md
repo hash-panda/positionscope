@@ -1,6 +1,10 @@
 # 产品 Review 与下一步
 
-## 当前已发布版本（2026-10-26，v0.2.0-beta.11）
+## 当前已发布版本（2026-10-28，v0.2.0-beta.12）
+
+[PR #36](https://github.com/hash-panda/positionscope/pull/36)收口交易所聚合错误返显、Binance现货错误及四适配器代理主机日志。68项Node、5项Python、类型/构建/UI/axe与Mac基线通过[PR CI](https://github.com/hash-panda/positionscope/actions/runs/40617182241)和[主分支CI](https://github.com/hash-panda/positionscope/actions/runs/40617337510)。[签名发布40617337569](https://github.com/hash-panda/positionscope/actions/runs/40617337569)双架构签名、公证、装订、Gatekeeper与publish成功；产物见[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.0-beta.12)和docs/releases/v0.2.0-beta.12。具体摘要核对和下载同步证据见docs/ops/2026-10-28-beta12-release.md。全仓日志、签名包权限弹窗、用户Mac、真实账户与模型仍未验证；未知故障不等于网络问题。正常Apple凭证保持，不迁移旧预览版。
+
+## 前序发布记录（2026-10-26，v0.2.0-beta.11）
 
 [PR #32](https://github.com/hash-panda/positionscope/pull/32)收口AI HTTP/SSE、Provider与主进程错误日志，移除聊天前缀及原始响应/错误返显；64项Node、5项Python、类型/构建/UI/axe与Mac基线通过。签名发布[40259459498](https://github.com/hash-panda/positionscope/actions/runs/40259459498)双架构签名、公证、装订、Gatekeeper及publish均成功；[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.0-beta.11)七项资产摘要及验证记录已核对，见docs/releases/v0.2.0-beta.11。完整交易所/渲染器日志审计、签名包权限弹窗、用户Mac、真实账户与模型仍未验证；详见docs/ops/2026-10-26-ai-log-privacy.md。未变更正常Apple凭证，不做旧预览版迁移。
 

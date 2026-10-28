@@ -1,6 +1,6 @@
 # PositionScope
 
-> Independent, read-only macOS menu-bar position monitor. Current release v0.2.0-beta.11 is signed and notarized for Apple Silicon and Intel; native UI and real-account tests are still pending. Planned features are not released features.
+> Independent, read-only macOS menu-bar position monitor. Current release v0.2.0-beta.12 is signed and notarized for Apple Silicon and Intel; native UI and real-account tests are still pending. Planned features are not released features.
 
 ## Product
 - [Overview](https://positionscope.funagent.app/): Features and synthetic demonstration

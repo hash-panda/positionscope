@@ -3,10 +3,10 @@
 # Compatible with the system Bash 3.2 shipped by macOS.
 set -e -o pipefail
 
-VERSION='0.2.0-beta.11'
+VERSION='0.2.0-beta.12'
 APP_ID='app.funagent.positionscope'
-ARM64_ZIP_SHA256='cf61b39aeb6f30519ce5d9ccd637c4dd0e8b63dffda34c5249bcdff61a744a75'
-X64_ZIP_SHA256='90baa3d9b6cfd2be56cb56443a4f54f1dacfec2083b97ebff49b534c798e85bc'
+ARM64_ZIP_SHA256='39686dc76bca5e81b1e854cace3336a2b7cdba7716293ce90aafe76023bc452f'
+X64_ZIP_SHA256='6554a4ed0c8f2e29fd6225607b8cba424e02a066afb73df1bf8176ea2ecf7622'
 
 verify_only=0
 direct_download=0
@@ -28,7 +28,7 @@ if [ "$(/usr/bin/id -u)" -eq 0 ]; then
 fi
 os_version=$(/usr/bin/sw_vers -productVersion)
 if [ "${os_version%%.*}" -lt 13 ]; then
-  echo 'PositionScope beta.11 requires macOS 13.0 or newer; no files were changed.' >&2
+  echo 'PositionScope beta.12 requires macOS 13.0 or newer; no files were changed.' >&2
   exit 2
 fi
 if [ "$(/usr/sbin/sysctl -n hw.optional.arm64 2>/dev/null || true)" = 1 ]; then
