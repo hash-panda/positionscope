@@ -1,4 +1,6 @@
 const { validateCanonicalPage, validateSitemapRoutes } = require('./site-canonical.cjs');
+const { validateReleaseEvidence } = require('./release-evidence.cjs');
+validateReleaseEvidence(require('node:path').resolve(__dirname, '..'));
 const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');const root=path.resolve(__dirname,'../website');const origin='https://positionscope.funagent.app';
 const html=[];function walk(folder){for(const e of fs.readdirSync(folder,{withFileTypes:true})){const p=path.join(folder,e.name);if(e.isDirectory())walk(p);else if(p.endsWith('.html'))html.push(p)}}walk(root);
 const canonicalURLs = html.map(p => {const route=path.relative(root,p).split(path.sep).join('/').replace(/index\.html$/, '');return origin+'/'+route;});
