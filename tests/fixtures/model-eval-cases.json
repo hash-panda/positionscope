@@ -1,0 +1,243 @@
+{
+  "version": "synthetic-model-eval-v1",
+  "cases": [
+    {
+      "id": "concentrated-far-liquidation",
+      "title": "单币集中且参考强平价较远",
+      "synthetic": true,
+      "positions": [
+        {
+          "exchange": "binance",
+          "symbol": "BTCUSDT",
+          "baseAsset": "BTC",
+          "positionAmt": "2",
+          "entryPrice": "90",
+          "markPrice": "100",
+          "unRealizedProfit": "10",
+          "marginType": "cross",
+          "leverage": "5",
+          "liquidationPrice": "10"
+        }
+      ],
+      "accounts": [
+        {
+          "exchange": "binance",
+          "totalMarginBalance": 100
+        }
+      ],
+      "expected": {
+        "grossNotional": 200,
+        "netNotional": 200,
+        "grossToEquity": 2,
+        "largestAssetShare": 1,
+        "positions.0.liquidationDistance": 0.9,
+        "adverseMove5Percent": 10
+      },
+      "reviewCriteria": [
+        "指出100%单币集中和90%参考距离是不同维度；90%不是损失概率。",
+        "不能由较远强平价推出应长期持有；期限、资金费、基本面和路径风险仍缺失。"
+      ]
+    },
+    {
+      "id": "cross-exchange-hedge",
+      "title": "跨所同币多空对冲",
+      "synthetic": true,
+      "positions": [
+        {
+          "exchange": "binance",
+          "symbol": "BTCUSDT",
+          "baseAsset": "BTC",
+          "positionAmt": "1",
+          "entryPrice": "90",
+          "markPrice": "100",
+          "unRealizedProfit": "10",
+          "marginType": "cross",
+          "leverage": "5",
+          "liquidationPrice": null
+        },
+        {
+          "exchange": "okx",
+          "symbol": "BTCUSDT",
+          "baseAsset": "BTC",
+          "positionAmt": "-1",
+          "entryPrice": "90",
+          "markPrice": "100",
+          "unRealizedProfit": "-10",
+          "marginType": "cross",
+          "leverage": "5",
+          "liquidationPrice": null
+        }
+      ],
+      "accounts": [
+        {
+          "exchange": "binance",
+          "totalMarginBalance": 50
+        },
+        {
+          "exchange": "okx",
+          "totalMarginBalance": 50
+        }
+      ],
+      "expected": {
+        "grossNotional": 200,
+        "netNotional": 0,
+        "largestAssetShare": 1,
+        "adverseMove5Percent": 10,
+        "scenarios.0.pricePnl": 0
+      },
+      "reviewCriteria": [
+        "同币多空并非资产分散，集中度仍为100%。",
+        "共同同幅冲击价格盈亏为0与各仓各自不利5%损失10是不同假设；跨所保证金不可互抵，不得称无风险。"
+      ]
+    },
+    {
+      "id": "mixed-net-short",
+      "title": "混合资产净空敞口",
+      "synthetic": true,
+      "positions": [
+        {
+          "exchange": "binance",
+          "symbol": "BTCUSDT",
+          "baseAsset": "BTC",
+          "positionAmt": "1",
+          "entryPrice": "90",
+          "markPrice": "100",
+          "unRealizedProfit": "10",
+          "marginType": "cross",
+          "leverage": "5",
+          "liquidationPrice": null
+        },
+        {
+          "exchange": "binance",
+          "symbol": "ETHUSDT",
+          "baseAsset": "ETH",
+          "positionAmt": "-2",
+          "entryPrice": "90",
+          "markPrice": "100",
+          "unRealizedProfit": "-20",
+          "marginType": "cross",
+          "leverage": "5",
+          "liquidationPrice": null
+        }
+      ],
+      "accounts": [
+        {
+          "exchange": "binance",
+          "totalMarginBalance": 100
+        }
+      ],
+      "expected": {
+        "grossNotional": 300,
+        "netNotional": -100,
+        "largestAsset": "ETH",
+        "largestAssetShare": 0.6666666666666666,
+        "scenarios.5.pricePnl": -20,
+        "scenarios.17.pricePnl": -10
+      },
+      "reviewCriteria": [
+        "共同上涨20%时当前价格情景亏20，假设剩余50%敞口亏10；不是已执行减仓。",
+        "不得线性外推减仓后的强平价，不计费用/资金费/滑点的情景不是策略回测。"
+      ]
+    },
+    {
+      "id": "missing-equity-and-liquidation",
+      "title": "未知权益与强平价",
+      "synthetic": true,
+      "positions": [
+        {
+          "exchange": "binance",
+          "symbol": "BTCUSDT",
+          "baseAsset": "BTC",
+          "positionAmt": "1",
+          "entryPrice": "90",
+          "markPrice": "100",
+          "unRealizedProfit": "10",
+          "marginType": "cross",
+          "leverage": "5",
+          "liquidationPrice": null
+        }
+      ],
+      "accounts": [
+        {
+          "exchange": "binance",
+          "totalMarginBalance": null
+        }
+      ],
+      "expected": {
+        "marginEquity": null,
+        "grossToEquity": null,
+        "positions.0.liquidationPrice": null,
+        "positions.0.liquidationDistance": null
+      },
+      "reviewCriteria": [
+        "明确权益和强平距离不可计算；未知不能补零或解读为安全。",
+        "没有历史、相关性和波动率不能给胜率、夏普、VaR或收益预测。"
+      ]
+    },
+    {
+      "id": "zero-equity",
+      "title": "零权益仍有敞口",
+      "synthetic": true,
+      "positions": [
+        {
+          "exchange": "binance",
+          "symbol": "BTCUSDT",
+          "baseAsset": "BTC",
+          "positionAmt": "1",
+          "entryPrice": "90",
+          "markPrice": "100",
+          "unRealizedProfit": "10",
+          "marginType": "cross",
+          "leverage": "5",
+          "liquidationPrice": null
+        }
+      ],
+      "accounts": [
+        {
+          "exchange": "binance",
+          "totalMarginBalance": 0
+        }
+      ],
+      "expected": {
+        "grossNotional": 100,
+        "marginEquity": 0,
+        "grossToEquity": null,
+        "adverseMoveToEquity": null
+      },
+      "reviewCriteria": [
+        "零权益与未知权益有区别，但都不能算有效名义/权益倍数；不能输出Infinity。",
+        "仍有100名义敞口；不得仅凭参考快照断言已被强平。"
+      ]
+    },
+    {
+      "id": "missing-account-source",
+      "title": "有持仓但缺对应平台账户",
+      "synthetic": true,
+      "positions": [
+        {
+          "exchange": "okx",
+          "symbol": "BTCUSDT",
+          "baseAsset": "BTC",
+          "positionAmt": "1",
+          "entryPrice": "90",
+          "markPrice": "100",
+          "unRealizedProfit": "10",
+          "marginType": "cross",
+          "leverage": "5",
+          "liquidationPrice": null
+        }
+      ],
+      "accounts": [
+        {
+          "exchange": "binance",
+          "totalMarginBalance": 100
+        }
+      ],
+      "expected": {},
+      "reviewCriteria": [
+        "输入完整性应阻止分析，不得以另一平台权益替代缺失账户或假造账户成功。"
+      ],
+      "expectedError": "持仓来源或交易对无效"
+    }
+  ]
+}
