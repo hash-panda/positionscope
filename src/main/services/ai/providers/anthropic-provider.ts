@@ -16,6 +16,13 @@ export class AnthropicProvider extends BaseAIProvider {
   private client: AxiosInstance;
   private baseURL: string;
 
+  // Model sampling capabilities differ. Omit implicit parameters so the API can
+  // use its model default; preserve only deliberately configured overrides.
+  private samplingOptions(options?: ChatOptions): { temperature?: number } {
+    const temperature = options?.temperature ?? this.config.temperature ?? undefined;
+    return temperature === undefined ? {} : { temperature };
+  }
+
   constructor(config: AIModelConfig) {
     super(config);
 
@@ -52,7 +59,7 @@ export class AnthropicProvider extends BaseAIProvider {
           role: m.role as 'user' | 'assistant',
           content: m.content,
         })),
-        temperature: options?.temperature ?? this.config.temperature ?? 0.7,
+        ...this.samplingOptions(options),
         max_tokens: options?.maxTokens ?? this.config.maxTokens ?? 2000,
       });
 
@@ -128,7 +135,7 @@ export class AnthropicProvider extends BaseAIProvider {
             content: m.content,
           })),
           stream: true,
-          temperature: this.config.temperature ?? 0.7,
+          ...this.samplingOptions(),
           max_tokens: this.config.maxTokens ?? 2000,
         },
       });
