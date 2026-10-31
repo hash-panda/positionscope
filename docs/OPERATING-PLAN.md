@@ -35,7 +35,7 @@
 | 项目 | 当前状态 | 下一步 |
 | --- | --- | --- |
 | GitHub仓库/公开官网/域名 | 已可管理 | 用现有Issue/PR、官网发布 |
-| Apple签名 | 六项Secrets已配置，beta.12已双架构签名公证发布，包内图标验证与合成Mac加密回读通过 | 自动发布已启用；维护证书期限与Mac实机回归 |
+| Apple签名 | 六项Secrets已配置，beta.13已双架构签名公证发布，包内图标验证与合成Mac加密回读通过 | 自动发布已启用；维护证书期限与Mac实机回归 |
 | 真实Mac与只读测试数据 | 当前环境不可访问 | 用户本机安装后按 PRODUCT-REVIEW.md 核对，不交出Key |
 | Google Search Console | 浏览器入口要求Google登录 | 用户登录并选择有funagent.app权限的账号，再验证/提交sitemap |
 | Bing Webmaster | 未配置/未验证 | 后续登录相应账号，验证后提交同一站点地图 |

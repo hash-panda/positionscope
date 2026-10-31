@@ -1,0 +1,41 @@
+{
+  "version": "0.2.0-beta.13",
+  "architecture": "x64",
+  "app_notarization": "89d15d3d-929d-4ffa-8934-15a85d72c9ee",
+  "dmg_notarization": "c34e86eb-982f-44f5-aebd-bcc72a4ee9a1",
+  "signature_verified": true,
+  "staple_validated": true,
+  "gatekeeper_assessment": "accepted",
+  "artifacts": {
+    "PositionScope-0.2.0-beta.13-x64.zip": "c4f43d05610708830c805f42df84b859a1be185fa77c11161dc9155ea595afe4",
+    "PositionScope-0.2.0-beta.13-x64.dmg": "7250607b2ea1f09132c1f8da426d1dce4b2dfb97cd068cd12378a3752b575af3"
+  },
+  "app_id": "app.funagent.positionscope",
+  "minimum_macos_version": "13.0",
+  "settings_storage_smoke": {
+    "platform": "darwin",
+    "electron": "45.0.0",
+    "asynchronous_system_encryption": true,
+    "cross_process_reload": true,
+    "reset_preserves_credentials": true,
+    "targeted_removal": true,
+    "deletion": true,
+    "synthetic_profile_only": true,
+    "packaged_app_keychain_prompt_tested": false
+  },
+  "branding": {
+    "app_icon_file": "icon.icns",
+    "app_icon_sha256": "d7974cb6a941820783775d1d77ade2dafb30aefc1f351beba9f6161e52bcfcb5",
+    "packaged_app_icon_matches": true,
+    "packaged_tray_icons_match": true,
+    "native_smoke": {
+      "platform": "darwin",
+      "electron": "45.0.0",
+      "icns_decoded": true,
+      "app_artwork_matches": true,
+      "template_image": true,
+      "retina_representation": true,
+      "native_ui_tested": false
+    }
+  }
+}
