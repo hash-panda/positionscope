@@ -1,6 +1,10 @@
 # 产品 Review 与下一步
 
-## 当前已发布版本（2026-10-28，v0.2.0-beta.12）
+## 当前已发布版本（2026-10-31，v0.2.0-beta.13）
+
+[PR #40](https://github.com/hash-panda/positionscope/pull/40)移除Anthropic聊天/JSON/SSE的隐式温度0.7，普通配置使用模型/API默认采样；保留明确覆盖（含0），不改模型/API版本或token预算。78项Node、5项Python、类型/构建/UI/axe与Mac检查见PR实际CI；[签名发布](https://github.com/hash-panda/positionscope/actions/runs/41157062325)双架构签名、公证、装订、Gatekeeper和publish成功。下载见[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.0-beta.13)与docs/releases/v0.2.0-beta.13，同步证据见docs/ops/2026-10-31-beta13-release.md。显式不兼容参数仍可能被拒绝，不代表所有模型或真实语义质量已验收。全仓日志、签名包权限弹窗、用户Mac/真实账户/模型仍未验证；不重配正常Apple凭证，不迁移旧预览版。
+
+## 前序发布记录（2026-10-28，v0.2.0-beta.12）
 
 [PR #36](https://github.com/hash-panda/positionscope/pull/36)收口交易所聚合错误返显、Binance现货错误及四适配器代理主机日志。68项Node、5项Python、类型/构建/UI/axe与Mac基线通过[PR CI](https://github.com/hash-panda/positionscope/actions/runs/40617182241)和[主分支CI](https://github.com/hash-panda/positionscope/actions/runs/40617337510)。[签名发布40617337569](https://github.com/hash-panda/positionscope/actions/runs/40617337569)双架构签名、公证、装订、Gatekeeper与publish成功；产物见[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.0-beta.12)和docs/releases/v0.2.0-beta.12。具体摘要核对和下载同步证据见docs/ops/2026-10-28-beta12-release.md。全仓日志、签名包权限弹窗、用户Mac、真实账户与模型仍未验证；未知故障不等于网络问题。正常Apple凭证保持，不迁移旧预览版。
 
