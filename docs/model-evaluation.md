@@ -24,3 +24,11 @@ node scripts/export-synthetic-eval.cjs > test-results/model-eval-pack.json
 - 能说明与本例相关的复核条件，不重复堆叠无关免责声明，不给下单或转账指令。
 
 每家模型报告有效回答数/尝试数、格式失败与人工事实失败数、缺失指标、延迟和真实账单口径；零调用时全部未知。没有人工复核、真实响应与账单的条目保持未验证。Mac原生、真实只读接口和全仓日志验收仍是独立事项，见Issue #3。
+
+## 结构化响应失败与恢复
+
+2026-11-01核对[DeepSeek JSON说明](https://api-docs.deepseek.com/guides/json_mode/)：不能识别为JSON的内容可能替换为空格，即使finish_reason为stop也可能只有空白；该说明没有本次可确认的更新发布日期。
+
+tests/structured-recovery.test.cjs通过真实DeepSeekProvider、AIService和缓存路径的mock adapter，验证四类失败：全空白、空/null内容、截断JSON、合法JSON但分析字段类型错误。HTTP成功或stop都不等于分析成功；当前空内容可能在Provider被解析为默认空对象，但服务的结构校验仍须拒绝。
+
+每类都应在首次调用报错而不自动重试；同一快照下一次显式分析可成功，随后成功缓存可复用。合成Key/错误内容标记不得进入诊断或抛出错误文本。测试不是对提供商实时可用性、收费或语义质量的实测；没有增加自动付费重试，也未改变发布版逻辑。未来真实评测须将这些失败类型和成功后恢复情况单独记录，不能仅看HTTP状态或JSON解析结果。
