@@ -3,6 +3,9 @@ import type { AssetContext, MarketRow, MarketSnapshot, FundingScenario } from '.
 import type { Position } from '../types/exchange';
 import { numeric, optionalNumber, positionNotional } from '../utils/position-math';
 const HOUR = 3_600_000;
+const FUNDING_MAX_AGE = 180_000;
+const CLOCK_SKEW = 60_000;
+const recentFundingTime = (value: number, now: number) => Number.isSafeInteger(value) && value > 0 && now - value <= FUNDING_MAX_AGE && value <= now + CLOCK_SKEW;
 const PATHS = new Set(['/fapi/v1/exchangeInfo','/fapi/v1/ticker/24hr','/fapi/v1/premiumIndex','/fapi/v1/fundingInfo','/fapi/v1/fundingRate','/fapi/v1/openInterest','/fapi/v1/klines']);
 const positive = (v: unknown) => { const n = numeric(v); if (n <= 0) throw new Error('公开市场价格无效'); return n; };
 const time = (v: unknown) => { const n = positive(v); if (!Number.isSafeInteger(n)) throw new Error('市场时间无效'); return n; };
@@ -30,12 +33,15 @@ export function priceHistory(rows: unknown, now: number): AssetContext['history'
 }
 export function fundingScenarios(positions: Position[], market?: MarketSnapshot): FundingScenario[] {
   if (!market || market.status==='unavailable') return [];
+  const now = Date.now();
   const result: FundingScenario[]=[];
   for (const p of positions) {
     // A Binance quote must never become another venue's funding obligation.
     if (p.exchange!=='binance' || (p.instrumentId || p.symbol)!==p.symbol) continue;
     const a=market.assets.find(a=>a.symbol===p.symbol);
-    if (!a?.mark || a.mark.nextFundingAt<=Date.now() || Date.now()-a.fetchedAt>180_000) continue;
+    // A recent fetch cannot make an old source quote fresh. Recheck cached data at calculation time.
+    if (!a?.mark || !recentFundingTime(a.fetchedAt, now) || !recentFundingTime(a.mark.exchangeTimestamp, now)
+      || !Number.isSafeInteger(a.mark.nextFundingAt) || a.mark.nextFundingAt <= now) continue;
     const signedNotional=positionNotional(p)*(numeric(p.positionAmt)>0?1:-1);
     for (const retainedShare of [1,.75,.5]) {
       const estimatedCashflow=-signedNotional*retainedShare*a.mark.lastFundingRate;
@@ -119,7 +125,7 @@ export class PublicMarketService {
           const asset:AssetContext={symbol,baseAsset:spec.baseAsset,fetchedAt:Date.now(),mark:null,funding:null,openInterest:null,history:null,gaps:[]};
           // One worker makes at most four requests sequentially; at most three requests are in flight.
           try {const m=await this.read('/fapi/v1/premiumIndex',{symbol});const t=time(m.time);
-            if(m.symbol!==symbol||Date.now()-t>180_000||t>Date.now()+60_000)throw new Error();
+            if(m.symbol!==symbol||!recentFundingTime(t,Date.now()))throw new Error();
             asset.mark={price:positive(m.markPrice),lastFundingRate:numeric(m.lastFundingRate),nextFundingAt:time(m.nextFundingTime),exchangeTimestamp:t};
           }catch{asset.gaps.push('标记价/资金费参考不可用或过期');}
           try {const f=await this.read('/fapi/v1/fundingRate',{symbol,limit:3});if(!Array.isArray(f)||!f.length||f.some(r=>r.symbol!==symbol))throw new Error();
