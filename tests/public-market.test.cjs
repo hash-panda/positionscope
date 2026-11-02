@@ -54,6 +54,71 @@ test('funding estimates are conditional, signed and same-venue only; cache inclu
  assert.notEqual(analysisCacheKey([position],[],'demo','x',market),analysisCacheKey([position],[],'demo','x',{...market,status:'partial'}));
 });
 
+test('funding eligibility expires by source time even while the local fetch remains fresh',async t=>{
+ const market=await fixture().service.snapshot([]),now=market.assets[0].fetchedAt;
+ t.mock.method(Date,'now',()=>now);
+ const position={exchange:'binance',symbol:'BTCUSDT',positionAmt:'2',markPrice:'100'};
+ const asset=market.assets.find(a=>a.symbol===position.symbol);
+ asset.fetchedAt=now;asset.mark.exchangeTimestamp=now-179000;
+ assert.equal(fundingScenarios([position],market).length,3);
+ t.mock.method(Date,'now',()=>now+1000);
+ assert.equal(fundingScenarios([position],market).length,3,'180 seconds is still within the source budget');
+ t.mock.method(Date,'now',()=>now+1001);
+ assert.deepEqual(fundingScenarios([position],market),[],'fetch is only 1001 ms old but source is expired');
+});
+
+test('funding time validation rejects invalid clocks and settled references without changing signed rates',async t=>{
+ const market=await fixture().service.snapshot([]),now=market.assets[0].fetchedAt;
+ t.mock.method(Date,'now',()=>now);
+ const position={exchange:'binance',symbol:'BTCUSDT',positionAmt:'2',markPrice:'100'};
+ const asset=market.assets.find(a=>a.symbol===position.symbol);
+ asset.fetchedAt=now;asset.mark.exchangeTimestamp=now;
+ for(const field of ['fetchedAt','exchangeTimestamp']) {
+  const target=field==='fetchedAt'?asset:asset.mark;
+  for(const value of [now-180001,now+60001,NaN,Infinity,0,-1,undefined,'invalid',now+.5]) {
+   target[field]=value;assert.deepEqual(fundingScenarios([position],market),[],field+' '+String(value));
+  }
+  for(const value of [now-180000,now+60000]) {
+   target[field]=value;assert.equal(fundingScenarios([position],market).length,3);
+  }
+  target[field]=now;
+ }
+ for(const value of [now,now-1,NaN,Infinity,0,undefined,'invalid',now+.5]) {
+  asset.mark.nextFundingAt=value;assert.deepEqual(fundingScenarios([position],market),[]);
+ }
+ asset.mark.nextFundingAt=now+H;
+ asset.mark.lastFundingRate=0;assert.equal(Math.abs(fundingScenarios([position],market)[0].estimatedCashflow),0);
+ asset.mark.lastFundingRate=-.001;assert.equal(fundingScenarios([position],market)[0].estimatedCashflow,.2);
+ assert.equal(fundingScenarios([{...position,positionAmt:'-2'}],market)[0].estimatedCashflow,-.2);
+});
+
+test('explicit reanalysis cannot reuse a cached narrative after source expiry or settlement',async t=>{
+ const {AIService}=require('../dist/main/services/ai/ai-service');
+ const market=await fixture().service.snapshot([]),now=market.assets[0].fetchedAt;let clock=now,calls=0;
+ t.mock.method(Date,'now',()=>clock);
+ const service=new AIService(),payloads=[];
+ service.providers.set('demo',{getProviderName:()=> 'demo',getModelName:()=> 'demo',chatJSON:async messages=>{
+  calls++;payloads.push(JSON.parse(messages[1].content));return {summary:'合成解释 '+calls,warnings:[],suggestions:[]};
+ }});
+ const position={exchange:'binance',symbol:'BTCUSDT',positionAmt:'2',markPrice:'100',entryPrice:'90',unRealizedProfit:'20',marginType:'cross',leverage:null};
+ const accounts=[{exchange:'binance',totalMarginBalance:100}];
+ const asset=market.assets.find(a=>a.symbol===position.symbol);asset.fetchedAt=now;asset.mark.exchangeTimestamp=now-179000;
+ const first=await service.analyzePortfolioHealth([position],accounts,'demo',market);
+ assert.equal(first.fundingScenarios.length,3);
+ assert.equal(await service.analyzePortfolioHealth([position],accounts,'demo',market),first);assert.equal(calls,1);
+ clock=now+1001;
+ const expired=await service.analyzePortfolioHealth([position],accounts,'demo',market);
+ assert.deepEqual(expired.fundingScenarios,[]);assert.deepEqual(payloads[1].fundingScenarios,[]);
+ assert.notEqual(expired.snapshotId,first.snapshotId);assert.equal(calls,2);
+ assert.equal(await service.analyzePortfolioHealth([position],accounts,'demo',market),expired);assert.equal(calls,2);
+ // A separate unchanged snapshot crosses settlement while both timestamps remain fresh.
+ const settling=structuredClone(market);settling.assets.find(a=>a.symbol===position.symbol).mark={...asset.mark,exchangeTimestamp:now,nextFundingAt:now+2000};
+ const before=await service.analyzePortfolioHealth([position],accounts,'demo',settling);assert.equal(before.fundingScenarios.length,3);
+ clock=now+2000;
+ const after=await service.analyzePortfolioHealth([position],accounts,'demo',settling);assert.deepEqual(after.fundingScenarios,[]);
+ assert.notEqual(after.snapshotId,before.snapshotId);assert.equal(calls,4);
+});
+
 test('AI receives computed facts and bounded market context without internal position identifiers',async()=>{
  const {AIService}=require('../dist/main/services/ai/ai-service');const service=new AIService();let received;
  service.providers.set('demo',{getProviderName:()=> 'demo',getModelName:()=> 'demo',chatJSON:async(messages)=>{received=JSON.parse(messages[1].content);return {summary:'合成解释',warnings:[],suggestions:[]};}});
