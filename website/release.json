@@ -1,24 +1,24 @@
 {
-  "version": "0.2.0-beta.13",
-  "tag": "v0.2.0-beta.13",
-  "published_at": "2026-10-31T01:54:36Z",
+  "version": "0.2.0-beta.14",
+  "tag": "v0.2.0-beta.14",
+  "published_at": "2026-11-02T01:56:51Z",
   "signed_and_notarized": true,
-  "ci_run_url": "https://github.com/hash-panda/positionscope/actions/runs/41157062325",
+  "ci_run_url": "https://github.com/hash-panda/positionscope/actions/runs/41374554959",
   "downloads": {
     "arm64": {
-      "dmg": "https://github.com/hash-panda/positionscope/releases/download/v0.2.0-beta.13/PositionScope-0.2.0-beta.13-arm64.dmg",
-      "zip": "https://github.com/hash-panda/positionscope/releases/download/v0.2.0-beta.13/PositionScope-0.2.0-beta.13-arm64.zip"
+      "dmg": "https://github.com/hash-panda/positionscope/releases/download/v0.2.0-beta.14/PositionScope-0.2.0-beta.14-arm64.dmg",
+      "zip": "https://github.com/hash-panda/positionscope/releases/download/v0.2.0-beta.14/PositionScope-0.2.0-beta.14-arm64.zip"
     },
     "x64": {
-      "dmg": "https://github.com/hash-panda/positionscope/releases/download/v0.2.0-beta.13/PositionScope-0.2.0-beta.13-x64.dmg",
-      "zip": "https://github.com/hash-panda/positionscope/releases/download/v0.2.0-beta.13/PositionScope-0.2.0-beta.13-x64.zip"
+      "dmg": "https://github.com/hash-panda/positionscope/releases/download/v0.2.0-beta.14/PositionScope-0.2.0-beta.14-x64.dmg",
+      "zip": "https://github.com/hash-panda/positionscope/releases/download/v0.2.0-beta.14/PositionScope-0.2.0-beta.14-x64.zip"
     }
   },
   "verification_records": {
-    "arm64": "https://github.com/hash-panda/positionscope/releases/download/v0.2.0-beta.13/PositionScope-0.2.0-beta.13-arm64-verification.json",
-    "x64": "https://github.com/hash-panda/positionscope/releases/download/v0.2.0-beta.13/PositionScope-0.2.0-beta.13-x64-verification.json"
+    "arm64": "https://github.com/hash-panda/positionscope/releases/download/v0.2.0-beta.14/PositionScope-0.2.0-beta.14-arm64-verification.json",
+    "x64": "https://github.com/hash-panda/positionscope/releases/download/v0.2.0-beta.14/PositionScope-0.2.0-beta.14-x64-verification.json"
   },
-  "checksums": "https://github.com/hash-panda/positionscope/releases/download/v0.2.0-beta.13/SHA256SUMS.txt",
+  "checksums": "https://github.com/hash-panda/positionscope/releases/download/v0.2.0-beta.14/SHA256SUMS.txt",
   "native_ui_tested": false,
   "real_accounts_tested": false,
   "app_id": "app.funagent.positionscope",
@@ -29,5 +29,5 @@
   "native_storage_ci_tested": true,
   "packaged_app_keychain_prompt_tested": false,
   "packaged_branding_verified": true,
-  "source_commit": "e40b60cf55ca54aaa421d845460707c8dd99c023"
+  "source_commit": "11ddeeeb98f5177b290202c7eb7df96dd196123d"
 }
