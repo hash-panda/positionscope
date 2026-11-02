@@ -1,0 +1,710 @@
+{
+  "observation_started_utc": "2026-11-02 02:48:15 UTC",
+  "observation_completed_utc": "2026-11-02 02:48:16 UTC",
+  "sources": [
+    "https://api.github.com/repos/hash-panda/positionscope",
+    "https://api.github.com/repos/hash-panda/positionscope/releases?per_page=100"
+  ],
+  "repository": {
+    "id": 1111575703,
+    "stars": 0,
+    "forks": 0,
+    "watch_subscribers": 0
+  },
+  "releases": [
+    {
+      "tag": "v0.2.0-beta.14",
+      "published_at": "2026-11-02T01:56:51Z",
+      "assets": [
+        {
+          "name": "PositionScope-0.2.0-beta.14-arm64-verification.json",
+          "size": 1418,
+          "sha256": "sha256:7f3185f940f388a1cf3e6e6dd41657a5413de8e0eea4a8b988f4fa74c27fee6c",
+          "download_count": 2
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.14-arm64.dmg",
+          "size": 144017481,
+          "sha256": "sha256:bde5058bc9c8c760b82a850849127da22548d3dd792f07b7142fdfc668cd8923",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.14-arm64.zip",
+          "size": 131521058,
+          "sha256": "sha256:d34fd6db056920c0d5785c3dbd79edb9e4530c81018eb9c2e6b704119d68034f",
+          "download_count": 3
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.14-x64-verification.json",
+          "size": 1412,
+          "sha256": "sha256:8a9dc2547736e9b7af7be825bd6ed4ebd11ffb1fd4c76288cd90eb33f226fdc3",
+          "download_count": 2
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.14-x64.dmg",
+          "size": 152515574,
+          "sha256": "sha256:047d717b46c99ce5e4d69b2ab4eebb4ec31a957ecffb3e8a12552c91dbe0af9f",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.14-x64.zip",
+          "size": 137743150,
+          "sha256": "sha256:8537f7b0a685e14acf1ea1a6f9b16c2540a60c40216e31a8484d2553707bfd2b",
+          "download_count": 1
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "size": 412,
+          "sha256": "sha256:a1ee58e57091989843e2546b65359a1bb433bf6303dbf302e8c197a75a8b88bf",
+          "download_count": 2
+        }
+      ]
+    },
+    {
+      "tag": "v0.2.0-beta.13",
+      "published_at": "2026-10-31T01:54:36Z",
+      "assets": [
+        {
+          "name": "PositionScope-0.2.0-beta.13-arm64-verification.json",
+          "size": 1418,
+          "sha256": "sha256:1e4e89e21e02506a9d23a01ab5c49c20c1f032890d47539af9c3923271ae0e37",
+          "download_count": 2
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.13-arm64.dmg",
+          "size": 144017821,
+          "sha256": "sha256:e3f9510994ab34f889792d738691a26400d2249c75c4be3115b31d4d3ae79189",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.13-arm64.zip",
+          "size": 131521674,
+          "sha256": "sha256:adf2fd206b6f8ac2f1c9aef7be70b062f3109b80c017222ea526f9a8f8fb6a8a",
+          "download_count": 7
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.13-x64-verification.json",
+          "size": 1412,
+          "sha256": "sha256:327d7fbc5b0883b0905081410648fcff2c22ad981dbaeb8bde67e56669968a43",
+          "download_count": 2
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.13-x64.dmg",
+          "size": 152547528,
+          "sha256": "sha256:7250607b2ea1f09132c1f8da426d1dce4b2dfb97cd068cd12378a3752b575af3",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.13-x64.zip",
+          "size": 137742940,
+          "sha256": "sha256:c4f43d05610708830c805f42df84b859a1be185fa77c11161dc9155ea595afe4",
+          "download_count": 2
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "size": 412,
+          "sha256": "sha256:5d30cb311d60b902ac80b899409863a0f31b7681e09387614b40ceb82c4ccd3e",
+          "download_count": 3
+        }
+      ]
+    },
+    {
+      "tag": "v0.2.0-beta.12",
+      "published_at": "2026-10-28T01:56:10Z",
+      "assets": [
+        {
+          "name": "PositionScope-0.2.0-beta.12-arm64-verification.json",
+          "size": 1418,
+          "sha256": "sha256:183db2c755627a14bd6d800286abe29256a8d60ba258e694a9fc9328ec98b2c2",
+          "download_count": 2
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.12-arm64.dmg",
+          "size": 144016567,
+          "sha256": "sha256:bbb69dad6cb03bf46250a812d594eb68df836d4856ad24343c53a3e29722253c",
+          "download_count": 2
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.12-arm64.zip",
+          "size": 131520660,
+          "sha256": "sha256:39686dc76bca5e81b1e854cace3336a2b7cdba7716293ce90aafe76023bc452f",
+          "download_count": 10
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.12-x64-verification.json",
+          "size": 1412,
+          "sha256": "sha256:793812b14a57278573b8eafd9c29143710c1c21c7db013f36ce3cea1b46f2331",
+          "download_count": 3
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.12-x64.dmg",
+          "size": 151532819,
+          "sha256": "sha256:8dddbfadd9d656cf0086172d6bb9c31c08ea4e9f2c44cacaddaf50020b9061bd",
+          "download_count": 2
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.12-x64.zip",
+          "size": 137742788,
+          "sha256": "sha256:6554a4ed0c8f2e29fd6225607b8cba424e02a066afb73df1bf8176ea2ecf7622",
+          "download_count": 2
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "size": 412,
+          "sha256": "sha256:11ff936ffb6530fb121b266df72c4b78d077d199101b30f7b63aa1c7cf0de513",
+          "download_count": 2
+        }
+      ]
+    },
+    {
+      "tag": "v0.2.0-beta.11",
+      "published_at": "2026-10-26T02:38:07Z",
+      "assets": [
+        {
+          "name": "PositionScope-0.2.0-beta.11-arm64-verification.json",
+          "size": 1418,
+          "sha256": "sha256:60f851124501a4bc2169896175d1f91de2074963323f15689b97ea95dcd358e8",
+          "download_count": 2
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.11-arm64.dmg",
+          "size": 144016450,
+          "sha256": "sha256:bf43b9e3660016894f1e7020d0ea40939c29b335357a6733e96bde3a32f73cd1",
+          "download_count": 2
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.11-arm64.zip",
+          "size": 131520750,
+          "sha256": "sha256:cf61b39aeb6f30519ce5d9ccd637c4dd0e8b63dffda34c5249bcdff61a744a75",
+          "download_count": 8
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.11-x64-verification.json",
+          "size": 1412,
+          "sha256": "sha256:e51fc69c816601b630ccc494f2915822f65d1cc950f7e5d464c6360294646fdd",
+          "download_count": 2
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.11-x64.dmg",
+          "size": 151553888,
+          "sha256": "sha256:3645dab794bc143dfc0cfc44dc6246d5a5690c2950173b6877d7d16c443eb96b",
+          "download_count": 2
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.11-x64.zip",
+          "size": 137742652,
+          "sha256": "sha256:90baa3d9b6cfd2be56cb56443a4f54f1dacfec2083b97ebff49b534c798e85bc",
+          "download_count": 1
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "size": 412,
+          "sha256": "sha256:394f377e2a40c87d8ebc7fcd3b9e003340782d66f7ec7b5be35b27d139de4424",
+          "download_count": 2
+        }
+      ]
+    },
+    {
+      "tag": "v0.2.0-beta.9",
+      "published_at": "2026-10-25T11:20:19Z",
+      "assets": [
+        {
+          "name": "PositionScope-0.2.0-beta.9-arm64-verification.json",
+          "size": 1415,
+          "sha256": "sha256:97586bac0fa9a0c2541ebd5aaaa24c359ee9541f666d857897a9e3c283559cab",
+          "download_count": 3
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.9-arm64.dmg",
+          "size": 144015037,
+          "sha256": "sha256:a6e53045b1ef8f46339f9c4ae1d915e6dcfa433db92720a0b7e00ca267d0f74b",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.9-arm64.zip",
+          "size": 131519700,
+          "sha256": "sha256:8425dfc065d5564a1a5289e93be6d976af565248ac4f6cf390472835dcfd6d6a",
+          "download_count": 2
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.9-x64-verification.json",
+          "size": 1409,
+          "sha256": "sha256:54e818d0043213fa448c4e4104dbac386ed791290196a4e73fb3990f65cd3a8b",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.9-x64.dmg",
+          "size": 151528798,
+          "sha256": "sha256:c2f929f1b69ff94b90e753f5d8519f5c33566391739b505d9224953bf74c5f06",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.9-x64.zip",
+          "size": 137741638,
+          "sha256": "sha256:7bf9dd054e65c7a9218d878099e80128814154d59f36cac7762b46f7119ff31d",
+          "download_count": 2
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "size": 408,
+          "sha256": "sha256:9aa33e4253f855571f8fd57d24ad09b5a62997c76acb9edd19b8ba6ff9d2080f",
+          "download_count": 1
+        }
+      ]
+    },
+    {
+      "tag": "v0.2.0-beta.8",
+      "published_at": "2026-10-25T11:11:49Z",
+      "assets": [
+        {
+          "name": "PositionScope-0.2.0-beta.8-arm64-verification.json",
+          "size": 1415,
+          "sha256": "sha256:ffecc450fbc1763a76eb0a930a4023eaf81efe6f29002fffd235db5537d9f84c",
+          "download_count": 2
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.8-arm64.dmg",
+          "size": 144000967,
+          "sha256": "sha256:ffeed807951646630ec4d4a554ae5d1165c84c17f2eec923a3c0e42d360cd914",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.8-arm64.zip",
+          "size": 131511200,
+          "sha256": "sha256:b35e7ea4c1c6a5e46e6053c56a6a298977d5085f0503c4b1bb37bd9e2fa98e04",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.8-x64-verification.json",
+          "size": 1409,
+          "sha256": "sha256:8fa61b25c9a0f6c92e79cff38179a7498a807edfbd4f2d540aa191457bfccb63",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.8-x64.dmg",
+          "size": 151518139,
+          "sha256": "sha256:9a2a09426268f838221816f36aedb8fec64cc24edfab0405f8a66d771f5ce75b",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.8-x64.zip",
+          "size": 137733053,
+          "sha256": "sha256:f91d147b89c60fba725c806c1824b3ab71cc0ae3ab3b0f9cd5b61de915c83d2d",
+          "download_count": 1
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "size": 408,
+          "sha256": "sha256:58340c624876995918de21ec1548e2bb5d71a9e0197a4eb2ba66652ae462e6a9",
+          "download_count": 1
+        }
+      ]
+    },
+    {
+      "tag": "v0.2.0-beta.7",
+      "published_at": "2026-10-25T11:02:52Z",
+      "assets": [
+        {
+          "name": "PositionScope-0.2.0-beta.7-arm64-verification.json",
+          "size": 1415,
+          "sha256": "sha256:5aa33c4193f7f68704164c9e2cd6d95f3e418ce1f2604c770831cb5cac468d24",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.7-arm64.dmg",
+          "size": 141001026,
+          "sha256": "sha256:fd7725ada32476987468eac638078ec78eca555512c2edc5beca163032eadbcb",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.7-arm64.zip",
+          "size": 129207045,
+          "sha256": "sha256:d918b7625e6135d7ddf04bcf697e41eadae2ffdfff642cbce9775d9152ee7285",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.7-x64-verification.json",
+          "size": 1409,
+          "sha256": "sha256:7f1de64a4b4f71f2b06f154c1ffd2f46c9f5bb87b019bcfc3f4a04df18f6d866",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.7-x64.dmg",
+          "size": 148469233,
+          "sha256": "sha256:88b89b0f63055f5b7109f3899a965eb1958d36058354a3067e54bea7c8cec6eb",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.7-x64.zip",
+          "size": 135428848,
+          "sha256": "sha256:5872a8f9f136c0fecd29c0d0cb4e20bdb6618f7606676aaa7b792859325c5a66",
+          "download_count": 1
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "size": 408,
+          "sha256": "sha256:940c24456f2fad2032b8a9ef2ef714f1583c52558af8787a8d823355234342a2",
+          "download_count": 2
+        }
+      ]
+    },
+    {
+      "tag": "v0.2.0-beta.6",
+      "published_at": "2026-10-25T09:41:27Z",
+      "assets": [
+        {
+          "name": "PositionScope-0.2.0-beta.6-arm64-verification.json",
+          "size": 1415,
+          "sha256": "sha256:7cf9434b5f62c75a26c032b1f358318b1b6c176dfd8f6576e10d90059236f59e",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.6-arm64.dmg",
+          "size": 140979419,
+          "sha256": "sha256:f1612724d099134e3fbf07086806877d77c7045c02bcd65b600fcc0e7fdb30ea",
+          "download_count": 3
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.6-arm64.zip",
+          "size": 129202968,
+          "sha256": "sha256:b84e1dae27f6cbf18323bac5bb9f4c8108eaacb3f963b4b3505890e6c80ee037",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.6-x64-verification.json",
+          "size": 1409,
+          "sha256": "sha256:8c5a17e2376bcf5760d59a3b70493a73bba3582c6fffa54ab2340d1b3b861491",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.6-x64.dmg",
+          "size": 148397505,
+          "sha256": "sha256:8503c62719f6969a76a8b9f3074de87f24349ee7bedd610e38ca2b52e34b4fad",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.6-x64.zip",
+          "size": 135424436,
+          "sha256": "sha256:29a96ec98cfa7f9cb4cae846100717136490dc13b349bbcc45ea80d9c99a41ed",
+          "download_count": 1
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "size": 408,
+          "sha256": "sha256:7793998433c4bbc398d0687384009af6b7aebdfdbe2f20f142c1cc8d0a3d220d",
+          "download_count": 1
+        }
+      ]
+    },
+    {
+      "tag": "v0.2.0-beta.5",
+      "published_at": "2026-10-25T04:57:06Z",
+      "assets": [
+        {
+          "name": "PositionScope-0.2.0-beta.5-arm64-verification.json",
+          "size": 945,
+          "sha256": "sha256:da05724a8423e04d78e1ddc804e362e09ff36821032f759846ba1ce36375ec0a",
+          "download_count": 2
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.5-arm64.dmg",
+          "size": 140457130,
+          "sha256": "sha256:2552c310e496e0bf2e92ceb19c538644c34ba3871f11c52cfb8821cba39ce980",
+          "download_count": 2
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.5-arm64.zip",
+          "size": 128197157,
+          "sha256": "sha256:f4f86599646c91131f23c15c45e3b799baff079334a3211c7aa49796891c0942",
+          "download_count": 18
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.5-x64-verification.json",
+          "size": 939,
+          "sha256": "sha256:3cc4472da3b71d49fecfd984529fc68fc8c2f8b2bb80d07625e977e5ba0144ab",
+          "download_count": 2
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.5-x64.dmg",
+          "size": 147983364,
+          "sha256": "sha256:3787d28867eebba6ad1b48fc09494b8a86bd30cd1d42a19cfa0df1699b76a65a",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.5-x64.zip",
+          "size": 134419047,
+          "sha256": "sha256:66bc1a126c9c0a16ec440b86c3d852564aaef681cc69fa517dc0e8fe98f4b652",
+          "download_count": 1
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "size": 408,
+          "sha256": "sha256:39a36cacbac3acca3e2e3f18444a87d1cef354ffb6d44969c1a43beb39f07593",
+          "download_count": 2
+        }
+      ]
+    },
+    {
+      "tag": "v0.2.0-beta.4",
+      "published_at": "2026-10-25T03:23:12Z",
+      "assets": [
+        {
+          "name": "PositionScope-0.2.0-beta.4-arm64-verification.json",
+          "size": 525,
+          "sha256": "sha256:8c28f00e09a6f938f931f5a25d8ff793157535e70145dd450b5d5b8c52efe0ca",
+          "download_count": 3
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.4-arm64.dmg",
+          "size": 109543059,
+          "sha256": "sha256:271bb57c2a9772425dbc7f331798e957c5bbe05352a75c1a210da36f18c5d79e",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.4-arm64.zip",
+          "size": 97855211,
+          "sha256": "sha256:d1a5fd459ae7bf683433712c3418a311bd2fee8aed7209d058be89925d232be4",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.4-x64-verification.json",
+          "size": 519,
+          "sha256": "sha256:7c5812dd3318cb6e24811aecfaab1a552ce185c66919766df031a5999a770381",
+          "download_count": 2
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.4-x64.dmg",
+          "size": 116934155,
+          "sha256": "sha256:42438e5aaa40a5dd74c8dda7f4358308e626dfd91ce30775dfa27f17f0a657da",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.4-x64.zip",
+          "size": 104465902,
+          "sha256": "sha256:2467ea2d0fe6a5e4807fd33676177354349ae0ea41caad9e78fc2fe8cf08063c",
+          "download_count": 1
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "size": 408,
+          "sha256": "sha256:f691be531190425f8e77755fdfd81e71adf877ea9efe63b85408152ba3b411a4",
+          "download_count": 2
+        }
+      ]
+    },
+    {
+      "tag": "v0.2.0-beta.3",
+      "published_at": "2026-10-25T03:15:58Z",
+      "assets": [
+        {
+          "name": "PositionScope-0.2.0-beta.3-arm64-verification.json",
+          "size": 525,
+          "sha256": "sha256:1469d5a6feaf6b4f37c1a1f7581df4e5a1deeebd9e114c34b1403a31f0a1698b",
+          "download_count": 2
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.3-arm64.dmg",
+          "size": 109543382,
+          "sha256": "sha256:f6d3d2c00f298f1bd349c4fc03a16d4c96afcaafbc6872b51f4a39c4dca2a1a5",
+          "download_count": 2
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.3-arm64.zip",
+          "size": 97855504,
+          "sha256": "sha256:7131c0a4390b16752e0de2b52977c283a8771f3fbeb2f8cae01daf6a2e065c6b",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.3-x64-verification.json",
+          "size": 519,
+          "sha256": "sha256:e6127205b70ba9e028dd24fa3bff2c96999168e98b8da4fccef4c06a55cd9e92",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.3-x64.dmg",
+          "size": 116934066,
+          "sha256": "sha256:97a1d13a27b20a4b6820c092c5e020555610c1e64eb4724f559b1610395c6fe0",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.3-x64.zip",
+          "size": 104465944,
+          "sha256": "sha256:c7f91abdde6f649f36789ba046a3862957a09a31ebd39f84c06a2773f817e97b",
+          "download_count": 1
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "size": 408,
+          "sha256": "sha256:6204fc1dce8666f2b999676d8fa59c21ca6201559ebd6802d004cd6fbbac2591",
+          "download_count": 1
+        }
+      ]
+    },
+    {
+      "tag": "v0.2.0-beta.10",
+      "published_at": "2026-10-25T11:34:13Z",
+      "assets": [
+        {
+          "name": "PositionScope-0.2.0-beta.10-arm64-verification.json",
+          "size": 1418,
+          "sha256": "sha256:755b0776d211e3100cd366d9d4a773eec1045c64e6d61c149fd3d482c7df3892",
+          "download_count": 3
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.10-arm64.dmg",
+          "size": 144016499,
+          "sha256": "sha256:818181adf6d1a2b631580e532cf95cb10c44dfb5817113f33559cec70543903f",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.10-arm64.zip",
+          "size": 131520904,
+          "sha256": "sha256:dc58c4561d6bcb68ac740ba3f8e18f156ea9b1378240d86c703b36437e6cea89",
+          "download_count": 13
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.10-x64-verification.json",
+          "size": 1412,
+          "sha256": "sha256:1926f0b572e952718eb3068fbeddc083be33a641966104cfcae372015ec58cc9",
+          "download_count": 2
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.10-x64.dmg",
+          "size": 152014142,
+          "sha256": "sha256:0c8ee46bb3844d1c58fe46922e03a2c795f7488c30a9e68802d1b2210745279d",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.10-x64.zip",
+          "size": 137742424,
+          "sha256": "sha256:07996017cb670fe48c9290c4a2448b28b0163bf33f424b130f7fae7e29597cd4",
+          "download_count": 1
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "size": 412,
+          "sha256": "sha256:1bf6efb81b6dcc414ebf882a5d878bed60bd1143bc1082747bc17878aa7a5d5a",
+          "download_count": 3
+        }
+      ]
+    },
+    {
+      "tag": "v0.2.0-beta.2",
+      "published_at": "2026-10-24T15:02:17Z",
+      "assets": [
+        {
+          "name": "PositionScope-0.2.0-beta.2-arm64-verification.json",
+          "size": 525,
+          "sha256": "sha256:f8d12752edc4830cf7dab09a5731384a3dd91723e24b2adb88ee60d63c43ff8f",
+          "download_count": 2
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.2-arm64.dmg",
+          "size": 109545191,
+          "sha256": "sha256:e2fa513c410c61fb9d524bb63356057f4f2d7a5c2dcf6ea4d157484ec09a4a02",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.2-arm64.zip",
+          "size": 97852518,
+          "sha256": "sha256:059baed04c1497b48473f7b6a767bbb3c1b50b4de5eea7e36759a6973623fe02",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.2-x64-verification.json",
+          "size": 519,
+          "sha256": "sha256:0e1e8b34ab213c814173993f85ae9bb3cdc61e71de2f9024947f684cc0c51d5d",
+          "download_count": 2
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.2-x64.dmg",
+          "size": 116956493,
+          "sha256": "sha256:f90355a00b664819fc78bfd070cb82fe8ebbfe52cc250e8ed28bc306886f7b27",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.2-x64.zip",
+          "size": 104462929,
+          "sha256": "sha256:d0a05eb7c1a61ea0dd8709959f44254d5c4707fc9c7f148c8d492373cfd8963c",
+          "download_count": 2
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "size": 408,
+          "sha256": "sha256:e311c085057321502c0bce1742a92675fe4d06cc995d1d087b108cb983ec5f5e",
+          "download_count": 3
+        }
+      ]
+    },
+    {
+      "tag": "v0.2.0-beta.1",
+      "published_at": "2026-10-24T11:32:46Z",
+      "assets": [
+        {
+          "name": "PositionScope-0.2.0-beta.1-arm64-mac.zip",
+          "size": 94002946,
+          "sha256": "sha256:74102bc1d8a0b46e22db4897b5a602facd3930c80abb2cbcec16e15249aae36e",
+          "download_count": 1
+        },
+        {
+          "name": "PositionScope-0.2.0-beta.1-mac.zip",
+          "size": 99139397,
+          "sha256": "sha256:11f4a2a8986094557be721495c0bfbe052e69ecf6ee2e5662b27eb8c822151f8",
+          "download_count": 1
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "size": 224,
+          "sha256": "sha256:493dd2147cb95bc580fb3daf62208ffcec6767921c8f10e8c968c352a47fe236",
+          "download_count": 1
+        }
+      ]
+    }
+  ],
+  "website_probe": {
+    "started_utc": "2026-11-02T02:47:26.519984+00:00",
+    "results": [
+      {
+        "path": "/",
+        "status": "000",
+        "exit_code": 28,
+        "error": "curl: (28) Proxy CONNECT aborted due to timeout"
+      },
+      {
+        "path": "/download/",
+        "status": "000",
+        "exit_code": 28,
+        "error": "curl: (28) Proxy CONNECT aborted due to timeout"
+      },
+      {
+        "path": "/robots.txt",
+        "status": "000",
+        "exit_code": 28,
+        "error": "curl: (28) Proxy CONNECT aborted due to timeout"
+      },
+      {
+        "path": "/sitemap.xml",
+        "status": "000",
+        "exit_code": 28,
+        "error": "curl: (28) Proxy CONNECT aborted due to timeout"
+      },
+      {
+        "path": "/release.json",
+        "status": "000",
+        "exit_code": 28,
+        "error": "curl: (28) Proxy CONNECT aborted due to timeout"
+      }
+    ]
+  },
+  "unknown_metrics": [
+    "visits",
+    "confirmed_activations",
+    "W1_retention",
+    "paying_customers",
+    "revenue",
+    "total_cost",
+    "channel_cost",
+    "support_hours"
+  ],
+  "limitations": "Cumulative asset requests include CI; not unique people, installations or revenue. November counts cannot reconstruct October-end totals."
+}
