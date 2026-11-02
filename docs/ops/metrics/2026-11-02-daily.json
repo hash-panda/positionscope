@@ -1,0 +1,70 @@
+{
+  "observation_started_utc": "2026-11-02 01:58:03 UTC",
+  "observation_completed_utc": "2026-11-02 01:58:04 UTC",
+  "sources": [
+    "https://api.github.com/repos/hash-panda/positionscope",
+    "https://api.github.com/repos/hash-panda/positionscope/releases/tags/v0.2.0-beta.14"
+  ],
+  "repository": {
+    "id": 1111575703,
+    "stars": 0,
+    "forks": 0,
+    "watch_subscribers": 0
+  },
+  "release": {
+    "tag": "v0.2.0-beta.14",
+    "published_at": "2026-11-02T01:56:51Z",
+    "assets": [
+      {
+        "name": "PositionScope-0.2.0-beta.14-arm64-verification.json",
+        "download_count": 0,
+        "size": 1418,
+        "sha256": "sha256:7f3185f940f388a1cf3e6e6dd41657a5413de8e0eea4a8b988f4fa74c27fee6c"
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.14-arm64.dmg",
+        "download_count": 0,
+        "size": 144017481,
+        "sha256": "sha256:bde5058bc9c8c760b82a850849127da22548d3dd792f07b7142fdfc668cd8923"
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.14-arm64.zip",
+        "download_count": 0,
+        "size": 131521058,
+        "sha256": "sha256:d34fd6db056920c0d5785c3dbd79edb9e4530c81018eb9c2e6b704119d68034f"
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.14-x64-verification.json",
+        "download_count": 0,
+        "size": 1412,
+        "sha256": "sha256:8a9dc2547736e9b7af7be825bd6ed4ebd11ffb1fd4c76288cd90eb33f226fdc3"
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.14-x64.dmg",
+        "download_count": 0,
+        "size": 152515574,
+        "sha256": "sha256:047d717b46c99ce5e4d69b2ab4eebb4ec31a957ecffb3e8a12552c91dbe0af9f"
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.14-x64.zip",
+        "download_count": 0,
+        "size": 137743150,
+        "sha256": "sha256:8537f7b0a685e14acf1ea1a6f9b16c2540a60c40216e31a8484d2553707bfd2b"
+      },
+      {
+        "name": "SHA256SUMS.txt",
+        "download_count": 0,
+        "size": 412,
+        "sha256": "sha256:a1ee58e57091989843e2546b65359a1bb433bf6303dbf302e8c197a75a8b88bf"
+      }
+    ]
+  },
+  "interpretation": "Cumulative asset requests include CI and verification downloads; not people or revenue.",
+  "website_visits": null,
+  "confirmed_activations": null,
+  "w1_retention": null,
+  "paying_customers": null,
+  "revenue": null,
+  "channel_cost": null,
+  "support_hours": null
+}
