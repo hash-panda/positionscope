@@ -4,6 +4,8 @@
 
 官网同源7页：产品、下载、只读配置、风险计算方法、隐私、路线、英文简介。独立title/description/canonical、首页/英文互指hreflang、Open Graph/Twitter、真实SoftwareApplication JSON-LD、robots与sitemap已纳入源码检查。每页一个h1、清晰内链和能力边界。llms.txt是辅助说明提案，不是Google/模型排名开关，不声称其被采用。
 
+维护者可运行 `node scripts/audit-live-site.cjs` 核对固定公共页面、下载版本、canonical、robots和sitemap，协议见 [公开官网核验](live-site-audit.md)。保存逐项结果；超时记未验证，不把一次全部匹配当搜索收录或全球可用证明。PR CI只跑离线样本，不增加线上网络门禁。
+
 依据 [Google AI功能指南](https://developers.google.com/search/docs/appearance/ai-features) 与 [AI优化指南](https://developers.google.com/search/docs/fundamentals/ai-optimization-guide)：先保证可抓取、内容清晰、有依据和正常SEO。参考成熟开源 [jekyll-seo-tag](https://github.com/jekyll/jekyll-seo-tag) 的canonical/社交/JSON-LD组织方式；不为静态站引入Jekyll依赖，不复制其受许可约束的实现。本项目采用自己的零依赖页面生成与验证脚本。
 
 登录Search Console后：添加URL-prefix `https://positionscope.funagent.app/`（或使用已有funagent.app域名属性）；用该账号实际给出的HTML/DNS验证，不编造verification值；提交 `https://positionscope.funagent.app/sitemap.xml`；用URL检查查看首页、下载页和方法页。Bing做同样流程。提交不等于收录，收录不等于排名。没有账号/报告权限时只标待配置。每周记录已索引URL、排除原因、展示/点击、查询和地区；没有数据标未知。若托管返回noindex头或重定向不正确，先解决再推广。
