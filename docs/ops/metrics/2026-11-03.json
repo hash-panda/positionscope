@@ -1,0 +1,148 @@
+{
+  "observed_window_beijing": "2026-11-03 approximately 09:22–09:23",
+  "repository": {
+    "stars": 0,
+    "forks": 0,
+    "watch_subscribers": 0
+  },
+  "release": {
+    "tag": "v0.2.0-beta.14",
+    "published_at": "2026-11-02T01:56:51Z",
+    "assets": [
+      {
+        "name": "PositionScope-0.2.0-beta.14-arm64-verification.json",
+        "size": 1418,
+        "sha256": "sha256:7f3185f940f388a1cf3e6e6dd41657a5413de8e0eea4a8b988f4fa74c27fee6c",
+        "download_count": 2
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.14-arm64.dmg",
+        "size": 144017481,
+        "sha256": "sha256:bde5058bc9c8c760b82a850849127da22548d3dd792f07b7142fdfc668cd8923",
+        "download_count": 1
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.14-arm64.zip",
+        "size": 131521058,
+        "sha256": "sha256:d34fd6db056920c0d5785c3dbd79edb9e4530c81018eb9c2e6b704119d68034f",
+        "download_count": 5
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.14-x64-verification.json",
+        "size": 1412,
+        "sha256": "sha256:8a9dc2547736e9b7af7be825bd6ed4ebd11ffb1fd4c76288cd90eb33f226fdc3",
+        "download_count": 2
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.14-x64.dmg",
+        "size": 152515574,
+        "sha256": "sha256:047d717b46c99ce5e4d69b2ab4eebb4ec31a957ecffb3e8a12552c91dbe0af9f",
+        "download_count": 1
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.14-x64.zip",
+        "size": 137743150,
+        "sha256": "sha256:8537f7b0a685e14acf1ea1a6f9b16c2540a60c40216e31a8484d2553707bfd2b",
+        "download_count": 1
+      },
+      {
+        "name": "SHA256SUMS.txt",
+        "size": 412,
+        "sha256": "sha256:a1ee58e57091989843e2546b65359a1bb433bf6303dbf302e8c197a75a8b88bf",
+        "download_count": 2
+      }
+    ]
+  },
+  "public_site_audit": {
+    "version": "public-site-audit-v1",
+    "started_at": "2026-11-03T01:27:02.254Z",
+    "observed_at": "2026-11-03T01:27:09.532Z",
+    "origin": "https://positionscope.funagent.app",
+    "expected_release": "v0.2.0-beta.14",
+    "verified": true,
+    "results": [
+      {
+        "path": "/",
+        "http_status": 200,
+        "verified": true,
+        "reason": "matched",
+        "checks": {
+          "indexable_header": true,
+          "html_type": true,
+          "canonical": true,
+          "indexable_meta": true,
+          "structured_version": true
+        }
+      },
+      {
+        "path": "/download/",
+        "http_status": 200,
+        "verified": true,
+        "reason": "matched",
+        "checks": {
+          "indexable_header": true,
+          "html_type": true,
+          "canonical": true,
+          "indexable_meta": true,
+          "download_links": true
+        }
+      },
+      {
+        "path": "/guides/portfolio-risk/",
+        "http_status": 200,
+        "verified": true,
+        "reason": "matched",
+        "checks": {
+          "indexable_header": true,
+          "html_type": true,
+          "canonical": true,
+          "indexable_meta": true
+        }
+      },
+      {
+        "path": "/robots.txt",
+        "http_status": 200,
+        "verified": true,
+        "reason": "matched",
+        "checks": {
+          "indexable_header": true,
+          "robots_policy": true
+        }
+      },
+      {
+        "path": "/sitemap.xml",
+        "http_status": 200,
+        "verified": true,
+        "reason": "matched",
+        "checks": {
+          "indexable_header": true,
+          "sitemap_routes": true
+        }
+      },
+      {
+        "path": "/release.json",
+        "http_status": 200,
+        "verified": true,
+        "reason": "matched",
+        "checks": {
+          "indexable_header": true,
+          "release_manifest": true
+        }
+      }
+    ],
+    "limitations": [
+      "Only three HTML routes and public metadata were checked; no installation or binary signature check.",
+      "This observer and time only; not proof of indexing, global availability, visits, activation or revenue.",
+      "Transport failures are unverified, not evidence of origin failure. No raw body, headers or transport errors are reported."
+    ]
+  },
+  "unknown": [
+    "search_indexing",
+    "search_impressions",
+    "visits",
+    "confirmed_activation",
+    "W1_retention",
+    "revenue"
+  ],
+  "notes": "Asset requests include CI; not people. Public audit is a point observation, not global availability or search indexing."
+}
