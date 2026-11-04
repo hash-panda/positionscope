@@ -1,6 +1,10 @@
 # macOS 签名与发布
 
-## 当前已发布版本（2026-11-02，v0.2.0-beta.14）
+## 当前已发布版本（2026-11-04，v0.2.0-beta.15）
+
+[PR #47](https://github.com/hash-panda/positionscope/pull/47)修复相同平台持仓ID在单向仓方向翻转时的快照事件漏记/误记，分别展示旧方向消失与新方向新增；仍拒绝同快照重复身份，不改变排序身份或金融公式。93项Node、5项Python、类型/构建、320px方向事件/UI/axe与合成Mac见[PR CI](https://github.com/hash-panda/positionscope/actions/runs/41753165841)及[主分支CI](https://github.com/hash-panda/positionscope/actions/runs/41753415002)。[签名发布](https://github.com/hash-panda/positionscope/actions/runs/41753415004)双架构签名、公证、装订、Gatekeeper及publish成功；下载见[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.0-beta.15)与docs/releases/v0.2.0-beta.15，核验见docs/ops/2026-11-04-beta15-release.md。快照差异不等于成交、转账或执行顺序；真实Mac/账户/模型、签名包权限弹窗及完整日志/时效审计仍未验收。正常Apple凭证不重配，不迁移旧预览版。
+
+## 前序发布记录（2026-11-02，v0.2.0-beta.14）
 
 [PR #43](https://github.com/hash-panda/positionscope/pull/43)修复资金费参考源/获取时间、结算时点校验与对应分析缓存失效；显式重析不复用过期资金费情景，有效情景不变仍缓存。85项Node、5项Python、类型/构建、UI/axe与合成Mac见[PR CI](https://github.com/hash-panda/positionscope/actions/runs/41374313218)及[主分支CI](https://github.com/hash-panda/positionscope/actions/runs/41374554953)。[签名发布](https://github.com/hash-panda/positionscope/actions/runs/41374554959)双架构签名、公证、装订、Gatekeeper及publish成功；下载见[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.0-beta.14)和docs/releases/v0.2.0-beta.14。核验与官网同步见docs/ops/2026-11-02-beta14-release.md。既有历史分析/全部行情时效、全仓日志、签名包权限弹窗和用户Mac/真实账户/模型仍未验收；不重配正常Apple凭证，不迁移旧预览版。
 
