@@ -12,12 +12,17 @@ export interface PositionEvent {
 }
 function index(positions: Position[]): Map<string, Position> {
   const result = new Map<string, Position>();
+  const identities = new Set<string>();
   for (const position of positions) {
     const quantity = Number(position.positionAmt);
     if (!Number.isFinite(quantity)) throw new Error('Invalid snapshot quantity');
     if (quantity === 0) continue;
-    const key = positionKey(position);
-    if (result.has(key)) throw new Error('Duplicate snapshot position');
+    const identity = positionKey(position);
+    // A single snapshot must still reject duplicate venue identities, even with opposing signs.
+    if (identities.has(identity)) throw new Error('Duplicate snapshot position');
+    identities.add(identity);
+    // Venue IDs can survive a one-way position reversal. Snapshot events need the side too.
+    const key = `${identity}:${quantity > 0 ? 'long' : 'short'}`;
     result.set(key, position);
   }
   return result;

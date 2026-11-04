@@ -20,6 +20,7 @@ async function fixture(page, options = {}) {
       leverage: '10',
     };
     if (options.riskDetails) Object.assign(position, {symbol:'BTCUSDT', positionAmt:'1', entryPrice:'90', markPrice:'100', unRealizedProfit:'10', liquidationPrice:'40', initialMargin:'20', maintenanceMargin:'1', marginCurrency:'USDT', baseAsset:'BTC', fetchedAt:Date.now()});
+    if (options.stablePosition) Object.assign(position, {instrumentId:position.symbol,positionId:position.symbol+':BOTH'});
     const positions = options.empty
       ? []
       : options.multiple
@@ -568,6 +569,20 @@ async function fixture(page, options = {}) {
     await activity.getByRole('button', { name: '持仓动态 · 交易室', exact: true }).click();
     assert(await activity.getByText('binance · 多仓 · ••••', { exact: true }).isVisible());
     await activity.close();
+
+    const direction = await open({riskDetails:true,stablePosition:true},320);
+    await direction.getByRole('button',{name:'更多操作',exact:true}).click();
+    await direction.getByRole('button',{name:'持仓动态 · 交易室',exact:true}).click();
+    await direction.getByRole('heading',{name:'等待下一次持仓变化',exact:true}).waitFor();
+    await direction.evaluate(()=>{window.__qa.positions[0].positionAmt='-1';window.__qa.refresh();});
+    await direction.getByText('BTC · 持仓消失',{exact:true}).waitFor();
+    await direction.getByText('BTC · 新增持仓',{exact:true}).waitFor();
+    assert.equal(await direction.locator('.event-list li').count(),2);
+    assert(await direction.getByText('binance · 多仓 · 1 → 0',{exact:true}).isVisible());
+    assert(await direction.getByText('binance · 空仓 · 0 → 1',{exact:true}).isVisible());
+    await direction.getByRole('button',{name:'暂停示意动画',exact:true}).click();
+    await capture(direction,'21-direction-snapshot');
+    await direction.close();
     results.push('session changes, animation pause, outage rebaseline, private amounts and 320px trading room');
     const risk = await open({riskDetails:true},320);
     await risk.getByText('价格与仓位详情', {exact:true}).click();
