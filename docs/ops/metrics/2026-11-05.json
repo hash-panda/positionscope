@@ -1,0 +1,163 @@
+{
+  "observed_date": "2026-11-05",
+  "timezone": "Asia/Shanghai",
+  "github_observed_window": "09:33–09:39",
+  "repository": "hash-panda/positionscope",
+  "default_commit": "eb08b920bccfdbf22529b7b71a87cb3af777a76e",
+  "stars": 0,
+  "forks": 0,
+  "watch_subscribers": 0,
+  "release": {
+    "tag": "v0.2.0-beta.15",
+    "published_at": "2026-11-04T01:27:14Z",
+    "target": "737067284c2ebae9b2a37acbec0fe0edefc357e5",
+    "assets": [
+      {
+        "name": "PositionScope-0.2.0-beta.15-arm64-verification.json",
+        "size": 1418,
+        "sha256": "sha256:6fdc1a467cf878a71b6108a83d6326ff8434d5ba9d8aa898ff541a8238eb8460",
+        "download_count": 2
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.15-arm64.dmg",
+        "size": 144014884,
+        "sha256": "sha256:337f63b3e7d582c38701de56ce78d27c9c22addac6d00c8ceef68c4e5e232ccd",
+        "download_count": 1
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.15-arm64.zip",
+        "size": 131521754,
+        "sha256": "sha256:0e7aea7d1f428b4754b3ff801b11406f867a3910ed5fd75bc1ad3253c363bf62",
+        "download_count": 3
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.15-x64-verification.json",
+        "size": 1412,
+        "sha256": "sha256:76f79bddfadc381deda0943028e5fd889fea7e10a3fc2b5effa2d46dea353784",
+        "download_count": 2
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.15-x64.dmg",
+        "size": 151533005,
+        "sha256": "sha256:c8382ac983a4285295c7cea69f6b27e0d13edf2516def8b73ccc8ab9f6a8295f",
+        "download_count": 1
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.15-x64.zip",
+        "size": 137744041,
+        "sha256": "sha256:f8e94d0e4507d29b88bf5ad8fa007e29eb62d7e0eaa05393436ff301cc200023",
+        "download_count": 1
+      },
+      {
+        "name": "SHA256SUMS.txt",
+        "size": 412,
+        "sha256": "sha256:0ce9886239b5f61a4a79f3090984850d1496ce46e04726fec5666de842c4df0a",
+        "download_count": 2
+      }
+    ]
+  },
+  "site": {
+    "project_id": "appgprj_6adc9278d56881918d6094a8a828a4ed",
+    "version": 13,
+    "status": "active",
+    "url": "https://positionscope.funagent.app",
+    "audience": "public"
+  },
+  "public_site_audit": {
+    "version": "public-site-audit-v1",
+    "started_at": "2026-11-05T01:36:16.021Z",
+    "observed_at": "2026-11-05T01:36:27.261Z",
+    "origin": "https://positionscope.funagent.app",
+    "expected_release": "v0.2.0-beta.15",
+    "verified": true,
+    "results": [
+      {
+        "path": "/",
+        "http_status": 200,
+        "verified": true,
+        "reason": "matched",
+        "checks": {
+          "indexable_header": true,
+          "html_type": true,
+          "canonical": true,
+          "indexable_meta": true,
+          "structured_version": true
+        }
+      },
+      {
+        "path": "/download/",
+        "http_status": 200,
+        "verified": true,
+        "reason": "matched",
+        "checks": {
+          "indexable_header": true,
+          "html_type": true,
+          "canonical": true,
+          "indexable_meta": true,
+          "download_links": true
+        }
+      },
+      {
+        "path": "/guides/portfolio-risk/",
+        "http_status": 200,
+        "verified": true,
+        "reason": "matched",
+        "checks": {
+          "indexable_header": true,
+          "html_type": true,
+          "canonical": true,
+          "indexable_meta": true
+        }
+      },
+      {
+        "path": "/robots.txt",
+        "http_status": 200,
+        "verified": true,
+        "reason": "matched",
+        "checks": {
+          "indexable_header": true,
+          "robots_policy": true
+        }
+      },
+      {
+        "path": "/sitemap.xml",
+        "http_status": 200,
+        "verified": true,
+        "reason": "matched",
+        "checks": {
+          "indexable_header": true,
+          "sitemap_routes": true
+        }
+      },
+      {
+        "path": "/release.json",
+        "http_status": 200,
+        "verified": true,
+        "reason": "matched",
+        "checks": {
+          "indexable_header": true,
+          "release_manifest": true
+        }
+      }
+    ],
+    "limitations": [
+      "Only three HTML routes and public metadata were checked; no installation or binary signature check.",
+      "This observer and time only; not proof of indexing, global availability, visits, activation or revenue.",
+      "Transport failures are unverified, not evidence of origin failure. No raw body, headers or transport errors are reported."
+    ]
+  },
+  "unknown": [
+    "website_visits",
+    "confirmed_activation",
+    "W1_retention",
+    "paying_customers",
+    "revenue",
+    "channel_cost",
+    "support_hours",
+    "search_index_and_performance"
+  ],
+  "limitations": [
+    "Download counts are cumulative asset requests, including CI; not people, installations or revenue.",
+    "No real accounts/models or user Mac were accessed."
+  ]
+}
