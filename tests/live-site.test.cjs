@@ -28,6 +28,22 @@ test('robots, sitemap, headers and status failures remain explicit instead of cl
  assert.equal(validate('/',{...fixture('/'),status:403},expected,robots).reason,'http-unverified');
  assert.equal(validate('/',{...fixture('/'),body:'x'.repeat(LIMIT+1)},expected,robots).reason,'body-invalid-or-too-large');
 });
+test('download targets must be four current anchor hrefs without stale or ambiguous alternatives',()=>{
+ const page=fixture('/download/');
+ const current=expected.downloads.arm64.dmg;
+ const stale=current.replaceAll(expected.version,'0.0.0-stale');
+ for(const body of [
+  page.body.replace(`href="${current}"`,`href="${stale}" data-href="${current}"`),
+  page.body.replace(`href="${current}"`,`href="${stale}" href="${current}"`),
+  page.body.replace('</main>',`<a href="${stale}">Old installer</a></main>`),
+  page.body.replace(`href="${current}"`,`data-href="${current}"`),
+ ]) {
+  assert.notEqual(body,page.body);
+  const result=validate('/download/',{...page,body},expected,robots);
+  assert.equal(result.checks.download_links,false);
+  assert.equal(result.reason,'content-mismatch');
+ }
+});
 test('partial transport failures do not retry or leak raw responses, cookies, proxy details or errors',async()=>{
  const marker='synthetic-private-transport-marker';const calls=[];
  const result=await audit(expected,robots,async r=>{calls.push(r);if(r==='/sitemap.xml')throw new Error(marker);if(r==='/robots.txt')return {...fixture(r),status:403,body:marker,headers:{'set-cookie':marker}};return fixture(r);});
