@@ -64,7 +64,7 @@ jobs:
   sign:
     if: needs.quality.outputs.release_required == 'true' && (github.event_name == 'workflow_dispatch' || vars.APPLE_SIGNING_ENABLED == 'true')
     needs: quality
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 90
     strategy:
       fail-fast: false
