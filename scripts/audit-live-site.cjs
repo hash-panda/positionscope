@@ -3,7 +3,7 @@ const {execFile}=require('node:child_process');
 const {promisify,isDeepStrictEqual}=require('node:util');
 const fs=require('node:fs');
 const path=require('node:path');
-const {validateCanonicalPage,validateSitemapRoutes}=require('./site-canonical.cjs');
+const {validateCanonicalPage,validateSitemapRoutes,validateDownloadLinks}=require('./site-canonical.cjs');
 const run=promisify(execFile);
 const ORIGIN='https://positionscope.funagent.app';
 const ROUTES=['/','/download/','/guides/read-only-api/','/guides/portfolio-risk/','/privacy/','/roadmap/','/en/'];
@@ -35,10 +35,7 @@ function validate(route,response,expected,robots) {
         .map(m=>JSON.parse(m[1])).filter(d=>d['@type']==='SoftwareApplication');
       requireTrue(apps.length===1&&apps[0].softwareVersion===expected.version);
     });
-    if(route==='/download/') {
-      const links=[...clean(body).matchAll(/<a\b[^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*>/gi)].map(m=>m[1]);
-      checks.download_links=['arm64','x64'].every(a=>['dmg','zip'].every(k=>links.includes(expected.downloads[a][k])));
-    }
+    if(route==='/download/')checks.download_links=passes(()=>validateDownloadLinks(body,expected.downloads));
   }
   const verified=Object.values(checks).every(Boolean);
   return {path:route,http_status:200,verified,reason:verified?'matched':'content-mismatch',checks};

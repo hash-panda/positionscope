@@ -1,0 +1,116 @@
+{
+  "date": "2026-11-06",
+  "timezone": "Asia/Shanghai",
+  "github_observed_window": "09:40–09:43",
+  "repository": "hash-panda/positionscope",
+  "default_commit": "8016ca67359cfa59dbc2ea1c3601b0ae74c8d706",
+  "stars": 0,
+  "forks": 0,
+  "watch": 0,
+  "release": {
+    "tag": "v0.2.0-beta.15",
+    "published_at": "2026-11-04T01:27:14Z",
+    "assets": [
+      {
+        "name": "PositionScope-0.2.0-beta.15-arm64-verification.json",
+        "download_count": 2
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.15-arm64.dmg",
+        "download_count": 1
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.15-arm64.zip",
+        "download_count": 5
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.15-x64-verification.json",
+        "download_count": 2
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.15-x64.dmg",
+        "download_count": 1
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.15-x64.zip",
+        "download_count": 1
+      },
+      {
+        "name": "SHA256SUMS.txt",
+        "download_count": 2
+      }
+    ]
+  },
+  "site": {
+    "version": 13,
+    "status": "active",
+    "audience": "public",
+    "url": "https://positionscope.funagent.app"
+  },
+  "public_site_audit": {
+    "version": "public-site-audit-v1",
+    "started_at": "2026-11-06T01:43:14.794Z",
+    "observed_at": "2026-11-06T01:43:24.827Z",
+    "origin": "https://positionscope.funagent.app",
+    "expected_release": "v0.2.0-beta.15",
+    "verified": false,
+    "results": [
+      {
+        "path": "/",
+        "http_status": null,
+        "verified": false,
+        "reason": "transport-unverified",
+        "checks": {}
+      },
+      {
+        "path": "/download/",
+        "http_status": null,
+        "verified": false,
+        "reason": "transport-unverified",
+        "checks": {}
+      },
+      {
+        "path": "/guides/portfolio-risk/",
+        "http_status": null,
+        "verified": false,
+        "reason": "transport-unverified",
+        "checks": {}
+      },
+      {
+        "path": "/robots.txt",
+        "http_status": null,
+        "verified": false,
+        "reason": "transport-unverified",
+        "checks": {}
+      },
+      {
+        "path": "/sitemap.xml",
+        "http_status": null,
+        "verified": false,
+        "reason": "transport-unverified",
+        "checks": {}
+      },
+      {
+        "path": "/release.json",
+        "http_status": null,
+        "verified": false,
+        "reason": "transport-unverified",
+        "checks": {}
+      }
+    ],
+    "limitations": [
+      "Only three HTML routes and public metadata were checked; no installation or binary signature check.",
+      "This observer and time only; not proof of indexing, global availability, visits, activation or revenue.",
+      "Transport failures are unverified, not evidence of origin failure. No raw body, headers or transport errors are reported."
+    ]
+  },
+  "unknown": [
+    "search_index_and_performance",
+    "visits",
+    "activation",
+    "retention",
+    "revenue",
+    "support_hours"
+  ],
+  "download_count_scope": "Cumulative asset requests including CI."
+}

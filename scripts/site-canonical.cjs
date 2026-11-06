@@ -5,7 +5,7 @@ function attributes(tag) {
   const result = new Map();
   for (const match of tag.matchAll(/\s([a-zA-Z][\w:-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)) {
     const name = match[1].toLowerCase();
-    assert(!result.has(name), `Duplicate canonical attribute: ${name}`);
+    assert(!result.has(name), `Duplicate HTML attribute: ${name}`);
     result.set(name, match[2] ?? match[3]);
   }
   return result;
@@ -29,4 +29,13 @@ function validateSitemapRoutes(xml, expectedURLs) {
   assert.equal(new Set(urls).size, urls.length, 'Duplicate sitemap URL');
   assert.deepEqual([...urls].sort(), [...expectedURLs].sort(), 'Sitemap must cover exactly the canonical page routes');
 }
-module.exports = { validateCanonicalPage, validateSitemapRoutes };
+function validateDownloadLinks(html, downloads) {
+  const expected = ['arm64', 'x64'].flatMap(arch => ['dmg', 'zip'].map(kind => downloads[arch][kind]));
+  const targets = [];
+  for (const [tag] of clean(html).matchAll(/<a(?=\s|>)(?:[^"'<>]|"[^"]*"|'[^']*')*>/gi)) {
+    const href = attributes(tag).get('href');
+    if (href && /\.(?:dmg|zip)(?:[?#]|$)/i.test(href)) targets.push(href);
+  }
+  assert.deepEqual(targets.sort(), expected.sort(), 'Download anchors must match the four signed installers');
+}
+module.exports = { validateCanonicalPage, validateSitemapRoutes, validateDownloadLinks };

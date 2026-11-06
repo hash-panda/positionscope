@@ -1,4 +1,4 @@
-const { validateCanonicalPage, validateSitemapRoutes } = require('./site-canonical.cjs');
+const { validateCanonicalPage, validateSitemapRoutes, validateDownloadLinks } = require('./site-canonical.cjs');
 const { validateReleaseEvidence } = require('./release-evidence.cjs');
 validateReleaseEvidence(require('node:path').resolve(__dirname, '..'));
 const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');const root=path.resolve(__dirname,'../website');const origin='https://positionscope.funagent.app';
@@ -18,11 +18,12 @@ for(const p of html) {
  assert(source.includes('src="/app-icon.png"'), p+' must use the app icon');
 }
 assert.equal(release.signed_and_notarized,true);
-assert(fs.readFileSync(path.join(root,'download/index.html'),'utf8').includes(release.tag));
+const downloadPage=fs.readFileSync(path.join(root,'download/index.html'),'utf8');
+assert(downloadPage.includes(release.tag));
 for(const architecture of ['arm64','x64']) for(const kind of ['dmg','zip']) {
  assert(release.downloads[architecture][kind].startsWith('https://github.com/hash-panda/positionscope/releases/download/'+release.tag+'/'));
- assert(fs.readFileSync(path.join(root,'download/index.html'),'utf8').includes(release.downloads[architecture][kind]));
 }
+validateDownloadLinks(downloadPage, release.downloads);
 console.log('Verified current signed-release download links against release manifest.');
 
 for (const p of html) {
