@@ -89,12 +89,22 @@ app.on('window-all-closed',()=>{});
         diagnostic_log=(directory/'launch.log').open('wb')
         process=subprocess.Popen([str(installed/'Contents/MacOS'/executable)],stdout=diagnostic_log,stderr=diagnostic_log,env={k:v for k,v in os.environ.items() if not k.startswith(('APPLE_','CSC_'))})
         try:
-            deadline=time.monotonic()+180
-            state={}
-            while time.monotonic()<deadline:
+            # Rosetta can consume most of the old shared three-minute budget before
+            # native installation begins. Bound each stage and the whole rehearsal;
+            # a ready event still never counts as a successful replacement/relaunch.
+            started=time.monotonic(); deadline=started+(180 if bootstrap_only else 600)
+            stage_deadline=min(deadline,started+180); last_stage=None
+            state={}; history=[]
+            while time.monotonic()<min(deadline,stage_deadline):
                 if (directory/'state.json').exists():
                     try: state=json.loads((directory/'state.json').read_text())
                     except json.JSONDecodeError: pass
+                    stage=state.get('state') or ('restarted' if state.get('restarted') else 'bootstrap')
+                    if stage!=last_stage:
+                        last_stage=stage; elapsed=round(time.monotonic()-started,1)
+                        history.append({'stage':stage,'elapsed_seconds':elapsed})
+                        print('Synthetic updater stage: '+json.dumps(history[-1]),flush=True)
+                        stage_deadline=min(deadline,time.monotonic()+(300 if stage in ('verifying','ready') else 180))
                     if state.get('error') or state.get('state')=='unavailable':
                         diagnostic=json.loads((directory/'native-error.json').read_text()) if (directory/'native-error.json').exists() else {'category':'harness'}
                         raise RuntimeError('Signed native updater rehearsal failed: '+json.dumps(diagnostic))
@@ -102,7 +112,9 @@ app.on('window-all-closed',()=>{});
                 time.sleep(1)
                 if process.poll() not in (None,0) and not state:
                     raise RuntimeError(f'Synthetic updater exited before bootstrap (exit {process.returncode})')
-            else:raise RuntimeError('Signed native updater rehearsal timed out at '+str(state.get('state','launch')))
+            else:
+                installed_version=plistlib.loads((installed/'Contents/Info.plist').read_bytes()).get('CFBundleShortVersionString')
+                raise RuntimeError('Signed native updater rehearsal timed out: '+json.dumps({'stage':last_stage,'installed_version':installed_version,'launcher_exit':process.poll(),'history':history}))
             if bootstrap_only:
                 output.write_text(json.dumps({'bootstrap_only':True,'asar_entry_started':True,'synthetic_profile_only':True,'native_upgrade_tested':False})+'\n')
                 return
@@ -110,7 +122,7 @@ app.on('window-all-closed',()=>{});
             info=plistlib.loads((installed/'Contents/Info.plist').read_bytes())
             if info.get('CFBundleShortVersionString')!='0.0.2':raise RuntimeError('Installed bundle was not replaced')
             run(['codesign','--verify','--deep','--strict',str(installed)])
-            output.write_text(json.dumps({'platform':'darwin','architecture':arch,'synthetic_profile_only':True,'separate_test_identity':True,'stream_hash_verified':True,'native_signature_checked':True,'installed_bundle_replaced':True,'new_version_relaunched':True,'real_user_profile_tested':False},indent=2)+'\n')
+            output.write_text(json.dumps({'platform':'darwin','architecture':arch,'synthetic_profile_only':True,'separate_test_identity':True,'stream_hash_verified':True,'native_signature_checked':True,'installed_bundle_replaced':True,'new_version_relaunched':True,'real_user_profile_tested':False,'stage_history':history},indent=2)+'\n')
         finally:
             if process.poll() is None:process.terminate();process.wait(timeout=10)
             diagnostic_log.close()
