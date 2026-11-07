@@ -120,12 +120,13 @@ function execute(c: PaperCycle, s: PaperState, b: PaperBook, at: number) {
   }
   observe(c, s, at);
 }
-export const emptyPaperState = (): PaperState => ({ version: 'paper-ledger-v1', cycles: [], books: {} });
+export const emptyPaperState = (): PaperState => ({ version: 'paper-ledger-v1', cycles: [], books: {}, calls: [] });
 /** Pure deterministic reducer. The journal is the only persisted source of truth. */
 export function applyPaperEvent(previous: PaperState, event: PaperEvent): PaperState {
   const s = clone(previous); text(event.id, 80); time(event.at); const at = event.at, command = event.command;
   check(command && typeof command === 'object');
   if (command.kind === 'start') {
+    check(s.cycles.flatMap(c => c.trades).filter(t => !t.exit).length <= 3);
     const capital = positive(command.capital); check(capital >= d('100') && capital <= d('1000000')); validatePolicy(command.policy);
     for (const c of s.cycles) if (c.status === 'running' || c.status === 'paused') { c.status = 'settling'; c.settleRequestedAt = at; cancel(c, '新周期开始，旧周期停止开仓'); observe(c, s, at); }
     check(!s.cycles.some(c => c.id === event.id));
@@ -140,6 +141,17 @@ export function applyPaperEvent(previous: PaperState, event: PaperEvent): PaperS
     text(p.reason, 1000); text(p.snapshotId, 160); text(p.provider, 80); text(p.model, 120);
     check(Array.isArray(p.evidenceIds) && p.evidenceIds.length <= 16); p.evidenceIds.forEach(x => text(x, 160));
     if (p.direction !== 'abstain') check(p.evidenceIds.length > 0);
+    check(Array.isArray(p.evidence) && p.evidence.length <= 40 && Array.isArray(p.conditions) && p.conditions.length <= 12);
+    const ids = new Set<string>();
+    for (const fact of p.evidence) {
+      text(fact.id, 160); check(!ids.has(fact.id)); ids.add(fact.id); text(fact.label,160); check(Number.isFinite(fact.value));
+      check(['USDT','base','percent','ratio','hours','contracts'].includes(fact.unit)); text(fact.source,300); text(fact.window,100);
+      time(fact.observedAt); time(fact.fetchedAt); check(fact.observedAt <= at + 5000 && fact.fetchedAt <= at + 5000);
+      check(/^((https:\/\/fapi\.binance\.com)?\/(fapi\/v1|futures\/data)\/)[a-zA-Z0-9/]+$/.test(fact.source));
+    }
+    check(p.evidenceIds.every(id => ids.has(id)));
+    for (const condition of p.conditions) { text(condition.id,160); text(condition.label,300); check(['met','not-met','unknown'].includes(condition.state)); check(Array.isArray(condition.factIds) && condition.factIds.every(id => ids.has(id))); }
+
     const duplicate = c.decisions.some(x => x.plan.snapshotId === p.snapshotId && x.plan.symbol === p.symbol);
     check(!duplicate);
     c.decisions.push({ id: event.id, at, plan: clone(p), policy: clone(c.policy), status: p.direction === 'abstain' ? 'abstained' : 'pending', note: p.direction === 'abstain' ? '模型弃权，不创建模拟委托' : '等待决策之后的新鲜盘口' });
@@ -165,6 +177,17 @@ export function applyPaperEvent(previous: PaperState, event: PaperEvent): PaperS
       }
       observe(c, s, at);
     }
+  } else if (command.kind === 'call') {
+    const c = s.cycles.find(c => c.id === command.cycleId); check(c && c.status === 'running');
+    text(command.provider, 80); text(command.model, 120);
+    const recent = s.calls.filter(call => at - call.at < 86400000);
+    check((recent.length + 1) * 2 <= c.policy.callsPerDay);
+    check(!recent.length || at - recent[recent.length - 1].at >= c.policy.intervalMinutes * 60000);
+    s.calls.push({ id: event.id, cycleId: c.id, at, provider: command.provider, model: command.model, status: 'reserved', note: '预留最多两次模型调用；实际 tokens 与费用未知' });
+  } else if (command.kind === 'call-result') {
+    const call = s.calls.find(call => call.id === command.callId); check(call && call.status === 'reserved');
+    check(command.status === 'complete' || command.status === 'failed'); text(command.note, 300);
+    call.status = command.status; call.note = command.note;
   } else if (command.kind === 'gap') {
     text(command.reason, 300);
     s.books = {}; // Old quotes cannot satisfy exits or equity after interruption.

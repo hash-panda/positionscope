@@ -86,6 +86,8 @@ async function fixture(run) {
       ipcMain: { handle: (channel, handler) => handlers.set(channel, handler) },
       autoUpdater: {}, session: { fromPartition: () => ({ fetch: async () => { throw Error('unexpected update network'); } }) },
       nativeImage: { createFromPath: image, createFromBuffer: image }, shell: { openExternal: async () => {} } },
+    'fs': { promises: { unlink: async () => {} } },
+    './services/paper/ledger': { PaperLedger: { open: async () => require('../dist/main/services/paper/ledger').PaperLedger.open() } },
     './settings': { SettingsManager: { open: async () => settings } },
     './settings-crypto': { macSettingsCipher: {} },
     './services/exchangeManager': { ExchangeManager: class { constructor() { return exchange; } } },
@@ -246,4 +248,13 @@ test('update IPC accepts only owned top-level windows; no renderer supplied down
  assert.equal((await h.invoke('check-for-updates',owner)).state,'current');
  assert.equal((await h.invoke('download-update',owner,'https://untrusted.example')).state,'downloading');
  assert.equal(await h.invoke('install-update',owner),false);
+}));
+
+
+test('paper IPC is workspace-only and explicit consent cannot be bypassed by a popup or child frame',()=>fixture(async h=>{
+ await h.invoke('open-workspace',h.sender(h.windows[0]),'paper');const workspace=h.windows[1];
+ const valid=await h.invoke('get-paper-state',h.sender(workspace));assert.equal(valid.success,true);assert.equal(valid.data.cycles.length,0);
+ const input={capital:'1000',callsPerDay:4,consent:true};
+ for(const sender of [h.sender(h.windows[0]),{sender:workspace.webContents,senderFrame:{}}])assert.equal((await h.invoke('start-paper-cycle',sender,input)).success,false);
+ assert.equal((await h.invoke('start-paper-cycle',h.sender(workspace),{...input,consent:false})).success,false);assert.equal(h.calls.model,0);assert.equal(h.calls.privateReads,0);
 }));

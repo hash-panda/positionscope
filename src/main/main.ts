@@ -5,6 +5,9 @@ import { publicMarketService } from './services/public-market';
 import { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell, autoUpdater, session, net } from 'electron';
 
 import * as path from 'path';
+import { promises as fileSystem } from 'fs';
+import { PaperLedger } from './services/paper/ledger';
+import { PaperController } from './services/paper/controller';
 import { ExchangeManager } from './services/exchangeManager';
 import { SettingsManager } from './settings';
 import { macSettingsCipher } from './settings-crypto';
@@ -48,6 +51,9 @@ const researchMarket = new BinanceResearchService();
 let researchLedger: ResearchLedger;
 let researchController: ResearchController;
 let researchTimer: NodeJS.Timeout | null = null;
+let paperLedger: PaperLedger | undefined;
+let paperController: PaperController | undefined;
+let paperTimer: NodeJS.Timeout | undefined;
 let observing = false;
 let researchEpoch = 0;
 let privacyMaskPending = false;
@@ -57,8 +63,8 @@ let refreshInterval: NodeJS.Timeout | null = null;
 let maxDisplayCount: number = 2; // 菜单栏最多显示的持仓数（默认2个）
 let refreshIntervalSeconds: number = 5; // 刷新间隔（秒），默认5秒
 
-type WorkspacePage = 'research' | 'positions' | 'review' | 'settings';
-const workspacePages = new Set(['research', 'positions', 'review', 'settings']);
+type WorkspacePage = 'paper' | 'research' | 'positions' | 'review' | 'settings';
+const workspacePages = new Set(['paper', 'research', 'positions', 'review', 'settings']);
 function broadcast(channel: string, ...values: unknown[]) {
   for (const target of [window, workspaceWindow]) if (target && !target.isDestroyed()) target.webContents.send(channel, ...values);
 }
@@ -112,6 +118,16 @@ async function observeResearch() {
     if (outcome.triggeredAlerts.length || outcome.completedShadows.length) broadcast('research-ledger-changed');
   } catch { /* Offline is a gap, never a trigger. No provider calls or private account reads. */ }
   finally { observing = false; }
+}
+
+async function initializePaper() {
+  try {
+    paperLedger = await PaperLedger.open({ filePath: path.join(app.getPath('userData'), 'paper-ledger.json') });
+    paperController = new PaperController({ ledger: paperLedger, market: researchMarket,
+      provider: () => { const config = settingsManager.getAISettings(); if (!config.enabled || !config.useCustomKeys) throw new Error('模型未配置'); return aiService.getResearchProvider(); },
+      analyze: request => researchController.analyze(request), changed: () => broadcast('paper-changed') });
+    if (paperLedger.snapshot().cycles.length) await paperController.invalidate();
+  } catch { paperController = undefined; console.error('[Paper] Local ledger unavailable; original file retained'); }
 }
 
 function createWindow() {
@@ -396,8 +412,10 @@ app.whenReady().then(async () => {
     });
   }
 
+  await initializePaper();
   createTray();
   createWindow();
+  paperTimer = setInterval(() => { void paperController?.poll(); void paperController?.think(); }, 15000);
   researchTimer = setInterval(() => { void observeResearch(); }, 60_000);
 
   // 如果有凭证，启动自动刷新
@@ -408,7 +426,7 @@ app.whenReady().then(async () => {
 
 // Keep the menu-bar process alive after its window closes.
 app.on('window-all-closed', () => {});
-app.on('before-quit', () => { installer?.dispose(); if (researchTimer) clearInterval(researchTimer); stopAutoRefresh(); researchController?.invalidate(); });
+app.on('before-quit', () => { paperController?.stop(); if (paperTimer) clearInterval(paperTimer); installer?.dispose(); if (researchTimer) clearInterval(researchTimer); stopAutoRefresh(); researchController?.invalidate(); });
 
 // IPC handlers
 ipcMain.handle('get-window-mode', event => event.sender === workspaceWindow?.webContents ? 'workspace' : 'popup');
@@ -443,6 +461,17 @@ function researchHandler(channel: string, action: (...args: any[]) => unknown) {
     catch { return { success: false, error: '研究数据或本地记录暂不可用，请刷新后重试；AI 需已配置可用的模型与 Key。' }; }
   });
 }
+function paperHandler(channel: string, action: (...args: unknown[]) => unknown) {
+  ipcMain.handle(channel, async (event, ...args) => {
+    if (event.sender !== workspaceWindow?.webContents || event.senderFrame !== workspaceWindow.webContents.mainFrame) return { success:false, error:'模拟操作来源无效' };
+    if (!paperController) return {success:false,error:'模拟历史无法读取，原文件已保留；请检查本地存储。'};
+    try { return {success:true,data:await action(...args)}; }
+    catch { return {success:false,error:'模拟操作未完成。请检查本金、模型配置与调用预算；旧历史保留。'}; }
+  });
+}
+paperHandler('get-paper-state', () => paperController!.snapshot());
+paperHandler('start-paper-cycle', input => paperController!.start(input));
+paperHandler('set-paper-mode', (id, mode) => paperController!.mode(id,mode));
 const requireLedger = () => { if (!researchLedger) throw new Error('研究记录不可用'); return researchLedger; };
 researchHandler('get-research-snapshot', () => { researchMarket.setProxy(settingsManager.getProxyUrl()); return researchMarket.snapshot(); });
 researchHandler('get-watchlist-market', () => {
@@ -671,6 +700,7 @@ ipcMain.handle('get-app-version', async () => {
 ipcMain.handle('reset-to-defaults', async () => {
   await settingsManager.resetToDefaults();
   researchEpoch++;
+  await paperController?.invalidate();
   researchController.invalidate();
   aiService.setConfig(settingsManager.getAISettings());
   aiService.clearCache();
@@ -683,10 +713,14 @@ ipcMain.handle('reset-to-defaults', async () => {
 // 删除所有数据（包括API凭证）
 ipcMain.handle('delete-all-data', async () => {
   try {
-    // 1. 停止自动刷新
+    // Stop all writers before explicit delete-all; starting a new cycle never takes this path.
     stopAutoRefresh();
     researchEpoch++;
     researchController.invalidate();
+    paperController?.stop();
+    paperController = undefined;
+    await paperLedger?.close();
+    await fileSystem.unlink(path.join(app.getPath('userData'), 'paper-ledger.json')).catch(error => { if (error.code !== 'ENOENT') throw error; });
     if (researchLedger) await researchLedger.clearAll();
     else {
       await ResearchLedger.eraseFile(path.join(app.getPath('userData'), 'research-ledger.json'));
@@ -710,6 +744,8 @@ ipcMain.handle('delete-all-data', async () => {
     console.log('[IPC] All data deleted successfully');
     privacyMaskPending = false;
     broadcast('research-ledger-changed');
+    await initializePaper();
+    broadcast('paper-changed');
     broadcast('data-cleared');
     broadcast('preferences-changed');
     return { success: true };
@@ -818,6 +854,7 @@ ipcMain.handle('save-ai-settings', async (_, aiSettings: AISettings) => {
     validateAISettingsModels(aiSettings);
     await settingsManager.setAISettings(aiSettings);
     researchEpoch++;
+    await paperController?.invalidate();
 
     // 初始化AI服务
     aiService.setConfig(aiSettings);
@@ -996,6 +1033,7 @@ ipcMain.handle('save-proxy-settings', async (_, proxyUrl: string) => {
 
     await settingsManager.setProxyUrl(proxyUrl);
     researchEpoch++;
+    await paperController?.invalidate();
     researchController.invalidate();
     researchMarket.setProxy(proxyUrl);
     broadcast('preferences-changed');
