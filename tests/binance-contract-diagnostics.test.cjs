@@ -11,7 +11,7 @@ test('documented V3 payload maps without V2 leverage or marginType fields',()=>{
 });
 test('every consumed numeric field reports a bounded field name without the value',()=>{
  const marker='PRIVATE_SYNTHETIC_NEVER_OUTPUT';
- for(const field of ['positionAmt','entryPrice','markPrice','unRealizedProfit','liquidationPrice','isolatedWallet','positionInitialMargin','maintMargin','updateTime']) {
+ for(const field of ['positionAmt','entryPrice','markPrice','unRealizedProfit','liquidationPrice','isolatedWallet','isolatedMargin','positionInitialMargin','maintMargin','updateTime']) {
   assert.throws(()=>normalizeBinancePosition({...official,[field]:marker},{marginType:'ISOLATED',leverage:20}),e=>{
    assert(e instanceof BinanceDataError);assert.equal(e.field,field);
    const d=binanceDataFailure(e);assert(d.suggestion.includes(field));assert(!JSON.stringify(d).includes(marker));assert(!e.message.includes(marker));return true;
@@ -19,7 +19,7 @@ test('every consumed numeric field reports a bounded field name without the valu
  }
 });
 test('direction mismatch, zero/negative prices and negative margins remain errors',()=>{
- for(const [field,value] of [['positionSide','SHORT'],['entryPrice','0'],['markPrice','-1'],['maintMargin','-1'],['isolatedWallet','-1']])assert.throws(()=>normalizeBinancePosition({...official,[field]:value},{marginType:'ISOLATED',leverage:20}),e=>e.field===field);
+ for(const [field,value] of [['positionSide','SHORT'],['entryPrice','0'],['markPrice','-1'],['maintMargin','-1']])assert.throws(()=>normalizeBinancePosition({...official,[field]:value},{marginType:'ISOLATED',leverage:20}),e=>e.field===field);
 });
 test('zero-quantity order-only rows can be filtered before price validation; malformed quantity cannot',()=>{
  assert.equal(binancePositionQuantity({positionAmt:'0',entryPrice:'0'}),0);
@@ -28,4 +28,10 @@ test('zero-quantity order-only rows can be filtered before price validation; mal
 test('missing optional margins remain unknown and invented field names cannot reach UI',()=>{
  const p=normalizeBinancePosition({...official,maintMargin:undefined,positionInitialMargin:''},undefined);assert.equal(p.maintenanceMargin,null);assert.equal(p.initialMargin,null);
  const d=binanceDataFailure(new BinanceDataError('BINANCE_INVALID_POSITION','SECRET_MARKER'));assert(!JSON.stringify(d).includes('SECRET_MARKER'));
+});
+test('signed isolated wallet balance is distinct from margin and does not reject valid positions',()=>{
+ const p=normalizeBinancePosition({...official,isolatedWallet:'-12.5',isolatedMargin:'18.75'},{marginType:'ISOLATED',leverage:20});
+ assert.equal(p.isolatedWallet,'-12.5');assert.equal(p.isolatedMargin,'18.75');assert.equal(p.unRealizedProfit,official.unRealizedProfit);
+ const missing=normalizeBinancePosition({...official,isolatedWallet:'-12.5',isolatedMargin:undefined},{marginType:'ISOLATED',leverage:20});
+ assert.equal(missing.isolatedMargin,null);assert.equal(missing.isolatedWallet,'-12.5');
 });

@@ -31,7 +31,8 @@ export interface Position {
   markPrice: string;               // 标记价格
   unRealizedProfit: string;        // 未实现盈亏
   marginType: 'cross' | 'isolated' | 'portfolio' | 'unknown';
-  isolatedMargin: string | null;   // 逐仓抵押金额；不可用不能补零
+  isolatedMargin: string | null;   // 交易所逐仓保证金余额；不可用不能补零
+  isolatedWallet?: string | null; // Binance逐仓钱包余额，可为负；与保证金余额分开
   leverage: string | null;
   instrumentId?: string;
   positionId?: string;

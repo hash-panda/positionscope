@@ -155,3 +155,9 @@ test('Binance malformed payloads expose trusted local categories while raw provi
   const {service} = serviceFixture({'/fapi/v3/positionRisk': upstream});
   await assert.rejects(service.getFuturesPositions(), e => exchangeFailure(e).errorCode === 'HTTP_401');
 }));
+test('isolated negative wallet survives full service fetch without losing other positions',async()=>{
+ await privateFixture(async()=>{
+  const {service}=serviceFixture({'/fapi/v3/positionRisk':[{...raw,isolatedWallet:'-12.5',isolatedMargin:'18.75'}],'/fapi/v1/symbolConfig':[{...config,marginType:'ISOLATED'}]});
+  const rows=await service.getFuturesPositions();assert.equal(rows.length,1);assert.equal(rows[0].isolatedWallet,'-12.5');assert.equal(rows[0].isolatedMargin,'18.75');assert.equal(rows[0].positionAmt,raw.positionAmt);
+ });
+});
