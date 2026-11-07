@@ -1,24 +1,24 @@
 {
-  "version": "0.2.5",
-  "tag": "v0.2.5",
-  "published_at": "2026-11-07T15:55:34Z",
+  "version": "0.2.6",
+  "tag": "v0.2.6",
+  "published_at": "2026-11-07T16:15:21Z",
   "signed_and_notarized": true,
-  "ci_run_url": "https://github.com/hash-panda/positionscope/actions/runs/42387915900",
+  "ci_run_url": "https://github.com/hash-panda/positionscope/actions/runs/42389421613",
   "downloads": {
     "arm64": {
-      "dmg": "https://github.com/hash-panda/positionscope/releases/download/v0.2.5/PositionScope-0.2.5-arm64.dmg",
-      "zip": "https://github.com/hash-panda/positionscope/releases/download/v0.2.5/PositionScope-0.2.5-arm64.zip"
+      "dmg": "https://github.com/hash-panda/positionscope/releases/download/v0.2.6/PositionScope-0.2.6-arm64.dmg",
+      "zip": "https://github.com/hash-panda/positionscope/releases/download/v0.2.6/PositionScope-0.2.6-arm64.zip"
     },
     "x64": {
-      "dmg": "https://github.com/hash-panda/positionscope/releases/download/v0.2.5/PositionScope-0.2.5-x64.dmg",
-      "zip": "https://github.com/hash-panda/positionscope/releases/download/v0.2.5/PositionScope-0.2.5-x64.zip"
+      "dmg": "https://github.com/hash-panda/positionscope/releases/download/v0.2.6/PositionScope-0.2.6-x64.dmg",
+      "zip": "https://github.com/hash-panda/positionscope/releases/download/v0.2.6/PositionScope-0.2.6-x64.zip"
     }
   },
   "verification_records": {
-    "arm64": "https://github.com/hash-panda/positionscope/releases/download/v0.2.5/PositionScope-0.2.5-arm64-verification.json",
-    "x64": "https://github.com/hash-panda/positionscope/releases/download/v0.2.5/PositionScope-0.2.5-x64-verification.json"
+    "arm64": "https://github.com/hash-panda/positionscope/releases/download/v0.2.6/PositionScope-0.2.6-arm64-verification.json",
+    "x64": "https://github.com/hash-panda/positionscope/releases/download/v0.2.6/PositionScope-0.2.6-x64-verification.json"
   },
-  "checksums": "https://github.com/hash-panda/positionscope/releases/download/v0.2.5/SHA256SUMS.txt",
+  "checksums": "https://github.com/hash-panda/positionscope/releases/download/v0.2.6/SHA256SUMS.txt",
   "native_ui_tested": false,
   "real_accounts_tested": false,
   "app_id": "app.funagent.positionscope",
@@ -29,5 +29,5 @@
   "native_storage_ci_tested": true,
   "packaged_app_keychain_prompt_tested": false,
   "packaged_branding_verified": true,
-  "source_commit": "914bee82100dcde475a4c02a3dd70c55ccd954c7"
+  "source_commit": "50a8974012ac14d8441dda7e3420a2e3c67de118"
 }

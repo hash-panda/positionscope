@@ -1,6 +1,12 @@
 # 产品 Review 与下一步
 
-## 当前已发布版本（2026-11-07，v0.2.0-beta.16）
+## 当前已发布版本（2026-11-07，0.2.6）
+
+0.2.4（#73/#74）完成菜单栏纯数字盈亏、单方向图标、设置滚动与单版Release说明；0.2.5（#75/#77/#78）完成独立模拟账本、周期保留、公开研究与模型预算；0.2.6（#79/#81）增加冻结复盘、周期比较与候选策略前向对照。来源 `50a8974012ac14d8441dda7e3420a2e3c67de118`，[签名运行](https://github.com/hash-panda/positionscope/actions/runs/42389421613)与[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.6) 已核对，七项资产和摘要见 [releases/v0.2.6](releases/v0.2.6/)。221 Node、25 Python、类型/构建、UI/axe和Mac原生检查见 [功能CI](https://github.com/hash-panda/positionscope/actions/runs/42388835708)及[版本CI](https://github.com/hash-panda/positionscope/actions/runs/42389151034)。
+
+真实账户仍只读；模拟是用户明确确认预算后的独立本地虚拟账本，无真实下单或转账。候选筛选门槛不等于统计显著性或盈利证明。真实Mac/钥匙串弹窗/账户/模型、七天连续运行与大账本容量仍未验证，跟踪 #3。官网改版与部署凭据见 [本轮报告](ops/2026-11-07-paper-release.md) 和 PR #80。旧预览版不迁移，正常Apple凭证不重配。
+
+## 历史已发布版本（2026-11-07，v0.2.0-beta.16）
 
 [PR #53](https://github.com/hash-panda/positionscope/pull/53) 修复币安汉字 USDT 合约被误拒、首次读取失败显示零盈亏/持仓数和暂停刷新提示。合约标识贯穿持仓、风险事实及公共行情，保持结算、长度、字符与元数据边界；本地诊断不透传原始响应，成功空仓仍显示零。102 项 Node、5 项 Python、类型/构建、UI/axe 与合成 Mac 见 [PR CI](https://github.com/hash-panda/positionscope/actions/runs/42360949679)及[主分支 CI](https://github.com/hash-panda/positionscope/actions/runs/42361140885)。[签名发布](https://github.com/hash-panda/positionscope/actions/runs/42361141010)双架构签名、公证、装订、Gatekeeper 与 publish 成功；[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.0-beta.16)和 docs/releases/v0.2.0-beta.16 七资产已核对，详见 docs/ops/2026-11-07-beta16-release.md。合成复现不代表已确认用户实际原因。新版 AI 工作台仍为设计提案；真实 Mac/账户/模型、签名包权限弹窗及完整日志/时效审计仍未验收。不重配正常 Apple 凭证，不迁移旧预览版。
 

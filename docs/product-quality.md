@@ -1,6 +1,12 @@
 # PositionScope 质量评审与迭代
 
-## 当前已发布版本（2026-11-07，0.2.3）
+## 当前已发布版本（2026-11-07，0.2.6）
+
+0.2.4（#73/#74）完成菜单栏纯数字盈亏、单方向图标、设置滚动与单版Release说明；0.2.5（#75/#77/#78）完成独立模拟账本、周期保留、公开研究与模型预算；0.2.6（#79/#81）增加冻结复盘、周期比较与候选策略前向对照。来源 `50a8974012ac14d8441dda7e3420a2e3c67de118`，[签名运行](https://github.com/hash-panda/positionscope/actions/runs/42389421613)与[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.6) 已核对，七项资产和摘要见 [releases/v0.2.6](releases/v0.2.6/)。221 Node、25 Python、类型/构建、UI/axe和Mac原生检查见 [功能CI](https://github.com/hash-panda/positionscope/actions/runs/42388835708)及[版本CI](https://github.com/hash-panda/positionscope/actions/runs/42389151034)。
+
+真实账户仍只读；模拟是用户明确确认预算后的独立本地虚拟账本，无真实下单或转账。候选筛选门槛不等于统计显著性或盈利证明。真实Mac/钥匙串弹窗/账户/模型、七天连续运行与大账本容量仍未验证，跟踪 #3。官网改版与部署凭据见 [本轮报告](ops/2026-11-07-paper-release.md) 和 PR #80。旧预览版不迁移，正常Apple凭证不重配。
+
+## 历史已发布版本（2026-11-07，0.2.3）
 
 已完成卡片布局/完整持仓表/退出标题、报价语义与应用内更新，见 [PR #67](https://github.com/hash-panda/positionscope/pull/67)、[PR #68](https://github.com/hash-panda/positionscope/pull/68)和[发布报告](ops/2026-11-07-in-app-updates.md)。196 Node、21 Python、类型/构建、UI/axe、合成 Mac 存储/图标，以及双架构原生更新替换重启、签名、公证、装订、Gatekeeper有可复核证据。此处更新验证基线，不凭新增功能虚增百分制评分；真实 Mac 权限/配置、账户/模型语义和盈利能力未验收，访问/激活/留存/收入未知。
 

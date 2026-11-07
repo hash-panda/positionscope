@@ -1,7 +1,7 @@
 .app.positionscope-app { --brand: #c4a464; --brand-soft: rgb(196 164 100 / .12); --positive: #49c99c; --negative: #ef8190; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; }
-.app.positionscope-app.light-mode { --canvas: #faf9f6; --surface: #fff; --raised: #f0efeb; --border: #e5e3dd; --text: #252b2b; --muted: #626a6a; --brand: #785715; --brand-soft: #f3ecdc; --positive: #167459; --negative: #bc3c4e; }
+.app.positionscope-app.light-mode { --canvas: var(--ps-workspace-canvas); --surface: var(--ps-workspace-surface); --raised: var(--ps-workspace-raised); --border: var(--ps-workspace-border); --text: var(--ps-workspace-text); --muted: var(--ps-workspace-muted); --brand: var(--ps-workspace-brand); --brand-soft: var(--ps-workspace-brand-soft); --positive: var(--ps-workspace-positive); --negative: var(--ps-workspace-negative); }
 .app.positionscope-app.red-up { --positive: #ef8190; --negative: #49c99c; --positive-soft: rgb(239 129 144 / .1); --negative-soft: rgb(73 201 156 / .1); }
-.app.positionscope-app.light-mode.red-up { --positive: #bc3c4e; --negative: #167459; }
+.app.positionscope-app.light-mode.red-up { --positive: var(--ps-workspace-negative); --negative: var(--ps-workspace-positive); }
 .positionscope-app button { transition: background-color 200ms, color 200ms, border-color 200ms; }
 .positionscope-app .button { border-radius: 6px; min-height: 34px; font-size: 12px; font-weight: 550; }
 .positionscope-app .button.subtle { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }

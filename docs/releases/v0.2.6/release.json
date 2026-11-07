@@ -1,0 +1,63 @@
+{
+  "version": "0.2.6",
+  "tag": "v0.2.6",
+  "source_commit": "50a8974012ac14d8441dda7e3420a2e3c67de118",
+  "ci_run_url": "https://github.com/hash-panda/positionscope/actions/runs/42389421613",
+  "published_at": "2026-11-07T16:15:21Z",
+  "app_id": "app.funagent.positionscope",
+  "minimum_macos_versions": {
+    "arm64": "13.0",
+    "x64": "13.0"
+  },
+  "assets": [
+    {
+      "name": "PositionScope-0.2.6-arm64-verification.json",
+      "size": 2079,
+      "url": "https://github.com/hash-panda/positionscope/releases/download/v0.2.6/PositionScope-0.2.6-arm64-verification.json",
+      "sha256": "389c8c00f9b26239e06196ee21eeef87df0a53596af9ed95b554e7041bc62de3"
+    },
+    {
+      "name": "PositionScope-0.2.6-arm64.dmg",
+      "size": 144145043,
+      "url": "https://github.com/hash-panda/positionscope/releases/download/v0.2.6/PositionScope-0.2.6-arm64.dmg",
+      "sha256": "bb89605eeebef2637d7172e460862b6eccaa1818ad0225287b064e872bdd2ed9"
+    },
+    {
+      "name": "PositionScope-0.2.6-arm64.zip",
+      "size": 131564135,
+      "url": "https://github.com/hash-panda/positionscope/releases/download/v0.2.6/PositionScope-0.2.6-arm64.zip",
+      "sha256": "5f73cffa9d0c20a8adde42da1eeb030b07be8f49e4c140b49c27ca0f42fd3f6e"
+    },
+    {
+      "name": "PositionScope-0.2.6-x64-verification.json",
+      "size": 2234,
+      "url": "https://github.com/hash-panda/positionscope/releases/download/v0.2.6/PositionScope-0.2.6-x64-verification.json",
+      "sha256": "22078da90ef39d86d3b5364d2edae9fce95dfe4a20a866ad7e88f67f95860861"
+    },
+    {
+      "name": "PositionScope-0.2.6-x64.dmg",
+      "size": 152311523,
+      "url": "https://github.com/hash-panda/positionscope/releases/download/v0.2.6/PositionScope-0.2.6-x64.dmg",
+      "sha256": "6498ca1974e3c22a71217e1e17226fbe7cf2af7e65f602380afabee9968656d1"
+    },
+    {
+      "name": "PositionScope-0.2.6-x64.zip",
+      "size": 137787273,
+      "url": "https://github.com/hash-panda/positionscope/releases/download/v0.2.6/PositionScope-0.2.6-x64.zip",
+      "sha256": "acbe7d476eb6fac4febc47028cebe2a24767a1ceece9cc82be0df41328481c53"
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "size": 380,
+      "url": "https://github.com/hash-panda/positionscope/releases/download/v0.2.6/SHA256SUMS.txt",
+      "sha256": "9a2275beafd82c9c0ebdb99e26a8ca94a4dadbf239f052ebe8d6c675da6ff5c4"
+    }
+  ],
+  "signed_and_notarized": true,
+  "native_storage_ci_tested": true,
+  "packaged_app_keychain_prompt_tested": false,
+  "native_ui_tested": false,
+  "real_accounts_tested": false,
+  "packaged_branding_verified": true,
+  "verification_scope": "Downloaded verification JSON and checksum files rehashed locally; four binary hashes compared with GitHub asset digests. Packaged icon hashes match source. No local installation, user-Mac UI, real-account or real-model test."
+}

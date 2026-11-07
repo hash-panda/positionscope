@@ -415,7 +415,7 @@ app.whenReady().then(async () => {
   await initializePaper();
   createTray();
   createWindow();
-  paperTimer = setInterval(() => { void paperController?.poll(); void paperController?.think(); }, 15000);
+  paperTimer = setInterval(() => { void paperController?.poll(); void paperController?.review(); void paperController?.think(); }, 15000);
   researchTimer = setInterval(() => { void observeResearch(); }, 60_000);
 
   // 如果有凭证，启动自动刷新
