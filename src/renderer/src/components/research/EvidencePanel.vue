@@ -16,6 +16,15 @@ const counterFacts = computed(() => props.model.analysis?.facts.filter(f => prop
 watch(() => props.model.selected?.id, () => { alertOpen.value = false; });
 async function follow() { const symbol = props.model.selected?.symbol; if (symbol && props.model.api.setResearchWatch) await props.model.mutate(() => props.model.api.setResearchWatch!(symbol, !watched.value)); }
 async function saveAlert(input: ResearchAlertInput) { if (!props.model.api.createResearchAlert) return; await props.model.mutate(() => props.model.api.createResearchAlert!(input)); if (!props.model.actionError) alertOpen.value = false; }
+function alertThreshold(alert: ResearchAlertInput) {
+  const label = { price: '成交价', funding: '资金费率', openInterest: '未平仓量' }[alert.metric];
+  const value = alert.metric === 'funding' ? alert.threshold * 100 : alert.threshold;
+  const formatted = value !== 0 && Math.abs(value) < 1e-8
+    ? value.toExponential(4)
+    : value.toLocaleString('en-US', { minimumFractionDigits: alert.metric === 'funding' ? 2 : 0, maximumFractionDigits: 8 });
+  const unit = alert.metric === 'funding' ? '%' : alert.metric === 'price' ? ' USDT' : ' 币';
+  return `${label} ${alert.operator === 'above' ? '↑' : '↓'} ${formatted}${unit}`;
+}
 function source(url: string) { if (/^https:\/\/(?:fapi\.binance\.com|developers\.binance\.com)\//.test(url)) void window.electronAPI?.openExternal(url); }
 </script>
 <template>
@@ -33,7 +42,7 @@ function source(url: string) { if (/^https:\/\/(?:fapi\.binance\.com|developers\
         <section class="evidence-section"><h3>等待条件</h3><ul v-if="model.evidence?.conditions.length" class="condition-list"><li v-for="condition in model.evidence.conditions" :key="condition.id"><Check v-if="condition.state === 'met'" :size="14"/><span v-else class="condition-dot"/><span>{{ condition.label }}</span><small>{{ {met:'已满足','not-met':'未满足',unknown:'未知'}[condition.state] }}</small></li></ul><p v-else class="muted">暂无可验证条件。</p></section>
         <details class="evidence-section source-details"><summary>原始依据 · {{ facts.length }} 条</summary><div v-for="fact in facts" :key="fact.id" class="source-fact"><strong>{{ fact.label }}</strong><span class="numeric">{{ factValue(fact) }}</span><small>{{ fact.window }} · {{ time(fact.observedAt) }}</small><button class="text-button" @click="source(fact.source)">Binance 原始来源<ExternalLink :size="11"/></button></div></details>
         <details v-if="gaps.length" class="evidence-section source-details"><summary>数据缺口 · {{ gaps.length }}</summary><ul class="evidence-bullets"><li v-for="gap in gaps" :key="gap">{{ gap }}</li></ul></details>
-        <div v-for="alert in alerts" :key="alert.id" class="saved-alert"><Bell :size="13"/><span>{{ alert.metric }} {{ alert.operator === 'above' ? '↑' : '↓' }} {{ alert.threshold }} · {{ alert.status === 'armed' ? '等待穿越' : '已触发' }}</span><button class="text-button" :disabled="model.actionBusy" @click="model.mutate(() => model.api.removeResearchAlert!(alert.id))">移除</button></div>
+        <div v-for="alert in alerts" :key="alert.id" class="saved-alert"><Bell :size="13"/><span>{{ alertThreshold(alert) }} · {{ alert.status === 'armed' ? '等待穿越' : '已触发' }}</span><button class="text-button" :disabled="model.actionBusy" @click="model.mutate(() => model.api.removeResearchAlert!(alert.id))">移除</button></div>
       </div>
       <p v-if="model.actionError" class="research-error" role="alert">{{ model.actionError }}</p>
       <footer class="evidence-actions"><button class="button subtle" :aria-pressed="watched" :disabled="model.actionBusy || !model.api.setResearchWatch" @click="follow"><Star :size="15" :fill="watched ? 'currentColor' : 'none'"/>{{ watched ? '已关注' : '关注' }}</button><button class="button subtle" :disabled="!model.api.createResearchAlert" @click="alertOpen = true"><Bell :size="15"/>条件提醒</button></footer>

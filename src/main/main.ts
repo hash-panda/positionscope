@@ -463,12 +463,16 @@ researchHandler('analyze-research', async input => {
   finally { broadcast('research-ledger-changed'); }
 });
 researchHandler('set-research-watch', async (symbol: string, watched: boolean) => {
+  const epoch = researchEpoch;
   if (typeof watched !== 'boolean' || !await researchMarket.isSupportedSymbol(symbol)) throw new Error('标的不可用');
+  if (epoch !== researchEpoch) throw new Error('研究配置或数据已变更，请重新操作');
   const result = await requireLedger().setWatched(symbol, watched);
   broadcast('research-ledger-changed'); return result;
 });
 researchHandler('create-research-alert', async input => {
+  const epoch = researchEpoch;
   if (!input || !['price', 'funding'].includes(input.metric) || !await researchMarket.isSupportedSymbol(input.symbol)) throw new Error('提醒范围无效');
+  if (epoch !== researchEpoch) throw new Error('研究配置或数据已变更，请重新操作');
   // Keep public polling bounded across all armed conditions and forward experiments.
   const state = requireLedger().snapshot();
   if (new Set([...state.alerts.filter(a => a.status === 'armed').map(a => a.symbol),
@@ -816,6 +820,7 @@ ipcMain.handle('save-ai-settings', async (_, aiSettings: AISettings) => {
   try {
     validateAISettingsModels(aiSettings);
     await settingsManager.setAISettings(aiSettings);
+    researchEpoch++;
 
     // 初始化AI服务
     aiService.setConfig(aiSettings);
@@ -840,6 +845,7 @@ ipcMain.handle('get-public-market', async (_, symbols: string[]) => {
   } catch { return {success:false,error:'公共市场数据暂不可用，请检查网络或稍后重试。'}; }
 });
 ipcMain.handle('ai-analyze-health', async (_, positions, accountInfo, provider?: AIProvider, forceRefresh = false) => {
+  const epoch = researchEpoch;
   try {
     const configured = settingsManager.getAISettings();
     if (!configured.enabled || !configured.useCustomKeys || !aiService.isAvailable()) {
@@ -852,7 +858,11 @@ ipcMain.handle('ai-analyze-health', async (_, positions, accountInfo, provider?:
     publicMarketService.setProxy(settingsManager.getProxyUrl());
     const symbols = [...new Set((positions as Position[]).map(binanceResearchSymbol).filter((symbol): symbol is string => symbol !== null))];
     const market = await publicMarketService.snapshot(symbols);
+    // This preflight predates the AI service's own generation guard. A deleted
+    // snapshot must never be sent later through newly configured credentials.
+    if (epoch !== researchEpoch) throw new Error('AI 配置或数据已变更，请重新分析');
     const result = await aiService.analyzePortfolioHealth(positions, accountInfo, provider, market);
+    if (epoch !== researchEpoch) throw new Error('AI 配置或数据已变更，请重新分析');
 
     return { success: true, data: result };
   } catch (error: any) {
