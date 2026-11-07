@@ -1,6 +1,10 @@
 # macOS 签名与发布
 
-## 当前已发布版本（2026-11-07，0.2.3）
+## 当前已发布版本（2026-11-07，0.2.4）
+
+[PR #73](https://github.com/hash-panda/positionscope/pull/73)完成菜单栏/设置/发布说明修正，[PR #74](https://github.com/hash-panda/positionscope/pull/74)更新版本。来源 `2da29dda326a51f4d1b273cdd6f75bfce9b54824`，[发布运行](https://github.com/hash-panda/positionscope/actions/runs/42384896495)一次通过双架构原生更新演练、签名、公证、装订、Gatekeeper 和图标校验。[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.4) 于 2026-11-07T15:19:18Z 发布；197 Node、25 Python、类型/构建/UI/axe 有本版证据。用户 Mac、真实账户/模型未在本轮验证。详见[验收](ops/2026-11-07-menu-settings.md)。
+
+## 历史已发布版本（2026-11-07，0.2.3）
 
 [PR #67](https://github.com/hash-panda/positionscope/pull/67)修复布局/持仓表与报价；[PR #68](https://github.com/hash-panda/positionscope/pull/68)实现应用内更新。来源 `ad551ffa75485c954097681e6b268ffc1e53fefe`，[发布运行](https://github.com/hash-panda/positionscope/actions/runs/42379238693)通过双架构原生更新/替换/重启演练，以及生产包签名、公证、装订、Gatekeeper 与图标校验。[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.3)于 `2026-11-07T14:16:51Z` 发布，七资产见 [releases/v0.2.3](releases/v0.2.3/)。196 Node、21 Python、类型/构建和UI/axe均有CI证据；用户 Mac 权限弹窗、真实账户/模型验收仍独立。推广部署结果见[报告](ops/2026-11-07-in-app-updates.md)及其关联PR。
 
@@ -82,7 +86,7 @@
 ## 运行
 
 1. PR 的质量检查与独立审查通过后合并仓库当前默认分支。当前默认分支为 main，过渡期间工作流接收 main/master；签名前按 `github.event.repository.default_branch` 检查提交属于默认分支，不硬编码旧分支名。
-2. 新发布从 **0.2.1** 开始，只允许纯数字 `x.y.z`，Git tag 可有 `v` 前缀，Release 明确 `prerelease=false`。阶段功能 PR 保留当前已发布版本，直到最终发布 PR 才更新 package.json 和 release-notes；下一版使用 0.2.4，阶段顺序见 [实施计划](IMPLEMENTATION-PLAN.md)。
+2. 新发布从 **0.2.1** 开始，只允许纯数字 `x.y.z`，Git tag 可有 `v` 前缀，Release 明确 `prerelease=false`。阶段功能 PR 保留当前已发布版本，直到最终发布 PR 才更新 package.json 和 release-notes；下一版使用 0.2.5，阶段顺序见 [实施计划](IMPLEMENTATION-PLAN.md)。
 3. 在 [Signed macOS release](https://github.com/hash-panda/positionscope/actions/workflows/signed-release.yml) 选择当前默认分支 → Run workflow。手动运行会检查密钥，不会降级成未签名发布。
 4. 两架构成功后检查 ZIP/DMG、SHA256SUMS 和各自 verification.json，再修改官网的版本与安装状态。数字发布不代表真实账户、模型或用户Mac已验收，证据范围仍分别记录。
 5. 已在 [Variables](https://github.com/hash-panda/positionscope/settings/variables/actions) 配置 `APPLE_SIGNING_ENABLED=true`，影响二进制的默认分支提交自动尝试发布；文档/官网改动不会触发签名。流水线**先查询当前版本是否已发布，再对不存在的新版本执行数字版本门禁**：已发布beta.16继续正常跳过，不重签/覆盖；不存在的beta/rc/build版本拒绝。查询失败不当作版本不存在，也不允许签名。正常Apple配置保持，无需重配。
