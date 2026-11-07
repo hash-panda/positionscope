@@ -1,0 +1,202 @@
+{
+  "date": "2026-11-07",
+  "timezone": "Asia/Shanghai",
+  "default_commit": "7eca126997f076858c0282d722ed8e90ad93e3d2",
+  "github_observed_window": "09:09–09:12",
+  "stars": 0,
+  "forks": 0,
+  "watch": 0,
+  "release": {
+    "tag": "v0.2.0-beta.15",
+    "published_at": "2026-11-04T01:27:14Z",
+    "assets": [
+      {
+        "name": "PositionScope-0.2.0-beta.15-arm64-verification.json",
+        "download_count": 2
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.15-arm64.dmg",
+        "download_count": 1
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.15-arm64.zip",
+        "download_count": 7
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.15-x64-verification.json",
+        "download_count": 2
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.15-x64.dmg",
+        "download_count": 1
+      },
+      {
+        "name": "PositionScope-0.2.0-beta.15-x64.zip",
+        "download_count": 1
+      },
+      {
+        "name": "SHA256SUMS.txt",
+        "download_count": 2
+      }
+    ]
+  },
+  "site": {
+    "version": 13,
+    "status": "active",
+    "audience": "public",
+    "url": "https://positionscope.funagent.app"
+  },
+  "public_site_observations": [
+    {
+      "version": "public-site-audit-v1",
+      "started_at": "2026-11-07T01:10:18.594Z",
+      "observed_at": "2026-11-07T01:10:25.221Z",
+      "origin": "https://positionscope.funagent.app",
+      "expected_release": "v0.2.0-beta.15",
+      "verified": false,
+      "results": [
+        {
+          "path": "/",
+          "http_status": null,
+          "verified": false,
+          "reason": "transport-unverified",
+          "checks": {}
+        },
+        {
+          "path": "/download/",
+          "http_status": null,
+          "verified": false,
+          "reason": "transport-unverified",
+          "checks": {}
+        },
+        {
+          "path": "/guides/portfolio-risk/",
+          "http_status": null,
+          "verified": false,
+          "reason": "transport-unverified",
+          "checks": {}
+        },
+        {
+          "path": "/robots.txt",
+          "http_status": 200,
+          "verified": true,
+          "reason": "matched",
+          "checks": {
+            "indexable_header": true,
+            "robots_policy": true
+          }
+        },
+        {
+          "path": "/sitemap.xml",
+          "http_status": 200,
+          "verified": true,
+          "reason": "matched",
+          "checks": {
+            "indexable_header": true,
+            "sitemap_routes": true
+          }
+        },
+        {
+          "path": "/release.json",
+          "http_status": 200,
+          "verified": true,
+          "reason": "matched",
+          "checks": {
+            "indexable_header": true,
+            "release_manifest": true
+          }
+        }
+      ],
+      "limitations": [
+        "Only three HTML routes and public metadata were checked; no installation or binary signature check.",
+        "This observer and time only; not proof of indexing, global availability, visits, activation or revenue.",
+        "Transport failures are unverified, not evidence of origin failure. No raw body, headers or transport errors are reported."
+      ]
+    },
+    {
+      "version": "public-site-audit-v1",
+      "started_at": "2026-11-07T01:11:59.388Z",
+      "observed_at": "2026-11-07T01:12:09.422Z",
+      "origin": "https://positionscope.funagent.app",
+      "expected_release": "v0.2.0-beta.15",
+      "verified": false,
+      "results": [
+        {
+          "path": "/",
+          "http_status": 200,
+          "verified": true,
+          "reason": "matched",
+          "checks": {
+            "indexable_header": true,
+            "html_type": true,
+            "canonical": true,
+            "indexable_meta": true,
+            "structured_version": true
+          }
+        },
+        {
+          "path": "/download/",
+          "http_status": null,
+          "verified": false,
+          "reason": "transport-unverified",
+          "checks": {}
+        },
+        {
+          "path": "/guides/portfolio-risk/",
+          "http_status": 200,
+          "verified": true,
+          "reason": "matched",
+          "checks": {
+            "indexable_header": true,
+            "html_type": true,
+            "canonical": true,
+            "indexable_meta": true
+          }
+        },
+        {
+          "path": "/robots.txt",
+          "http_status": 200,
+          "verified": true,
+          "reason": "matched",
+          "checks": {
+            "indexable_header": true,
+            "robots_policy": true
+          }
+        },
+        {
+          "path": "/sitemap.xml",
+          "http_status": 200,
+          "verified": true,
+          "reason": "matched",
+          "checks": {
+            "indexable_header": true,
+            "sitemap_routes": true
+          }
+        },
+        {
+          "path": "/release.json",
+          "http_status": 200,
+          "verified": true,
+          "reason": "matched",
+          "checks": {
+            "indexable_header": true,
+            "release_manifest": true
+          }
+        }
+      ],
+      "limitations": [
+        "Only three HTML routes and public metadata were checked; no installation or binary signature check.",
+        "This observer and time only; not proof of indexing, global availability, visits, activation or revenue.",
+        "Transport failures are unverified, not evidence of origin failure. No raw body, headers or transport errors are reported."
+      ]
+    }
+  ],
+  "unknown": [
+    "search_index_and_performance",
+    "visits",
+    "activation",
+    "retention",
+    "revenue"
+  ],
+  "download_count_scope": "Cumulative asset requests including CI."
+}
