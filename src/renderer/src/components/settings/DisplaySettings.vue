@@ -1,17 +1,15 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { ArrowDown, ArrowUp, Minus } from 'lucide-vue-next';
+import { Minus } from 'lucide-vue-next';
 import ToggleRow from '../ToggleRow.vue';
 import AppSelect from '../ui/AppSelect.vue';
 import AppTextInput from '../ui/AppTextInput.vue';
-import { menuValues } from '../../../../main/utils/menu-format';
+import { menuValues, priceText } from '../../../../main/utils/menu-format';
 import { validateWatchlistSymbols } from '../../../../main/utils/display-preferences';
 import type { AppModel } from '../../composables/useTradingApp';
 
 const props = defineProps<{ model: AppModel }>();
 const previewValues = computed(() => props.model.sortedPositions[0] ? menuValues(props.model.sortedPositions[0]) : null);
-const neutral = computed(() => props.model.preferences.hideAmounts || props.model.stale || props.model.totalPnL == null || props.model.totalPnL === 0);
-const signal = computed(() => neutral.value ? '' : props.model.totalPnL! > 0 ? 'positive' : 'negative');
 const watchlistDraft = ref(props.model.preferences.watchlistSymbols.join(', '));
 const watchlistError = ref('');
 watch(() => props.model.preferences.watchlistSymbols, value => { watchlistDraft.value = value.join(', '); });
@@ -36,11 +34,11 @@ async function saveWatchlist() {
   <section class="settings-section">
     <h2>菜单栏预览</h2>
     <div class="menubar-preview" aria-label="菜单栏格式预览">
-      <span :class="signal" aria-hidden="true"><Minus v-if="neutral" :size="16" /><ArrowUp v-else-if="model.totalPnL! > 0" :size="16" /><ArrowDown v-else :size="16" /></span>
-      <template v-if="previewValues"><span>{{ previewValues.symbol }}</span><span>{{ model.mask(previewValues.pnlText) }}</span></template>
+      <span aria-hidden="true"><Minus :size="16" /></span>
+      <template v-if="previewValues"><span>{{ previewValues.symbol }}</span><span>{{ model.mask(priceText(Number(model.sortedPositions[0].markPrice))) }}</span></template>
       <span v-else class="muted">暂无持仓</span>
     </div>
-    <p class="helper">文字显示币种与未实现盈亏（USDT）；色标反映全部仓位的总盈亏方向。数据过期时色标归为中性。</p>
+    <p class="helper">显示币种与标记价（USDT）。箭头比较上次有效报价，彩色图标对应第一个币种；首笔、价格不变或数据过期时为中性。≥100 显示两位小数，低价币保留更多有效位。</p>
   </section>
   <section class="settings-section">
     <h2>观察币种</h2>

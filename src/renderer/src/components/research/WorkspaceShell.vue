@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
-import { Bell, ChartNoAxesCombined, ClipboardList, Search, Settings } from 'lucide-vue-next';
+import { Power, Bell, ChartNoAxesCombined, ClipboardList, Search, Settings } from 'lucide-vue-next';
 import { useResearch } from '../../composables/useResearch';
 import type { AppModel } from '../../composables/useTradingApp';
 import type { Exchange, SettingsPage } from '../../types';
@@ -26,7 +26,7 @@ onUnmounted(() => { cleanup?.(); document.removeEventListener('keydown', escape)
 </script>
 <template>
   <section class="workspace-shell">
-    <header class="workspace-header"><div class="new-wordmark"><img :src="brandMark" alt=""/><span>PositionScope</span></div><nav aria-label="主导航"><button v-for="tab in tabs" :key="tab.id" :aria-current="page === tab.id ? 'page' : undefined" @click="navigate(tab.id)"><component :is="tab.icon" :size="16"/>{{ tab.label }}</button></nav><button class="icon-button" :aria-label="`通知中心${unread ? `，${unread} 条未读` : ''}`" @click="emit('notifications')"><Bell :size="17"/><span v-if="unread" class="notification-count">{{ unread }}</span></button></header>
+    <header class="workspace-header"><div class="new-wordmark"><img :src="brandMark" alt=""/><span>PositionScope</span></div><nav aria-label="主导航"><button v-for="tab in tabs" :key="tab.id" :aria-current="page === tab.id ? 'page' : undefined" @click="navigate(tab.id)"><component :is="tab.icon" :size="16"/>{{ tab.label }}</button></nav><button class="icon-button" :aria-label="`通知中心${unread ? `，${unread} 条未读` : ''}`" @click="emit('notifications')"><Bell :size="17"/><span v-if="unread" class="notification-count">{{ unread }}</span></button><button class="icon-button quit-button" aria-label="退出 PositionScope" title="退出 PositionScope" @click="model.api?.quitApp()"><Power :size="17"/></button></header>
     <ResearchPanel v-show="page === 'research'" :model="research" :reversed="reversed" />
     <PositionsPanel v-if="page === 'positions'" :model="model" @settings="navigate('settings'); settingsPage = $event || 'exchanges'" />
     <ReviewPanel v-if="page === 'review'" :model="research" />
