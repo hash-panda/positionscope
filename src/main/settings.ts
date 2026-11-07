@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { randomBytes } from 'crypto';
 import { AIProvider, AICredentials, AISettings } from './types/ai';
+import { DEFAULT_WATCHLIST, validateDisplayPreferences, validateWatchlistSymbols, type ColorScheme } from './utils/display-preferences';
 
 interface ExchangeCredentials { apiKey: string; apiSecret: string; passphrase?: string }
 type Exchange = 'binance' | 'bybit' | 'okx' | 'hyperliquid';
@@ -12,6 +13,8 @@ interface AppSettings {
   proxyUrl?: string;
   maxDisplayCount?: number;
   refreshInterval?: number;
+  colorScheme?: ColorScheme;
+  watchlistSymbols?: string[];
   theme?: 'light' | 'dark' | 'auto';
   positionOrder?: string[];
   hideAmounts?: boolean;
@@ -49,7 +52,7 @@ export class SettingsManager {
   private validate(value: unknown): AppSettings {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('invalid settings');
     const data = value as Record<string, unknown>;
-    const allowed = new Set(['exchanges', 'ai', 'proxyUrl', 'maxDisplayCount', 'refreshInterval', 'theme', 'positionOrder', 'hideAmounts', 'debugMode', 'windowOpacity', 'autoLaunch']);
+    const allowed = new Set(['exchanges', 'ai', 'proxyUrl', 'maxDisplayCount', 'refreshInterval', 'colorScheme', 'watchlistSymbols', 'theme', 'positionOrder', 'hideAmounts', 'debugMode', 'windowOpacity', 'autoLaunch']);
     if (Object.keys(data).some(key => !allowed.has(key))) throw new Error('unknown field');
     if (data.proxyUrl !== undefined && typeof data.proxyUrl !== 'string') throw new Error('invalid proxy');
     const object = (v: unknown): Record<string, unknown> => {
@@ -74,6 +77,8 @@ export class SettingsManager {
     for (const key of ['maxDisplayCount', 'refreshInterval', 'windowOpacity']) if (data[key] !== undefined && (typeof data[key] !== 'number' || !Number.isFinite(data[key]))) throw new Error('invalid number');
     for (const key of ['hideAmounts', 'debugMode', 'autoLaunch']) if (data[key] !== undefined && typeof data[key] !== 'boolean') throw new Error('invalid boolean');
     if (data.theme !== undefined && !['light', 'dark', 'auto'].includes(data.theme as string)) throw new Error('invalid theme');
+    if (data.colorScheme !== undefined && !['green-up', 'red-up'].includes(data.colorScheme as string)) throw new Error('invalid color scheme');
+    if (data.watchlistSymbols !== undefined) validateWatchlistSymbols(data.watchlistSymbols);
     if (data.positionOrder !== undefined && (!Array.isArray(data.positionOrder) || data.positionOrder.some(x => typeof x !== 'string'))) throw new Error('invalid order');
     return value as AppSettings;
   }
@@ -151,9 +156,13 @@ export class SettingsManager {
     return this.update(draft => { draft.exchanges = { ...draft.exchanges, [exchange]: credentials }; });
   }
   removeExchangeCredentials(exchange: Exchange) { return this.update(draft => { delete draft.exchanges?.[exchange]; }); }
-  getDisplaySettings() { return { maxDisplayCount: this.settings.maxDisplayCount ?? 2, refreshInterval: this.settings.refreshInterval ?? 5 }; }
-  setDisplaySettings(maxDisplayCount: number, refreshInterval: number) { return this.update(draft => { Object.assign(draft, { maxDisplayCount, refreshInterval }); }); }
-  getTheme() { return this.settings.theme || 'auto'; }
+  getDisplaySettings() { return { maxDisplayCount: this.settings.maxDisplayCount ?? 2, refreshInterval: this.settings.refreshInterval ?? 5,
+    colorScheme: this.settings.colorScheme ?? 'green-up' as ColorScheme, watchlistSymbols: [...(this.settings.watchlistSymbols ?? DEFAULT_WATCHLIST)] }; }
+  setDisplaySettings(maxDisplayCount: number, refreshInterval: number, options?: { colorScheme: ColorScheme; watchlistSymbols: string[] }) {
+    const value = validateDisplayPreferences({ ...this.getDisplaySettings(), ...options, maxDisplayCount, refreshInterval });
+    return this.update(draft => { Object.assign(draft, value); });
+  }
+  getTheme() { return this.settings.theme || 'light'; }
   setTheme(value: 'light' | 'dark' | 'auto') { return this.update(draft => { draft.theme = value; }); }
   getPositionOrder() { return clone(this.settings.positionOrder || []); }
   setPositionOrder(order: string[]) { const value = [...order]; return this.update(draft => { draft.positionOrder = value; }); }

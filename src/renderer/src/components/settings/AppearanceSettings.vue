@@ -53,7 +53,7 @@ defineProps<{ model: AppModel }>();
       <span class="muted">总资产</span
       ><strong class="numeric"
         >{{ model.mask(amount(model.totals.totalAssets)) }} <small>USDT</small></strong
-      ><span class="numeric" :class="direction(model.totalPnL)">{{
+      ><span class="numeric" :class="model.preferences.hideAmounts ? 'muted' : direction(model.totalPnL)">{{
         model.mask(signed(model.totalPnL))
       }}</span>
     </div>
