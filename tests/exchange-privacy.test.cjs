@@ -59,3 +59,52 @@ test('four adapters omit proxy hosts and Binance spot failures omit Axios reques
  service.spotClient.defaults.adapter=async config=>{assert.equal(config.headers['X-MBX-APIKEY'],marker);throw hostile(config);};
  await assert.rejects(service.getSpotBalances());
 }));
+
+test('Bybit rejects a partial snapshot on a later page and recovers with a fresh complete snapshot', async () => capture(async () => {
+ const {BybitService} = require('../dist/main/services/bybit');
+ const service = new BybitService();
+ service.setCredentials('synthetic-key', 'synthetic-secret');
+ const manager = new ExchangeManager();
+ manager.exchanges = new Map([['bybit', service]]);
+ let failSecondPage = true;
+ const calls = [];
+ const position = (symbol, size) => ({
+  symbol, size, side: 'Buy', positionIdx: 0, markPrice: '100', avgPrice: '90',
+  unrealisedPnl: '0', leverage: '2',
+ });
+ service.client.defaults.adapter = async config => {
+  const url = new URL(config.url, config.baseURL);
+  calls.push([config.method, url.pathname, url.searchParams.get('cursor')]);
+  let data;
+  if (url.pathname === '/v5/account/info') {
+   data = {retCode: 0, result: {unifiedMarginStatus: 5, marginMode: 'REGULAR_MARGIN'}};
+  } else if (url.pathname === '/v5/account/wallet-balance') {
+   data = {retCode: 0, result: {list: [{accountType: 'UNIFIED', totalEquity: '100'}]}};
+  } else {
+   assert.equal(url.pathname, '/v5/position/list');
+   if (!url.searchParams.has('cursor')) {
+    data = {retCode: 0, result: {list: [position('BTCUSDT', failSecondPage ? '1' : '2')], nextPageCursor: 'synthetic-next'}};
+   } else if (failSecondPage) {
+    data = {retCode: 10002, retMsg: marker};
+   } else {
+    data = {retCode: 0, result: {list: [position('ETHUSDT', '3')], nextPageCursor: ''}};
+   }
+  }
+  return {status: 200, data, config, headers: {}};
+ };
+
+ assert.deepEqual(await manager.getAllFuturesPositions(), []);
+ assert.equal(manager.hasAnyErrors(), true);
+ assert.deepEqual(calls.filter(([, path]) => path === '/v5/position/list'), [
+  ['get', '/v5/position/list', null], ['get', '/v5/position/list', 'synthetic-next'],
+ ]);
+ assert.equal((await manager.getAllAccountInfo()).length, 1);
+ assert.equal(manager.hasAnyErrors(), true);
+ assert(!JSON.stringify(manager.getAllErrors()).includes(marker));
+
+ failSecondPage = false;
+ const positions = await manager.getAllFuturesPositions();
+ assert.deepEqual(positions.map(p => [p.symbol, p.positionAmt]), [['BTCUSDT', '2'], ['ETHUSDT', '3']]);
+ assert.equal(manager.hasAnyErrors(), false);
+ assert(calls.every(([method]) => method === 'get'));
+}));
