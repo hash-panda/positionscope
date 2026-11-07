@@ -1,6 +1,6 @@
 # PositionScope
 
-> Independent, read-only Binance research app for macOS. Current download metadata: v0.2.4. Native UI, packaged Keychain prompts, real accounts and model reasoning quality remain separately unverified.
+> Independent, read-only Binance research app for macOS. Current download metadata: v0.2.5. Native UI, packaged Keychain prompts, real accounts and model reasoning quality remain separately unverified.
 
 ## Product
 - [Overview](https://positionscope.funagent.app/): Compact portfolio popup and independent evidence workspace
@@ -12,8 +12,8 @@
 - [Roadmap](https://positionscope.funagent.app/roadmap/): Acceptance gaps and next research questions
 - [Source](https://github.com/hash-panda/positionscope): MIT-declared repository
 
-Research covers Binance USDT perpetuals, not all crypto markets. Event screening is cross-sectional, not proof of historical anomaly or early value. Public AI research uses at most two explicit-action model calls, only validated public facts and no account positions/equity. Separate portfolio analysis is opt-in and sends sensitive position-level risk facts to the selected provider. Model IDs remain explicit except for the verified DeepSeek alias.
+Research covers Binance USDT perpetuals, not all crypto markets. Event screening is cross-sectional, not proof of historical anomaly or early value. Manual public research uses at most two model calls. After explicit cycle and budget confirmation, autonomous public research and periodic virtual-summary reviews share a persistent rolling budget. They send no real account positions/equity. Separate portfolio analysis is opt-in and sends sensitive position-level risk facts to the selected provider. Model IDs remain explicit except for the verified DeepSeek alias.
 
 Alerts are in-app and require the process to be running and online. Frozen judgments retain failures and abstentions. Optional future price observations are indicative, unleveraged price changes, not executable trades or net returns; fees, funding, slippage, predictive quality and costs are unknown.
 
-Settings use macOS Keychain-managed encryption without plaintext fallback. Public research, watch rules and alerts use atomic local 0600 JSON files, not encryption. No old-preview migration, automatic trading, funds transfer, profit forecast or exchange affiliation. Updates are checked and downloaded only on request, verified locally, and installed on restart or the next quit once ready. Older versions through 0.2.2 require one manual installation first.
+Settings use macOS Keychain-managed encryption without plaintext fallback. Public research, watch rules, alerts and virtual paper journals use atomic local 0600 JSON files, not encryption. Local paper cycles simulate orders with subsequent visible books, fee/slippage assumptions and reconciled funding. New cycles preserve histories. Bounded policy candidates require prospective paired comparisons with predefined gates; this is not evidence of real profitability. No old-preview migration, real automated trading, funds transfer, profit forecast or exchange affiliation. Updates are checked and downloaded only on request, verified locally, and installed on restart or the next quit once ready. Older versions through 0.2.2 require one manual installation first.
