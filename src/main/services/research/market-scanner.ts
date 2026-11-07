@@ -150,6 +150,9 @@ export class BinanceResearchService {
       result.timestamps.fundingOldestAt = fundingTimes.length ? Math.min(...fundingTimes) : null;
       result.timestamps.fetchedAt = this.now();
       result.timestamps.expiresAt = Math.min(this.now() + TTL, result.timestamps.tickerOldestAt + 180_000, ...(fundingTimes.length ? [Math.min(...fundingTimes) + 180_000] : []));
+      // A failed optional funding read may have crossed a proxy generation. Never
+      // publish its old ticker rows over a newer scan's watch/alert samples.
+      if (budget.generation !== this.generation) throw new Error('研究代理设置已变更');
       this.watchQuotes = rows.map(row => ({ symbol: row.symbol, baseAsset: row.baseAsset, lastPrice: row.price, change24hPercent: row.change, observedAt: row.at, fetchedAt: result.timestamps.fetchedAt }));
       this.samples = rows.flatMap(row => {
         const make = (metric: 'price' | 'funding', value: number, observedAt: number): PublicResearchSample => ({ id: createHash('sha256').update(JSON.stringify([row.symbol, metric, observedAt, value])).digest('hex').slice(0, 24), symbol: row.symbol, metric, value, observedAt, fetchedAt: result.timestamps.fetchedAt, source: metric === 'price' ? 'binance-last-price' : 'binance-funding-rate' });

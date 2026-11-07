@@ -151,3 +151,15 @@ test('proxy changes discard in-flight evidence and stop the remaining old-budget
   await entered; f.service.setProxy('http://127.0.0.1:12345'); f.service.client = transport; release(); await rejected;
   assert.equal(f.calls.length, 4, 'metadata/ticker/premium plus only first old evidence request');
 });
+
+test('an old optional-funding failure cannot overwrite newer watch quotes or alert samples', async () => {
+  const f = fixture(); const transport = f.service.client;
+  let release, reached; const entered = new Promise(resolve => { reached = resolve; }); const blocked = new Promise(resolve => { release = resolve; });
+  f.service.client = { get: async (...args) => { const response = await transport.get(...args); if (args[0].endsWith('premiumIndex')) { reached(); await blocked; } return response; } };
+  const old = f.service.snapshot(); const rejected = assert.rejects(old, /设置已变更/);
+  await entered; f.advance(1000); f.service.setProxy('http://127.0.0.1:12345'); f.service.client = transport;
+  const current = await f.service.snapshot(); assert.equal(current.status, 'available');
+  release(); await rejected;
+  assert.equal((await f.service.getWatchlistMarket(['BTCUSDT']))[0].observedAt, NOW + 1000);
+  assert((await f.service.getPublicSamples(['BTCUSDT'])).every(sample => sample.observedAt === NOW + 1000));
+});
