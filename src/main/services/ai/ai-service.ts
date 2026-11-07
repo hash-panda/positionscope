@@ -1,5 +1,6 @@
 import { resolveAIModel } from '../../utils/ai-model';
 import type { MarketSnapshot } from '../../types/market';
+import { RESEARCH_AI_LIMITS, ResearchAIProvider } from '../../types/research-ai';
 import { fundingScenarios } from '../public-market';
 import { analysisCacheKey, buildRiskFacts, validateNarrative } from './risk-facts';
 /**
@@ -33,6 +34,7 @@ import { requestDiagnostic } from '../../utils/request-diagnostics';
  */
 class AIAnalysisCache {
   private cache = new Map<string, CachedAnalysis>();
+  private generation = 0;
   private readonly TTL = 5 * 60 * 1000; // 5分钟缓存
 
   /**
@@ -51,7 +53,9 @@ class AIAnalysisCache {
     }
 
     logger.log('[AI Cache] Miss, executing analysis');
+    const generation = this.generation;
     const data = await analyzeFunc();
+    if (generation !== this.generation) throw new Error('AI 配置或数据已变更，请重新分析');
 
     // 保存到缓存
     this.cache.set(key, {
@@ -66,6 +70,7 @@ class AIAnalysisCache {
    * 清除缓存
    */
   clear() {
+    this.generation++;
     this.cache.clear();
     logger.log('[AI Cache] Cleared');
   }
@@ -76,9 +81,11 @@ class AIAnalysisCache {
  */
 export class AIService {
   private providers: Map<AIProvider, BaseAIProvider> = new Map();
+  private researchProviders: Map<AIProvider, BaseAIProvider> = new Map();
   private defaultProvider: AIProvider = AIProvider.ANTHROPIC;
   private cache: AIAnalysisCache = new AIAnalysisCache();
   private conversationHistory: ChatMessage[] = [];
+  private conversationGeneration = 0;
 
   constructor() {
     logger.log('[AI Service] Initialized');
@@ -91,11 +98,13 @@ export class AIService {
     logger.log('[AI Service] Updating configuration');
 
     this.cache.clear();
+    this.conversationGeneration++;
     this.conversationHistory = [];
     this.defaultProvider = settings.defaultProvider;
 
     // 清除旧的providers
     this.providers.clear();
+    this.researchProviders.clear();
     if (!settings.enabled || !settings.useCustomKeys) return;
 
     // 初始化各个provider
@@ -110,6 +119,15 @@ export class AIService {
           });
 
           this.providers.set(providerName as AIProvider, provider);
+          // Separate capped adapters cannot inherit private holdings/chat history.
+          // They preserve the user's explicit provider/model, endpoint and credentials.
+          this.researchProviders.set(providerName as AIProvider, this.createProvider({
+            provider: providerName as AIProvider,
+            apiKey: credentials.apiKey,
+            baseURL: credentials.baseURL,
+            model: resolveAIModel(providerName, credentials.model),
+            maxTokens: RESEARCH_AI_LIMITS.outputTokensPerCall,
+          }));
           logger.log(`[AI Service] Provider registered: ${providerName}`);
         } catch (error: any) {
           logger.error('[AI Service] Provider initialization failed:', requestDiagnostic(error));
@@ -160,6 +178,20 @@ export class AIService {
     return provider;
   }
 
+  /** A narrow public-research capability; never returns provider configuration or credentials. */
+  getResearchProvider(): ResearchAIProvider {
+    const name = this.defaultProvider;
+    const provider = this.researchProviders.get(name);
+    if (!provider) throw new Error('AI 研究未就绪，请核对 Key 及模型 ID 并保存配置');
+    return Object.freeze({
+      provider: provider.getProviderName(),
+      model: provider.getModelName(),
+      maxOutputTokens: RESEARCH_AI_LIMITS.outputTokensPerCall,
+      isCurrent: () => this.defaultProvider === name && this.researchProviders.get(name) === provider,
+      chatJSON: (messages: ChatMessage[]) => provider.chatJSON<unknown>(messages.map(message => ({ role: message.role, content: message.content }))),
+    });
+  }
+
   /**
    * 分析持仓健康度
    */
@@ -192,6 +224,7 @@ export class AIService {
     providerName?: AIProvider
   ): Promise<string> {
     const provider = this.getProvider(providerName);
+    const generation = this.conversationGeneration;
 
     // 构建系统提示
     const systemPrompt = context
@@ -211,6 +244,7 @@ export class AIService {
       { role: 'system', content: systemPrompt },
       ...this.conversationHistory,
     ]);
+    if (generation !== this.conversationGeneration) throw new Error('AI 配置或对话已变更，请重新发起对话');
 
     // 保存AI响应
     this.conversationHistory.push({
@@ -250,6 +284,7 @@ export class AIService {
    * 清除对话历史
    */
   clearConversation() {
+    this.conversationGeneration++;
     this.conversationHistory = [];
     logger.log('[AI Service] Conversation history cleared');
   }
