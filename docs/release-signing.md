@@ -1,6 +1,14 @@
 # macOS 签名与发布
 
-## 当前已发布版本（2026-11-07，v0.2.0-beta.16）
+## 当前已发布版本（2026-11-07，0.2.1）
+
+0.2.1 包括 Binance 速览与独立研究工作台、公共证据与按需 AI 查证、应用内条件提醒/冻结复盘、颜色偏好与主动更新检查。[版本 PR #61](https://github.com/hash-panda/positionscope/pull/61)与[装订重试 PR #62](https://github.com/hash-panda/positionscope/pull/62)已合并，发布 source 为 `fb4c6e0d660875a846dc078e73e672f866e11153`。[运行 42368451830](https://github.com/hash-panda/positionscope/actions/runs/42368451830)双架构签名、公证、装订、Gatekeeper及包内图标核验通过；[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.1)于 `2026-11-07T11:38:20Z` 发布四个 DMG/ZIP、两个验证 JSON 和校验和。三个文本资产已下载重算摘要，四个二进制摘要与 GitHub 元数据交叉核对，记录位于 [docs/releases/v0.2.1](releases/v0.2.1/)。安装器固定摘要、官网七页与下载元数据另经推广 PR/CI 核验；线上部署结果记在[验收报告](ops/2026-11-07-numeric-release.md)所链接的推广 PR。
+
+“检查更新”读取官方 GitHub 稳定版元数据并由用户打开 Release 页；不会自动下载或安装，也不以资产存在替代包签名核验。公共研究账本为本机 0600 JSON，账户/模型 Key 等配置仍单独使用 safeStorage 加密。原生 Mac、签名包钥匙串弹窗、真实账户/模型与收益能力仍未验收。
+
+以下保留各版本发布时的历史记录；其中的“工作台设计提案”等描述仅指当时版本，不表示当前源码仍停留在提案阶段。
+
+## 历史已发布版本（2026-11-07，v0.2.0-beta.16）
 
 [PR #53](https://github.com/hash-panda/positionscope/pull/53) 修复币安汉字 USDT 合约被误拒、首次读取失败显示零盈亏/持仓数和暂停刷新提示。合约标识贯穿持仓、风险事实及公共行情，保持结算、长度、字符与元数据边界；本地诊断不透传原始响应，成功空仓仍显示零。102 项 Node、5 项 Python、类型/构建、UI/axe 与合成 Mac 见 [PR CI](https://github.com/hash-panda/positionscope/actions/runs/42360949679)及[主分支 CI](https://github.com/hash-panda/positionscope/actions/runs/42361140885)。[签名发布](https://github.com/hash-panda/positionscope/actions/runs/42361141010)双架构签名、公证、装订、Gatekeeper 与 publish 成功；[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.0-beta.16)和 docs/releases/v0.2.0-beta.16 七资产已核对，详见 docs/ops/2026-11-07-beta16-release.md。合成复现不代表已确认用户实际原因。新版 AI 工作台仍为设计提案；真实 Mac/账户/模型、签名包权限弹窗及完整日志/时效审计仍未验收。不重配正常 Apple 凭证，不迁移旧预览版。
 
@@ -65,15 +73,15 @@
 
 ## 运行
 
-1. PR 的质量检查与独立审查通过后合并仓库当前默认分支。目标默认分支为 main，切换期间工作流接收 main/master；签名前按 `github.event.repository.default_branch` 检查提交属于默认分支，不硬编码旧分支名。
-2. 新发布从 **0.2.1** 开始，只允许纯数字 `x.y.z`，Git tag 可有 `v` 前缀，Release 明确 `prerelease=false`。阶段功能PR保留当前已发布 beta.16 的 package 版本，直到最终发布PR才更新 package.json 和 release-notes；阶段顺序见 [实施计划](IMPLEMENTATION-PLAN.md)。
+1. PR 的质量检查与独立审查通过后合并仓库当前默认分支。当前默认分支为 main，过渡期间工作流接收 main/master；签名前按 `github.event.repository.default_branch` 检查提交属于默认分支，不硬编码旧分支名。
+2. 新发布从 **0.2.1** 开始，只允许纯数字 `x.y.z`，Git tag 可有 `v` 前缀，Release 明确 `prerelease=false`。阶段功能 PR 保留当前已发布版本，直到最终发布 PR 才更新 package.json 和 release-notes；下一版使用 0.2.2，阶段顺序见 [实施计划](IMPLEMENTATION-PLAN.md)。
 3. 在 [Signed macOS release](https://github.com/hash-panda/positionscope/actions/workflows/signed-release.yml) 选择当前默认分支 → Run workflow。手动运行会检查密钥，不会降级成未签名发布。
 4. 两架构成功后检查 ZIP/DMG、SHA256SUMS 和各自 verification.json，再修改官网的版本与安装状态。数字发布不代表真实账户、模型或用户Mac已验收，证据范围仍分别记录。
 5. 已在 [Variables](https://github.com/hash-panda/positionscope/settings/variables/actions) 配置 `APPLE_SIGNING_ENABLED=true`，影响二进制的默认分支提交自动尝试发布；文档/官网改动不会触发签名。流水线**先查询当前版本是否已发布，再对不存在的新版本执行数字版本门禁**：已发布beta.16继续正常跳过，不重签/覆盖；不存在的beta/rc/build版本拒绝。查询失败不当作版本不存在，也不允许签名。正常Apple配置保持，无需重配。
 
 流水线要求构建提交属于仓库当前默认分支；PR 不得到 Apple Secrets。签名 runner 使用临时钥匙串、最小 hardened runtime entitlement；验证 codesign 身份与团队，提交 notarytool，要求 Accepted，装订票据并验证 spctl，之后才上传和发布。DMG 单独签名、公证与装订。所有 action 固定提交 SHA；没有使用不受控第三方签名 action。日志不输出密钥、密码、私钥长度或密钥承载命令参数。临时钥匙串最后清除。
 
-`python3 scripts/release-signed-mac.py --arch arm64 --check` 只验证输入存在与结构，不证明证书有效。Linux 单元测试不等于 macOS 签名验收；真实签名仍需 macOS runner 和六个 Secret。arm64 与 Intel 的安装、启动、菜单栏、网络代理、全新配置与钥匙串权限及 Gatekeeper 在干净 Mac 上人工回归后才标记实机通过。当前未实现自动更新；Apple 签名也不会自动带来更新能力。
+`python3 scripts/release-signed-mac.py --arch arm64 --check` 只验证输入存在与结构，不证明证书有效。Linux 单元测试不等于 macOS 签名验收；真实签名仍需 macOS runner 和六个 Secret。arm64 与 Intel 的安装、启动、菜单栏、网络代理、全新配置与钥匙串权限及 Gatekeeper 在干净 Mac 上人工回归后才标记实机通过。当前支持用户主动检查官方更新并打开发布页，未实现自动下载安装；Apple 签名也不会自动带来更新能力。
 
 ## 失败、恢复与撤回
 

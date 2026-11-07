@@ -1,6 +1,6 @@
-# 2026-11-07 · 0.2.1 数字版本候选与验收记录
+# 2026-11-07 · 0.2.1 发布与验收记录
 
-本报告记录 2026-11-07 的 0.2.1 实现与发布验收。仓库公开且默认分支为 `main`；本轮版本 PR 将 package 更新为纯数字 `0.2.1`，后续使用 `0.2.2` 等数字版本。源码验证、Apple 签名、下载推广与用户原生验收分别记录；没有实际证据的项目保持未知。签名与官网回填前，当前可下载的已验证版本仍为 [v0.2.0-beta.16](https://github.com/hash-panda/positionscope/releases/tag/v0.2.0-beta.16)。
+本报告记录 2026-11-07 的 0.2.1 实现与发布验收。仓库公开且默认分支为 `main`；本轮版本 PR 已将 package 更新为纯数字 `0.2.1`，后续使用 `0.2.2` 等数字版本。源码验证、Apple 签名、下载推广与用户原生验收分别记录；没有实际证据的项目保持未知。[0.2.1](https://github.com/hash-panda/positionscope/releases/tag/v0.2.1) 已于 `2026-11-07T11:38:20Z` 发布，双架构完整签名门禁通过。官网和安装器的推广与线上核对分别记录在下表及推广 PR。
 
 ## 代码范围与依赖
 
@@ -13,7 +13,7 @@
 | 有预算的公共市场 AI 查证 | [PR #59](https://github.com/hash-panda/positionscope/pull/59) 已合并；[CI](https://github.com/hash-panda/positionscope/actions/runs/42366119736) 通过 | `eaefdf7f4965d4e5da07fdc4aa0098a00956ef9a` |
 | 速览、工作台与主进程接线 | [PR #60](https://github.com/hash-panda/positionscope/pull/60) 已合并；[CI](https://github.com/hash-panda/positionscope/actions/runs/42367072522) 全部通过 | `54bcd65fc9f213e0ff5f7ecaa33e93ee615bfb17` |
 
-发布候选的新能力限 Binance 只读研究。新凭证入口仅提供 Binance；源码保留历史其他适配器与可删除的已有配置，不将它们计入本轮新工作台验收，也不恢复旧预览版身份或配置迁移。
+本次发布的新能力限 Binance 只读研究。新凭证入口仅提供 Binance；源码保留历史其他适配器与可删除的已有配置，不将它们计入本轮新工作台验收，也不恢复旧预览版身份或配置迁移。
 
 ## 实际实现的交互和数据边界
 
@@ -35,28 +35,32 @@
 | 账本/条件/价格观察 | #56 记录 16 项合成测试；原子保存失败回退、冻结判断、一次触发、乱序/离线、删失、并发32币种上限 | 实际用户连续运行样本与语义理解；净收益、有效样本量未知 |
 | AI 输出与隐私 | #59 当前说明记录总计 167 项 Node，其中 22 项 AI 合成测试；资金费原始比率、BTC差值百分点、数字引用、旧模型结果失效 | 真实模型质量、实际成本/时延、盈利能力未知 |
 | 主进程与双窗口 | `tests/main-workspace.test.cjs` 八项主进程集成测试已通过；模拟 Electron/存储/账户/模型/公共边界验证窗口、sender/mainFrame、立即遮罩、双窗删除、定时器只读与迟到结果 | 合成 Electron 不等于用户 Mac 视觉/系统权限 |
-| UI/偏好/可访问性 | 本地类型/构建、182 项 Node、9 项 Python 已通过；`verify-research-ui.cjs` 与 `verify-workspace-settings.cjs` 覆盖新界面和设置；旧逻辑测试保留 | [#60 CI](https://github.com/hash-panda/positionscope/actions/runs/42367072522) 已通过浅/暗、金额遮罩、颜色反转、键盘、提醒/单位和空错旧态；17项界面文件，实际截图已审查；不代表原生Mac |
+| UI/偏好/可访问性 | 类型/构建、182 项 Node、14 项 Python 已通过（含 #62 装订重试测试）；`verify-research-ui.cjs` 与 `verify-workspace-settings.cjs` 覆盖新界面和设置；旧逻辑测试保留 | [#60 CI](https://github.com/hash-panda/positionscope/actions/runs/42367072522) 已通过浅/暗、金额遮罩、颜色反转、键盘、提醒/单位和空错旧态；17项界面文件，实际截图已审查；不代表原生Mac |
 | 凭证与本地存储 | 既有独立身份 `app.funagent.positionscope` 与异步 `safeStorage`；公共研究单独采用 `0600` JSON 原子替换；字段投影不把账户/Key写入研究账本 | 签名安装包真实钥匙串权限弹窗与全仓日志/IPC审计仍未完成 |
-| 发布与安装 | 现有已通过的 arm64/x64 签名、公证、装订、Gatekeeper 工作流继续复用；新版本政策为纯 `0.2.1`、`prerelease=false` | 最终版本PR、确切 source、0.2.1质量运行/签名运行、七资产和安装器验证全部待执行或回填 |
-| 官网与增长 | 本文未修改线上版本或计数；beta.16历史证据保留 | 0.2.1发布后下载/安装器/官网推广PR及线上核对；访问、激活、留存、收入、SEO/GEO效果未知 |
+| 发布与安装 | 现有已通过的 arm64/x64 签名、公证、装订、Gatekeeper 工作流继续复用；新版本政策为纯 `0.2.1`、`prerelease=false` | 0.2.1 来源、签名及七资产已核对，见下表；安装器随推广 PR 在 Mac CI 下载新 ZIP 后核验；用户本机安装仍未知 |
+| 官网与增长 | 准备推广 0.2.1 下载与公开能力文案；beta.16历史证据保留 | 线上部署与 URL 核对结果以推广 PR 验证评论为准；访问、激活、留存、收入、SEO/GEO效果未知 |
 
 这些证据不足以给真实可用性或盈利能力计算可信总分；不虚报 100 分评审。账户和模型 Key 等配置使用系统加密；**研究账本不是加密文件**，保存公共研究及用户选定规则，仍可能体现个人关注偏好，应只保留在本机。两者存储口径不能混称“所有数据加密”。独立审查发现并修复删除后旧关注/提醒写回，以及等待公共行情的旧持仓分析在删除/重配后继续进入模型的竞态；新增测试先复现两项失败，再通过修复。测试没有发送真实持仓、连接真实账户或产生付费模型请求。
 
-## 0.2.1 发布门槛及回填栏
+## 0.2.1 发布门槛与实际证据
 
-1. #55–#60 已依次完成确切 head CI、审查并合并 main。#60 最终 head `0f1e47cf1ee80694d4fd1a2528b41d1e0d3edd24`，CI `42367072522` 通过；发布版本改动仍另走 PR/CI。
-2. 最终版本 PR 才将 package 改为 0.2.1。保留已发布 beta.16 不覆盖；正式来源提交、PR和检查链接在此回填。
+1. #55–#60 已依次完成确切 head CI、审查并合并 main。#60 最终 head `0f1e47cf1ee80694d4fd1a2528b41d1e0d3edd24`，CI `42367072522` 通过；发布版本另经 #61、装订边界修复另经 #62，均通过 CI 并合并。
+2. 最终版本 PR #61 将 package 改为 0.2.1；#62 不变版本，只补有界票据装订重试。保留已发布 beta.16 不覆盖；正式来源提交、PR 和检查链接见下表。
 3. 仅使用现有签名流程；arm64/x64 均须签名、公证、装订、Gatekeeper与包内图标核验通过。任何失败均不发布，不退回未签名。
 4. 核对四个 DMG/ZIP、两个 verification JSON 与 SHA256SUMS 的名称/长度/摘要/来源。将实际证据保存到 `docs/releases/v0.2.1/` 后，独立推广安装器固定摘要、README、官网七页和 release.json。
 5. 官网只在实际 Release 成功且资产核对后更新，并重新查首页/下载页/robots/sitemap/canonical/版本链接；发布和线上推广分别记录，不能互相代替。
 
-| 待回填项 | 当前状态 |
+| 证据项 | 当前状态 |
 | --- | --- |
-| 最终发布 PR / source commit | 未确定 |
-| 最终质量 CI / 新签名运行 | 未核实，不填通过 |
-| 0.2.1 Release URL / published_at | 尚未发布 |
-| 七项资产与发布证据 | 尚未生成 |
-| 官网/安装器推广 PR、部署与线上核对 | 尚未执行 |
+| 最终发布 PR / source commit | [版本 #61](https://github.com/hash-panda/positionscope/pull/61) 与[装订重试 #62](https://github.com/hash-panda/positionscope/pull/62)，`fb4c6e0d660875a846dc078e73e672f866e11153` |
+| 最终质量 CI / 新签名运行 | [版本 PR CI](https://github.com/hash-panda/positionscope/actions/runs/42367293542) 与[装订 PR CI](https://github.com/hash-panda/positionscope/actions/runs/42368305616) 全通过；[签名 42368451830](https://github.com/hash-panda/positionscope/actions/runs/42368451830) 的 quality、arm64、x64、publish 全成功 |
+| 0.2.1 Release URL / published_at | [v0.2.1](https://github.com/hash-panda/positionscope/releases/tag/v0.2.1)，`2026-11-07T11:38:20Z`，`prerelease=false` |
+| 七项资产与发布证据 | [release.json](../releases/v0.2.1/release.json)；三文本资产下载并重算 SHA256，四安装包记录与 GitHub asset digest 一致；包内图标摘要与源码一致 |
+| 官网/安装器推广 PR、部署与线上核对 | [PR #63](https://github.com/hash-panda/positionscope/pull/63) 更新官网七页、release.json、README、安装说明与安装器 ZIP 摘要；确切 CI、合并和生产部署结果见该 PR 后续验证评论，未观察的上线结果不预填 |
+
+## 发布过程的失败记录
+
+签名运行 `42367423679` 首次尝试：arm64 应用公证 Accepted 后，票据装订返回68；x64 应用签名/公证/装订与Gatekeeper已过，DMG阶段装订返回68，publish跳过。没有发布半套安装包，没有更改正常凭证。同一source第二次尝试亦在上述两处返回68，publish再次跳过。[#62](https://github.com/hash-panda/positionscope/pull/62) 增加仅68的最多三次装订尝试（间隔15/30秒），其他失败、validate与Gatekeeper继续阻止发布；14项Python合成验证、完整CI与独立审查通过，#62已合并；新运行42368451830已完整通过：arm64 在应用装订阶段实际触发两次有界重试后成功，x64 全部通过；双架构最终验证及 publish 成功。以最终attempt实际结果验收，错误码不足以确定具体服务/网络根因。Apple说明装订依赖票据下载，见[官方自定义公证流程](https://developer.apple.com/documentation/security/customizing-the-notarization-workflow)。
 
 ## 后续 0.2.2 候选
 
