@@ -173,7 +173,7 @@
 .popup-header .new-wordmark { font-size: 16px; }
 .popup-header .new-wordmark img { width: 24px; height: 24px; }
 .popup-actions { display: flex; gap: 5px; align-items: center; }
-.popup-summary { padding: 20px 0 18px; flex-shrink: 0; }
+.popup-summary { padding: 16px 0 14px; flex-shrink: 0; }
 .popup-summary-label { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); }
 .popup-summary-label small { font-size: 9px; margin-left: 4px; }
 .popup-pnl { display: block; font-size: 36px; line-height: 1.25; font-weight: 520; letter-spacing: -1.5px; margin: 6px 0 12px; }
@@ -181,17 +181,17 @@
 .popup-equity b { font-weight: 500; color: var(--text); margin-left: 5px; }
 .stale-label { background: var(--brand-soft); color: var(--brand); padding: 1px 5px; font-size: 9px; border-radius: 3px; }
 .popup-holdings { display: flex; flex-direction: column; flex: 1; min-height: 85px; border-top: 1px solid var(--border); }
-.popup-holdings > header, .popup-references > header { display: flex; align-items: center; justify-content: space-between; padding: 12px 0 9px; }
+.popup-holdings > header, .popup-references > header { display: flex; align-items: center; justify-content: space-between; padding: 12px 0 9px; flex-shrink: 0; }
 .popup-holdings h2, .popup-references h2 { font-size: 12px; }
 .popup-holdings h2 span, .popup-references h2 small { color: var(--muted); font-size: 10px; font-weight: 400; margin-left: 5px; }
 .compact-position-head, .compact-position { display: grid; grid-template-columns: 1fr 100px 140px; gap: 8px; text-align: right; }
 .compact-position-head span:first-child, .compact-position > span:first-child { text-align: left; }
-.compact-position-head { color: var(--muted); font-size: 9px; padding-bottom: 7px; }
+.compact-position-head { color: var(--muted); font-size: 9px; padding-bottom: 7px; flex-shrink: 0; }
 .compact-positions { flex: 1; min-height: 0; overflow: auto; }
-.compact-position { align-items: center; width: 100%; padding: 11px 0; border: 0; border-top: 1px solid var(--border); background: transparent; color: var(--text); font-size: 11px; min-height: 55px; }
+.compact-position { align-items: center; width: 100%; padding: 8px 0; border: 0; border-top: 1px solid var(--border); background: transparent; color: var(--text); font-size: 11px; min-height: 50px; }
 .compact-position:hover { background: var(--brand-soft); }
-.compact-position > span:first-child strong { display: block; font-size: 12px; }
-.compact-position small { color: var(--muted); font-size: 9px; }
+.compact-position > span:first-child strong { display: block; font-size: 12px; line-height: 1.3; }
+.compact-position small { display: block; color: var(--muted); font-size: 10px; line-height: 1.4; }
 .popup-empty { display: flex; height: 100%; min-height: 70px; align-items: center; justify-content: center; flex-direction: column; gap: 8px; color: var(--muted); font-size: 11px; }
 .popup-empty strong { font-weight: 500; }
 .popup-references { border-top: 1px solid var(--border); flex-shrink: 0; }
