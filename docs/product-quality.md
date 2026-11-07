@@ -1,6 +1,10 @@
 # PositionScope 质量评审与迭代
 
-## 当前已发布版本（2026-11-07，v0.2.0-beta.16）
+## 当前已发布版本（2026-11-07，0.2.3）
+
+已完成卡片布局/完整持仓表/退出标题、报价语义与应用内更新，见 [PR #67](https://github.com/hash-panda/positionscope/pull/67)、[PR #68](https://github.com/hash-panda/positionscope/pull/68)和[发布报告](ops/2026-11-07-in-app-updates.md)。196 Node、21 Python、类型/构建、UI/axe、合成 Mac 存储/图标，以及双架构原生更新替换重启、签名、公证、装订、Gatekeeper有可复核证据。此处更新验证基线，不凭新增功能虚增百分制评分；真实 Mac 权限/配置、账户/模型语义和盈利能力未验收，访问/激活/留存/收入未知。
+
+## 历史已发布版本（2026-11-07，v0.2.0-beta.16）
 
 [PR #53](https://github.com/hash-panda/positionscope/pull/53) 修复币安汉字 USDT 合约被误拒、首次读取失败显示零盈亏/持仓数和暂停刷新提示。合约标识贯穿持仓、风险事实及公共行情，保持结算、长度、字符与元数据边界；本地诊断不透传原始响应，成功空仓仍显示零。102 项 Node、5 项 Python、类型/构建、UI/axe 与合成 Mac 见 [PR CI](https://github.com/hash-panda/positionscope/actions/runs/42360949679)及[主分支 CI](https://github.com/hash-panda/positionscope/actions/runs/42361140885)。[签名发布](https://github.com/hash-panda/positionscope/actions/runs/42361141010)双架构签名、公证、装订、Gatekeeper 与 publish 成功；[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.0-beta.16)和 docs/releases/v0.2.0-beta.16 七资产已核对，详见 docs/ops/2026-11-07-beta16-release.md。合成复现不代表已确认用户实际原因。新版 AI 工作台仍为设计提案；真实 Mac/账户/模型、签名包权限弹窗及完整日志/时效审计仍未验收。不重配正常 Apple 凭证，不迁移旧预览版。
 
