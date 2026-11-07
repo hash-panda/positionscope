@@ -56,6 +56,10 @@ jobs:
       - run: bash scripts/verify-branding-native.sh
       - name: Decode synthetic menu signals with native Electron
         run: pnpm exec electron scripts/verify-menu-signal.cjs
+      - name: Verify isolated updater ASAR entry without publishing or Apple credentials
+        run: python3 scripts/verify-native-updater.py --app node_modules/electron/dist/Electron.app --output test-results/update-bootstrap.json --bootstrap-only
+      - name: Verify actual Electron public update redirects and streaming digest
+        run: pnpm exec electron scripts/verify-update-network-native.cjs
       - name: Verify direct package download despite an unavailable local proxy
         run: |
           export https_proxy=http://127.0.0.1:1

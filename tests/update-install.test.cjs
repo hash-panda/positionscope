@@ -21,11 +21,28 @@ test('streaming verification rejects truncated, oversized, wrong-hash and interr
  const interrupted=path.join(dir,'interrupted');await assert.rejects(writeVerifiedPackage(Readable.from((async function*(){yield zip.subarray(0,5);throw new Error('synthetic-secret');})()),interrupted,target,()=>{}));await assert.rejects(fs.stat(interrupted));
  }finally{await fs.rm(dir,{recursive:true,force:true});}
 });
-test('update network denies non-HTTPS, credentials, local targets, unsafe redirects and oversized metadata',async()=>{
+function requestFactory({redirects=[],body='12345',status=200}={},calls=[]) {
+ return options=>{
+  const req=new EventEmitter();req.headers={};req.aborted=false;req.followed=0;calls.push({options,req});
+  req.setHeader=(key,value)=>req.headers[key]=value;
+  req.abort=()=>{req.aborted=true;req.emit('error',new Error('synthetic-private-details'));};
+  req.followRedirect=()=>{req.followed++;};
+  req.end=()=>setImmediate(()=>{
+   for(const url of redirects){const before=req.followed;req.emit('redirect',302,'GET',url);if(req.aborted)return;if(req.followed===before){req.emit('error',new Error('Redirect was cancelled'));return;}}
+   const stream=Readable.from([Buffer.from(body)]);stream.statusCode=status;req.emit('response',stream);
+  });return req;
+ };
+}
+test('native redirect event follows only approved HTTPS hosts and omits cookies/auth',async()=>{
  for(const u of ['http://github.com/a','https://github.com.evil.test/a','https://user:password@github.com/a','https://localhost/a','file:///tmp/a','https://github.com:444/a'])assert.equal(allowedUpdateURL(u),false);
- let calls=[];const io=updateNetwork(async(u,options)=>{calls.push([u,options]);return new Response('',{status:302,headers:{location:'http://127.0.0.1/secret'}});});
- await assert.rejects(io.read(fixture().target.url,100));assert.equal(calls.length,1);assert.equal(calls[0][1].credentials,'omit');assert.equal(calls[0][1].redirect,'manual');
- await assert.rejects(updateNetwork(async()=>new Response('12345')).read(fixture().target.url,4));
+ const url=fixture().target.url,calls=[];
+ const io=updateNetwork(requestFactory({redirects:['https://release-assets.githubusercontent.com/synthetic']},calls));assert.equal((await io.read(url,5)).toString(),'12345');
+ assert.equal(calls[0].req.followed,1);assert.equal(calls[0].options.credentials,'omit');assert.equal(calls[0].options.useSessionCookies,false);assert.equal(calls[0].options.redirect,'manual');
+ for(const redirects of [['http://127.0.0.1/secret'],Array(4).fill('https://release-assets.githubusercontent.com/synthetic')]){
+  const rejected=[];await assert.rejects(updateNetwork(requestFactory({redirects},rejected)).read(url,10),/redirect rejected/);assert(rejected[0].req.followed<redirects.length);
+ }
+ await assert.rejects(updateNetwork(requestFactory()).read(url,4),/oversized/);
+ await assert.rejects(updateNetwork(requestFactory({status:403})).read(url,10),error=>error.status===403&&!String(error).includes('private'));
 });
 test('one download at a time, ready only after native verification, retry safe and no error payload exposed',async()=>{
  const {release,record}=fixture(), native=new EventEmitter();let installs=0,checks=0,download=0,releaseDownload;
