@@ -12,7 +12,7 @@ import { Position, ExchangeType } from './types/exchange';
 import { aiService } from './services/ai';
 import { AIProvider, AISettings } from './types/ai';
 import { orderPositions } from './utils/position-order';
-import { menuValues } from './utils/menu-format';
+import { MenuPriceHistory, menuPriceLabel } from './utils/menu-price';
 import { binanceResearchSymbol } from './utils/binance-symbol';
 import { BinanceResearchService } from './services/research/market-scanner';
 import { BoundedResearchAIService } from './services/research/ai-research';
@@ -38,6 +38,7 @@ process.on('unhandledRejection', (reason, promise) => {
 app.setName('PositionScope');
 app.setPath('userData', path.join(app.getPath('appData'), 'PositionScope'));
 
+const menuPriceHistory = new MenuPriceHistory();
 let tray: Tray | null = null;
 let window: BrowserWindow | null = null;
 let workspaceWindow: BrowserWindow | null = null;
@@ -120,6 +121,7 @@ function createWindow() {
     width: 480,
     height: 600,
     show: isDev, // 开发模式下默认显示窗口
+    title: 'PositionScope',
     frame: false,
     resizable: false,
     webPreferences: {
@@ -167,37 +169,12 @@ function createWindow() {
   }
 }
 
-// 格式化持仓数据（用于绘制）
-interface PositionDisplayData {
-  symbol: string;
-  price: string;
-  pnl: number;
-  pnlText: string;
-  percentText: string;
-  isProfit: boolean;
-}
-
-function formatPositionData(position: Position): PositionDisplayData {
-  const pnl = Number(position.unRealizedProfit);
-  return { ...menuValues(position), pnl, isProfit: pnl >= 0 };
-}
-
-// 文字模式：格式化持仓为纯文本（无颜色）
-function formatPositionsAsText(positions: PositionDisplayData[]): string {
-  const textParts: string[] = [];
-  positions.forEach(pos => {
-    textParts.push(privacyMaskPending || settingsManager.getHideAmounts()
-      ? `${pos.symbol} ••••`
-      : `${pos.symbol} ${pos.pnlText}`);
-  });
-  return textParts.join(' | ');
-}
-
 // 更新菜单栏显示
 async function updateTrayTitle(snapshot?: Position[]) {
   if (!tray || !exchangeManager.hasAnyCredentials()) {
     if (tray) {
       tray.setTitle('--');
+      menuPriceHistory.clear();
       setMenuSignal(null);
       console.log('[Tray] Set title to: -- (no credentials)');
     }
@@ -210,6 +187,7 @@ async function updateTrayTitle(snapshot?: Position[]) {
     // A credential removal can complete while the request is in flight.
     if (!exchangeManager.hasAnyCredentials()) {
       tray.setTitle('--');
+      menuPriceHistory.clear();
       setMenuSignal(null);
       return;
     }
@@ -217,12 +195,14 @@ async function updateTrayTitle(snapshot?: Position[]) {
     // A partial/failed read is unknown, never proof of a flat account.
     if (exchangeManager.hasAnyErrors()) {
       tray.setTitle('数据异常');
+      menuPriceHistory.clear();
       setMenuSignal(null, true);
       return;
     }
 
     if (!positions || positions.length === 0) {
       tray.setTitle('无持仓');
+      menuPriceHistory.clear();
       setMenuSignal(0);
       console.log('[Tray] Set title to: 无持仓 (no positions)');
       return;
@@ -252,16 +232,15 @@ async function updateTrayTitle(snapshot?: Position[]) {
     // 取前N个显示
     const displayPositions = sortedPositions.slice(0, maxDisplayCount);
 
-    // 格式化为显示数据
-    const displayData = displayPositions.map((p: Position) => formatPositionData(p));
-
-    // 使用文字模式（纯文本，无颜色）
-    const titleText = formatPositionsAsText(displayData);
-    tray.setTitle(titleText);
-    setMenuSignal(positions.reduce((sum, p) => sum + Number(p.unRealizedProfit), 0));
-    console.log('[Tray] Updated with text for', displayData.length, 'positions');
+    const directions = menuPriceHistory.observe(positions, Date.now(), Math.max(15000, refreshIntervalSeconds * 3000));
+    const hidden = privacyMaskPending || settingsManager.getHideAmounts();
+    tray.setTitle(displayPositions.map(p => menuPriceLabel(p, directions.get(`${p.exchange}:${p.symbol}`) || 0, hidden)).join(' | '));
+    const first = displayPositions[0];
+    setMenuSignal(first ? directions.get(`${first.exchange}:${first.symbol}`) || 0 : null);
+    tray.setToolTip(hidden ? 'PositionScope · 已隐藏金额' : 'PositionScope · Binance 标记价（USDT）\n箭头比较同合约上次有效报价；彩色图标对应第一个币种。非盈亏、非24h涨跌。');
   } catch (error) {
     console.error('[Main] Error updating tray:', requestDiagnostic(error));
+    menuPriceHistory.clear();
     tray.setTitle('错误');
     setMenuSignal(null, true);
   }

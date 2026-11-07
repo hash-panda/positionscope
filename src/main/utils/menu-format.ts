@@ -23,3 +23,17 @@ export function menuValues(position: MenuPosition) {
       : '--',
   };
 }
+
+/** Price change, independent of position side; this is NOT leveraged return on margin. */
+export function entryPriceChange(position: Pick<MenuPosition, 'markPrice' | 'entryPrice'>): number | null {
+  const mark = Number(position.markPrice), entry = Number(position.entryPrice);
+  const result = (mark / entry - 1) * 100;
+  return mark > 0 && entry > 0 && Number.isFinite(result) ? result : null;
+}
+/** Compact quote precision, retaining meaningful digits for very small positive prices. */
+export function priceText(price: number): string {
+  if (!Number.isFinite(price) || price <= 0) return '—';
+  if (price < 0.000001) return price.toExponential(2);
+  const digits = price >= 100 ? 2 : price >= 1 ? 3 : price >= .01 ? 4 : 8;
+  return price.toLocaleString('en-US', { minimumFractionDigits: price >= 100 ? 2 : 0, maximumFractionDigits: digits });
+}
