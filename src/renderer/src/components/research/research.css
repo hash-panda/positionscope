@@ -152,9 +152,19 @@
 .workspace-settings > aside { padding: 28px 22px; border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; }
 .workspace-settings > aside h1 { font-size: 23px; padding: 0 10px; }
 .workspace-settings > aside p { font-size: 11px; color: var(--muted); padding: 6px 10px 22px; }
-.workspace-settings > aside button { background: transparent; text-align: left; border: 0; color: var(--muted); padding: 10px; border-radius: 5px; }
+.workspace-settings > aside button { display:flex; align-items:center; gap:12px; min-height:42px; background: transparent; text-align: left; border: 0; color: var(--muted); padding: 10px; border-radius: 5px; }
 .workspace-settings > aside button[aria-current='page'] { color: var(--text); background: var(--brand-soft); }
-.workspace-settings > .screen { width: 100%; max-width: 760px; padding: 8px 20px 0; min-height: 0; }
+.workspace-settings > .screen { width: 100%; max-width: none; padding: 0; min-height: 0; }
+.workspace-settings .screen-header { padding: 20px 32px 12px; min-height: 80px; }
+.workspace-settings .settings-body { padding: 12px 32px 32px; scrollbar-gutter: stable; }
+.workspace-settings .settings-content { width: 100%; max-width: 780px; }
+.workspace-settings .settings-body::-webkit-scrollbar { width: 8px; }
+.workspace-settings .settings-body::-webkit-scrollbar-thumb { background: var(--border); border: 2px solid var(--canvas); border-radius: 6px; }
+.workspace-settings .settings-section { margin-top: 28px; }
+.workspace-settings .setting-row { min-height: 64px; gap: 24px; }
+.workspace-settings .status-bar { padding-left: 32px; justify-content: flex-start; }
+.settings-content { min-width: 0; }
+@media (max-width: 1000px) { .workspace-settings { grid-template-columns: 200px minmax(0,1fr); } .workspace-settings .settings-body { padding-left:24px; padding-right:24px; } }
 .workspace-settings .screen-header { border-bottom: 0; }
 .workspace-settings .settings-brand { display: none; }
 .research-dialog-overlay { position: absolute; inset: 0; z-index: 80; background: var(--overlay); }

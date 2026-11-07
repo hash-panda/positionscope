@@ -40,8 +40,8 @@ const pageComponents = {
   about: AboutSettings,
 };
 const sections = [
-  { id: 'exchanges' as const, label: 'API 配置', icon: KeyRound },
-  { id: 'display' as const, label: '显示设置', icon: BarChart3 },
+  { id: 'exchanges' as const, label: 'Binance 连接', icon: KeyRound },
+  { id: 'display' as const, label: '显示与菜单栏', icon: BarChart3 },
   { id: 'appearance' as const, label: '外观', icon: Palette },
   { id: 'system' as const, label: '系统', icon: Monitor },
   { id: 'ai' as const, label: 'AI 分析', icon: Sparkles },
@@ -87,7 +87,7 @@ function summary(page: SettingsPage) {
       <h1 id="settings-title" tabindex="-1">{{ title }}</h1>
       <span v-if="model.saving" class="header-end muted small-text" role="status">正在保存…</span>
     </header>
-    <div :key="page" class="screen-body settings-body">
+    <div :key="page" class="screen-body settings-body"><div class="settings-content">
       <template v-if="page === 'index'">
         <p class="page-intro">管理连接，专注每一次变化。</p>
         <nav aria-label="设置分类" class="settings-navigation">
@@ -103,7 +103,7 @@ function summary(page: SettingsPage) {
           </button>
         </nav>
         <div class="settings-brand">
-          <span>Trade Realtime View</span><span class="helper">轻量、只读的菜单栏持仓监控</span>
+          <span>PositionScope</span><span class="helper">轻量、只读的菜单栏持仓监控</span>
         </div>
       </template>
       <component
@@ -118,7 +118,7 @@ function summary(page: SettingsPage) {
       <p v-else-if="model.formSuccess" class="form-feedback" role="status">
         <Check :size="14" />{{ model.formSuccess }}
       </p>
-    </div>
+    </div></div>
     <footer class="status-bar">
       <ShieldCheck :size="13" /><span>{{
         page === 'exchanges'
