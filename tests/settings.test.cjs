@@ -116,7 +116,7 @@ test('concurrent asynchronous saves serialize and publish only committed snapsho
   const second = manager.setExchangeCredentials('okx', input);
   input.apiKey = 'caller mutation';
   const third = manager.setAISettings(ai);
-  assert.equal(manager.getTheme(), 'auto'); assert.equal(manager.hasExchangeCredentials('okx'), false);
+  assert.equal(manager.getTheme(), 'light'); assert.equal(manager.hasExchangeCredentials('okx'), false);
   release(); await Promise.all([first, second, third]);
   const saved = await open();
   assert.equal(saved.getTheme(), 'light'); assert.equal(saved.getExchangeCredentials('okx').apiKey, credentials.okx.apiKey);
@@ -141,4 +141,25 @@ test('failed deletion preserves both disk and in-memory settings', () => context
   try { fs.unlinkSync = () => { throw new Error('denied'); }; await assert.rejects(manager.clearSettings(), /原加密配置已保留/); }
   finally { fs.unlinkSync = unlink; }
   assert.equal(manager.hasExchangeCredentials('okx'), true); assert.equal(fs.readFileSync(vault, 'utf8'), previous);
+}));
+
+test('display preferences persist atomically with independent watchlist copies and explicit defaults', () => context(async ({open}) => {
+  const manager=await open();
+  assert.deepEqual(manager.getDisplaySettings(),{maxDisplayCount:2,refreshInterval:5,colorScheme:'green-up',watchlistSymbols:['BTCUSDT','ETHUSDT']});
+  const symbols=['BTCUSDT','币安人生USDT'];
+  await manager.setDisplaySettings(1,10,{colorScheme:'red-up',watchlistSymbols:symbols});symbols[0]='ETHUSDT';
+  const reloaded=await open();assert.deepEqual(reloaded.getDisplaySettings(),{maxDisplayCount:1,refreshInterval:10,colorScheme:'red-up',watchlistSymbols:['BTCUSDT','币安人生USDT']});
+  const exposed=reloaded.getDisplaySettings();exposed.watchlistSymbols.push('SOLUSDT');assert.equal(reloaded.getDisplaySettings().watchlistSymbols.length,2);
+  await reloaded.resetToDefaults();assert.deepEqual(reloaded.getDisplaySettings().watchlistSymbols,['BTCUSDT','ETHUSDT']);assert.equal(reloaded.getDisplaySettings().colorScheme,'green-up');
+}));
+test('invalid display preferences cannot replace saved configuration; empty watchlist explicitly disables references', () => context(async ({open,vault}) => {
+  const manager=await open();await manager.setDisplaySettings(2,5,{colorScheme:'red-up',watchlistSymbols:['BTCUSDT']});
+  const before=fs.readFileSync(vault,'utf8');
+  for(const watchlistSymbols of [['BTCUSDT','BTCUSDT'],Array.from({length:9},(_,i)=>`A${i}USDT`),['BTCUSDT\n'],['BTCUSDC'],['BTCUSDT_260925'],['../BTCUSDT'],null]){
+    assert.throws(()=>manager.setDisplaySettings(2,5,{colorScheme:'green-up',watchlistSymbols}));
+    assert.equal(fs.readFileSync(vault,'utf8'),before);
+  }
+  assert.throws(()=>manager.setDisplaySettings(2,5,{colorScheme:'blue-up',watchlistSymbols:[]}));
+  assert.throws(()=>manager.setDisplaySettings(100,1));
+  await manager.setDisplaySettings(2,5,{colorScheme:'green-up',watchlistSymbols:[]});assert.deepEqual((await open()).getDisplaySettings().watchlistSymbols,[]);
 }));

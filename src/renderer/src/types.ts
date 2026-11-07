@@ -34,6 +34,8 @@ export interface ExchangeError {
 export interface Preferences {
   maxDisplayCount: number;
   refreshInterval: number;
+  colorScheme: import('../../main/utils/display-preferences').ColorScheme;
+  watchlistSymbols: string[];
   hideAmounts: boolean;
   dark: boolean;
   windowOpacity: number;
@@ -69,10 +71,12 @@ export interface ElectronAPI {
   removeExchangeCredentials(exchange: Exchange): Promise<Result>;
   getFuturesPositions(): Promise<Position[] | { error: string }>;
   getFuturesAccountInfo(): Promise<AccountInfo[] | { error: string }>;
-  getDisplaySettings(): Promise<{ maxDisplayCount: number; refreshInterval: number }>;
+  getDisplaySettings(): Promise<import('../../main/utils/display-preferences').DisplayPreferences>;
   saveDisplaySettings(settings: {
     maxDisplayCount: number;
     refreshInterval: number;
+    colorScheme: import('../../main/utils/display-preferences').ColorScheme;
+    watchlistSymbols: string[];
   }): Promise<Result>;
   getTheme(): Promise<'light' | 'dark' | 'auto'>;
   saveTheme(theme: 'light' | 'dark'): Promise<void | Result>;
@@ -85,6 +89,7 @@ export interface ElectronAPI {
   getAutoLaunch(): Promise<boolean>;
   saveAutoLaunch(value: boolean): Promise<void | Result>;
   getAppVersion(): Promise<string>;
+  checkForUpdates(): Promise<import('../../main/services/app-updates').AppUpdateResult>;
   getPositionOrder(): Promise<string[]>;
   savePositionOrder(order: string[]): Promise<Result>;
   getAISettings(): Promise<AISettings | null>;
@@ -105,6 +110,8 @@ export interface ElectronAPI {
   minimizeWindow(): Promise<void>;
   quitApp(): Promise<void>;
   onRefreshData(callback: () => void): (() => void) | void;
+  onPreferencesChanged(callback: () => void): (() => void) | void;
+  onDataCleared(callback: () => void): (() => void) | void;
   onExchangeErrors(callback: (errors: ExchangeError[]) => void): (() => void) | void;
 }
 export const exchanges: { id: Exchange; name: string }[] = [
