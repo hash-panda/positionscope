@@ -1,4 +1,4 @@
-import { normalizeBinancePosition } from './position-normalize';
+import { normalizeBinancePosition, binancePositionQuantity } from './position-normalize';
 import { numeric, optionalNumber, sumKnown } from '../utils/position-math';
 import axios, { AxiosInstance } from 'axios';
 import * as crypto from 'crypto';
@@ -222,16 +222,16 @@ export class BinanceService implements IExchangeService {
     const [positions, configs] = await Promise.all([
       this.futuresGet('/fapi/v3/positionRisk'), this.futuresGet('/fapi/v1/symbolConfig'),
     ]);
-    if (!Array.isArray(positions)) throw new BinanceDataError('BINANCE_INVALID_POSITION');
+    if (!Array.isArray(positions)) throw new BinanceDataError('BINANCE_INVALID_POSITION', 'response');
     if (!Array.isArray(configs) || configs.some(c => !c || typeof c !== 'object' || Array.isArray(c) || typeof c.symbol !== 'string' || !c.symbol.length)) throw new BinanceDataError('BINANCE_INVALID_CONFIG');
     const configMap = new Map(configs.map((c: any) => [c.symbol, c]));
     if (configMap.size !== configs.length) throw new BinanceDataError('BINANCE_INVALID_CONFIG');
     try {
-      return positions.filter((p: any) => numeric(p?.positionAmt) !== 0)
+      return positions.filter((p: any) => binancePositionQuantity(p) !== 0)
         .map((p: any) => normalizeBinancePosition(p, configMap.get(p.symbol)));
     } catch (error) {
       if (error instanceof BinanceDataError) throw error;
-      throw new BinanceDataError('BINANCE_INVALID_POSITION');
+      throw new BinanceDataError('BINANCE_INVALID_POSITION', 'response');
     }
   }
 

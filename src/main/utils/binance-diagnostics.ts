@@ -9,8 +9,10 @@ export type BinanceDataErrorCode = keyof typeof failures;
 
 /** Only this locally constructed type carries a trusted mapping code. Never
  * accept an upstream .code/.message or retain the raw response/cause. */
+export const positionFields = ['response', 'positionAmt', 'positionSide', 'markPrice', 'entryPrice', 'unRealizedProfit', 'isolatedWallet', 'liquidationPrice', 'positionInitialMargin', 'maintMargin', 'updateTime'] as const;
+export type PositionField = typeof positionFields[number];
 export class BinanceDataError extends Error {
-  constructor(readonly code: BinanceDataErrorCode) {
+  constructor(readonly code: BinanceDataErrorCode, readonly field?: PositionField) {
     super(failures[code][0]);
     this.name = 'BinanceDataError';
   }
@@ -19,5 +21,6 @@ export class BinanceDataError extends Error {
 export function binanceDataFailure(error: unknown) {
   if (!(error instanceof BinanceDataError) || !Object.prototype.hasOwnProperty.call(failures, error.code)) return null;
   const [errorMessage, suggestion] = failures[error.code];
-  return {errorCode: error.code, errorMessage, suggestion};
+  const field = error.code === 'BINANCE_INVALID_POSITION' && positionFields.includes(error.field as PositionField) ? error.field : undefined;
+  return {errorCode: error.code, errorMessage, suggestion: field ? `${suggestion} 校验字段：${field}（不含原始值）。` : suggestion};
 }
