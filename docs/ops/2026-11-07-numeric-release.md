@@ -56,7 +56,7 @@
 | 最终质量 CI / 新签名运行 | [版本 PR CI](https://github.com/hash-panda/positionscope/actions/runs/42367293542) 与[装订 PR CI](https://github.com/hash-panda/positionscope/actions/runs/42368305616) 全通过；[签名 42368451830](https://github.com/hash-panda/positionscope/actions/runs/42368451830) 的 quality、arm64、x64、publish 全成功 |
 | 0.2.1 Release URL / published_at | [v0.2.1](https://github.com/hash-panda/positionscope/releases/tag/v0.2.1)，`2026-11-07T11:38:20Z`，`prerelease=false` |
 | 七项资产与发布证据 | [release.json](../releases/v0.2.1/release.json)；三文本资产下载并重算 SHA256，四安装包记录与 GitHub asset digest 一致；包内图标摘要与源码一致 |
-| 官网/安装器推广 PR、部署与线上核对 | 本推广 PR 更新官网七页、release.json、README、安装说明与安装器 ZIP 摘要；确切 CI、合并和生产部署结果见该 PR 后续验证评论，未观察的上线结果不预填 |
+| 官网/安装器推广 PR、部署与线上核对 | [PR #63](https://github.com/hash-panda/positionscope/pull/63) 更新官网七页、release.json、README、安装说明与安装器 ZIP 摘要；确切 CI、合并和生产部署结果见该 PR 后续验证评论，未观察的上线结果不预填 |
 
 ## 发布过程的失败记录
 
