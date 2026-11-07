@@ -1,6 +1,10 @@
 # 产品 Review 与下一步
 
-## 当前已发布版本（2026-11-04，v0.2.0-beta.15）
+## 当前已发布版本（2026-11-07，v0.2.0-beta.16）
+
+[PR #53](https://github.com/hash-panda/positionscope/pull/53) 修复币安汉字 USDT 合约被误拒、首次读取失败显示零盈亏/持仓数和暂停刷新提示。合约标识贯穿持仓、风险事实及公共行情，保持结算、长度、字符与元数据边界；本地诊断不透传原始响应，成功空仓仍显示零。102 项 Node、5 项 Python、类型/构建、UI/axe 与合成 Mac 见 [PR CI](https://github.com/hash-panda/positionscope/actions/runs/42360949679)及[主分支 CI](https://github.com/hash-panda/positionscope/actions/runs/42361140885)。[签名发布](https://github.com/hash-panda/positionscope/actions/runs/42361141010)双架构签名、公证、装订、Gatekeeper 与 publish 成功；[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.0-beta.16)和 docs/releases/v0.2.0-beta.16 七资产已核对，详见 docs/ops/2026-11-07-beta16-release.md。合成复现不代表已确认用户实际原因。新版 AI 工作台仍为设计提案；真实 Mac/账户/模型、签名包权限弹窗及完整日志/时效审计仍未验收。不重配正常 Apple 凭证，不迁移旧预览版。
+
+## 前序发布记录（2026-11-04，v0.2.0-beta.15）
 
 [PR #47](https://github.com/hash-panda/positionscope/pull/47)修复相同平台持仓ID在单向仓方向翻转时的快照事件漏记/误记，分别展示旧方向消失与新方向新增；仍拒绝同快照重复身份，不改变排序身份或金融公式。93项Node、5项Python、类型/构建、320px方向事件/UI/axe与合成Mac见[PR CI](https://github.com/hash-panda/positionscope/actions/runs/41753165841)及[主分支CI](https://github.com/hash-panda/positionscope/actions/runs/41753415002)。[签名发布](https://github.com/hash-panda/positionscope/actions/runs/41753415004)双架构签名、公证、装订、Gatekeeper及publish成功；下载见[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.0-beta.15)与docs/releases/v0.2.0-beta.15，核验见docs/ops/2026-11-04-beta15-release.md。快照差异不等于成交、转账或执行顺序；真实Mac/账户/模型、签名包权限弹窗及完整日志/时效审计仍未验收。正常Apple凭证不重配，不迁移旧预览版。
 

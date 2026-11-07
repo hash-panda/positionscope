@@ -1,0 +1,4 @@
+60007efc7237355c84bc30fabadfee238bb1c38efb655ce4dcf79decaf011250  PositionScope-0.2.0-beta.16-arm64.zip
+2e58bcaf7ce9cd2a5e0b3530f813f2fc85d9e243239b1e6b9cf83579d1e2f0df  PositionScope-0.2.0-beta.16-x64.zip
+f94c057812d1ac48d117fdd25b4ed8744541f08ee7dba642ea56f0e7fcd1ade0  PositionScope-0.2.0-beta.16-arm64.dmg
+455a6c83c5361b8a568dc5676d86e0b41179c419066a8abab1a18d107d731d46  PositionScope-0.2.0-beta.16-x64.dmg
