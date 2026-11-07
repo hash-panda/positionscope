@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Check } from 'lucide-vue-next';
-import { amount, signed } from '../../utils/format';
+import { amount, signed, direction } from '../../utils/format';
 import type { AppModel } from '../../composables/useTradingApp';
 import AppSlider from '../ui/AppSlider.vue';
 
@@ -53,7 +53,7 @@ defineProps<{ model: AppModel }>();
       <span class="muted">总资产</span
       ><strong class="numeric"
         >{{ model.mask(amount(model.totals.totalAssets)) }} <small>USDT</small></strong
-      ><span class="numeric" :class="model.totalPnL >= 0 ? 'positive' : 'negative'">{{
+      ><span class="numeric" :class="direction(model.totalPnL)">{{
         model.mask(signed(model.totalPnL))
       }}</span>
     </div>

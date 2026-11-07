@@ -1,4 +1,5 @@
 import { validateAISettingsModels } from '../../../main/utils/ai-model';
+import { binanceResearchSymbol } from '../../../main/utils/binance-symbol';
 import { sumKnown } from '../../../main/utils/position-math';
 import { diffPositions, type PositionEvent } from '../../../main/utils/position-diff';
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
@@ -107,10 +108,15 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
     margin: sumKnown(accounts.value.map(a => a.totalMarginBalance)),
     available: sumKnown(accounts.value.map(a => a.availableBalance)),
   }));
-  const totalPnL = computed(() =>
-    positions.value.reduce((sum, position) => sum + Number(position.unRealizedProfit || 0), 0)
-  );
   const stale = computed(() => !!error.value || exchangeErrors.value.length > 0);
+  const retryPaused = computed(() => exchangeErrors.value.some(item => item.retryPaused));
+  // Zero is meaningful only after a complete, successful position snapshot.
+  const totalPnL = computed(() => stale.value || !lastUpdated.value ? null :
+    sumKnown(positions.value.map(position => {
+      const value = position.unRealizedProfit;
+      return value == null || !String(value).trim() ? null : Number(value);
+    }))
+  );
   const mask = (value: string) => (preferences.hideAmounts ? '••••••' : value);
 
   async function fetchData() {
@@ -344,7 +350,7 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
     marketLoading.value = true; marketError.value = '';
     const requestGeneration = generation;
     try {
-      const symbols = [...new Set(positions.value.map(p => /^[A-Z0-9]{1,40}USDT$/.test(p.symbol) ? p.symbol : p.baseAsset ? `${p.baseAsset}USDT` : '').filter(s => /^[A-Z0-9]{1,40}USDT$/.test(s)))];
+      const symbols = [...new Set(positions.value.map(binanceResearchSymbol).filter((symbol): symbol is string => symbol !== null))];
       const result = await api.getPublicMarket(symbols);
       if (disposed || requestGeneration !== generation) return;
       check(result);
@@ -614,6 +620,7 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
     totals,
     totalPnL,
     stale,
+    retryPaused,
     mask,
     fetchData,
     saveExchange,

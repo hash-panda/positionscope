@@ -13,6 +13,7 @@ import { aiService } from './services/ai';
 import { AIProvider, AISettings } from './types/ai';
 import { orderPositions } from './utils/position-order';
 import { menuValues } from './utils/menu-format';
+import { binanceResearchSymbol } from './utils/binance-symbol';
 
 // Global error handlers to prevent crashes from EPIPE and other errors
 process.on('uncaughtException', (error) => {
@@ -668,7 +669,7 @@ ipcMain.handle('ai-analyze-health', async (_, positions, accountInfo, provider?:
     console.log('[IPC] AI health analysis requested');
     buildRiskFacts(positions, accountInfo);
     publicMarketService.setProxy(settingsManager.getProxyUrl());
-    const symbols = [...new Set<string>((positions as any[]).map(p => /^[A-Z0-9]{1,40}USDT$/.test(p.symbol) ? p.symbol : /^[A-Z0-9]{1,40}$/.test(p.baseAsset) ? `${p.baseAsset}USDT` : '').filter(Boolean))];
+    const symbols = [...new Set((positions as Position[]).map(binanceResearchSymbol).filter((symbol): symbol is string => symbol !== null))];
     const market = await publicMarketService.snapshot(symbols);
     const result = await aiService.analyzePortfolioHealth(positions, accountInfo, provider, market);
 

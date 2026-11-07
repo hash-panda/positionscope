@@ -4,6 +4,7 @@ import axios, { AxiosInstance } from 'axios';
 import * as crypto from 'crypto';
 import { logger } from '../utils/logger';
 import { requestDiagnostic } from '../utils/request-diagnostics';
+import { BinanceDataError } from '../utils/binance-diagnostics';
 import {
   IExchangeService,
   ExchangeType,
@@ -221,10 +222,17 @@ export class BinanceService implements IExchangeService {
     const [positions, configs] = await Promise.all([
       this.futuresGet('/fapi/v3/positionRisk'), this.futuresGet('/fapi/v1/symbolConfig'),
     ]);
-    if (!Array.isArray(positions) || !Array.isArray(configs)) throw new Error('Binance持仓或配置列表缺失');
+    if (!Array.isArray(positions)) throw new BinanceDataError('BINANCE_INVALID_POSITION');
+    if (!Array.isArray(configs) || configs.some(c => !c || typeof c !== 'object' || Array.isArray(c) || typeof c.symbol !== 'string' || !c.symbol.length)) throw new BinanceDataError('BINANCE_INVALID_CONFIG');
     const configMap = new Map(configs.map((c: any) => [c.symbol, c]));
-    return positions.filter((p: any) => numeric(p.positionAmt) !== 0)
-      .map((p: any) => normalizeBinancePosition(p, configMap.get(p.symbol)));
+    if (configMap.size !== configs.length) throw new BinanceDataError('BINANCE_INVALID_CONFIG');
+    try {
+      return positions.filter((p: any) => numeric(p?.positionAmt) !== 0)
+        .map((p: any) => normalizeBinancePosition(p, configMap.get(p.symbol)));
+    } catch (error) {
+      if (error instanceof BinanceDataError) throw error;
+      throw new BinanceDataError('BINANCE_INVALID_POSITION');
+    }
   }
 
   async getAccountBalance(): Promise<any> { return this.futuresGet('/fapi/v3/balance'); }
@@ -234,7 +242,8 @@ export class BinanceService implements IExchangeService {
       this.futuresGet('/fapi/v3/account'), this.futuresGet('/fapi/v1/accountConfig'),
       this.getSpotBalances().catch(() => null),
     ]);
-    if (typeof config.multiAssetsMargin !== 'boolean') throw new Error('Binance保证金计价模式缺失');
+    if (!data || typeof data !== 'object' || Array.isArray(data) || !config || typeof config !== 'object' || Array.isArray(config) || typeof config.multiAssetsMargin !== 'boolean') throw new BinanceDataError('BINANCE_INVALID_ACCOUNT');
+    try {
     const spotTotalUSDT = spot === null ? null : sumKnown(spot.map(b => b.usdValue));
     const equity = optionalNumber(data.totalMarginBalance);
     return {exchange: this.exchangeType, totalWalletBalance: optionalNumber(data.totalWalletBalance),
@@ -246,5 +255,6 @@ export class BinanceService implements IExchangeService {
       marginFacts: {scope: 'USD-M futures', currency: config.multiAssetsMargin ? 'USD' : 'USDT', mode: config.multiAssetsMargin ? 'multi-asset' : 'single-asset',
         equity, initialMargin: optionalNumber(data.totalInitialMargin), maintenanceMargin: optionalNumber(data.totalMaintMargin)},
     };
+    } catch { throw new BinanceDataError('BINANCE_INVALID_ACCOUNT'); }
   }
 }

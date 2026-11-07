@@ -29,6 +29,7 @@ export interface ExchangeError {
   errorCode: string;
   errorMessage?: string;
   suggestion: string;
+  retryPaused?: boolean;
 }
 export interface Preferences {
   maxDisplayCount: number;

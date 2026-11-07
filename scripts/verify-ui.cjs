@@ -52,7 +52,9 @@ async function fixture(page, options = {}) {
     if (options.hyperliquid) positions.forEach(p => { p.exchange = 'hyperliquid'; });
     let stored = { binance: { apiKey: 'demo-key-not-real', apiSecret: 'demo-secret-not-real' } };
     if (options.hyperliquid) stored = { hyperliquid: { apiKey: '0x' + '1'.repeat(40), apiSecret: '' } };
-    let errors = options.partial
+    let errors = options.connectionFailure
+      ? [{ exchange: 'binance', errorCode: 'BINANCE_INVALID_POSITION', suggestion: '持仓数据校验失败，请重试。', retryPaused: true }]
+      : options.partial
       ? [{ exchange: 'okx', errorCode: 'ETIMEDOUT', suggestion: '请求超时，请检查网络或代理。' }]
       : [];
     let ai = {
@@ -181,7 +183,7 @@ async function fixture(page, options = {}) {
       getExchangeErrors: async () => errors,
       clearExchangeErrors: async () => {
         errors = [];
-        return { success: true };
+        return result('clearExchangeErrors');
       },
       onRefreshData: (fn) => {
         state.refresh = fn;
@@ -496,9 +498,37 @@ async function fixture(page, options = {}) {
     await multi.getByRole('button', { name: '刷新数据', exact: true }).click();
     await multi.getByText('数据未完整更新', { exact: true }).waitFor();
     assert.equal(await multi.locator('.position-item').count(), 3);
+    assert.equal(await multi.locator('.total-pnl-row strong').textContent(), '不可用');
+    assert.equal(await multi.locator('.data-stale-label').textContent(), '含上次数据');
     assert(await multi.getByRole('button', { name: 'AI 持仓分析', exact: true }).isDisabled());
     await capture(multi, '09-offline-stale');
     results.push('offline failure retains last data and blocks stale AI analysis');
+    const failedConnection = await open({connectionFailure: true});
+    assert.equal(await failedConnection.locator('.total-pnl-row strong').textContent(), '不可用');
+    assert.equal(await failedConnection.locator('.total-pnl-row .positive, .total-pnl-row .negative').count(), 0);
+    assert.equal(await failedConnection.locator('.positions-heading .count').textContent(), '—');
+    assert.equal(await failedConnection.locator('.data-stale-label').textContent(), '尚未取得数据');
+    assert.equal(await failedConnection.locator('.status-end').textContent(), '部分连接已暂停');
+    await failedConnection.getByText('连接检查已暂停，请点击“重新连接”重试。', {exact:true}).waitFor();
+    await capture(failedConnection, '09-first-read-failure');
+    await failedConnection.getByRole('button', {name:'重新连接',exact:true}).click();
+    await failedConnection.getByRole('button', {name:'AI 持仓分析',exact:true}).waitFor();
+    assert.equal(await failedConnection.locator('.total-pnl-row strong').textContent(), '+431.73');
+    assert.equal(await failedConnection.locator('.positions-heading .count').textContent(), '1');
+    assert.equal(await failedConnection.locator('.status-end').textContent(), '每 60 秒刷新');
+    assert.equal(await failedConnection.locator('.data-stale-label').count(), 0);
+    await failedConnection.close();
+    results.push('initial failed read stays unknown, pause is explicit, reconnect restores a complete snapshot');
+    const footerRetry = await open({connectionFailure: true});
+    assert.equal(await footerRetry.locator('.status-end').textContent(), '部分连接已暂停');
+    await footerRetry.getByRole('button', {name:'刷新数据',exact:true}).click();
+    await footerRetry.getByRole('button', {name:'AI 持仓分析',exact:true}).waitFor();
+    assert.equal(await footerRetry.evaluate(() => window.__calls.filter(item => item[0] === 'clearExchangeErrors').length), 1);
+    assert.equal(await footerRetry.locator('.total-pnl-row strong').textContent(), '+431.73');
+    assert.equal(await footerRetry.locator('.status-end').textContent(), '每 60 秒刷新');
+    assert.equal(await footerRetry.locator('.data-stale-label').count(), 0);
+    await footerRetry.close();
+    results.push('footer refresh explicitly clears paused connection errors before reading a complete snapshot');
     for (const [name, opts] of [
       ['10-empty', { empty: true }],
       ['11-unconfigured', { unconfigured: true }],
@@ -506,6 +536,10 @@ async function fixture(page, options = {}) {
       ['13-ai-missing', { aiMissing: true }],
     ]) {
       const current = await open(opts);
+      if (opts.empty) {
+        assert.equal(await current.locator('.total-pnl-row strong').textContent(), '+0.00');
+        assert.equal(await current.locator('.positions-heading .count').textContent(), '0');
+      }
       if (opts.aiMissing) {
         await current.getByRole('button', { name: 'AI 持仓分析', exact: true }).click();
         await current.getByRole('heading', { name: 'AI 分析', exact: true }).waitFor();

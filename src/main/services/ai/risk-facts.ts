@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
 import { Position, AccountInfo } from '../../types/exchange';
 import { numeric, optionalNumber, nonnegative, liquidationDistance, positionNotional, sumKnown } from '../../utils/position-math';
+import { binanceUsdtBaseAsset, isBinanceBaseAsset } from '../../utils/binance-symbol';
 
 export interface RiskFacts {
   version: 'risk-facts-v2';
@@ -29,15 +30,15 @@ export function buildRiskFacts(positions: Position[], accounts: AccountInfo[]): 
   const assets = new Map<string, number>();
   let longNotional = 0, shortNotional = 0;
   const details = positions.map(p => {
-    if (!p || !exchanges.has(p.exchange) || typeof p.symbol !== 'string' || !/^[a-zA-Z0-9._:/-]{1,60}$/.test(p.symbol)) throw new Error('持仓来源或交易对无效');
+    if (!p || !exchanges.has(p.exchange) || typeof p.symbol !== 'string' || (p.exchange === 'binance' ? binanceUsdtBaseAsset(p.symbol) === null : !/^[a-zA-Z0-9._:/-]{1,60}$/.test(p.symbol))) throw new Error('持仓来源或交易对无效');
     const quantity = numeric(p.positionAmt), mark = numeric(p.markPrice);
     if (numeric(p.entryPrice) <= 0) throw new Error('开仓价无效');
     numeric(p.unRealizedProfit);
     if (p.leverage != null && numeric(p.leverage) <= 0) throw new Error('杠杆无效');
     const notional = positionNotional(p);
     if (quantity > 0) longNotional += notional; else shortNotional += notional;
-    const asset = p.baseAsset || p.symbol.toUpperCase().replace(/[-_/]?(USDT|USDC|USD)([-_/]?(SWAP|PERP))?$/, '');
-    if (!/^[a-zA-Z0-9._:/-]{1,60}$/.test(asset)) throw new Error('基础资产格式无效');
+    const asset = p.baseAsset || (p.exchange === 'binance' ? binanceUsdtBaseAsset(p.symbol)! : p.symbol.toUpperCase().replace(/[-_/]?(USDT|USDC|USD)([-_/]?(SWAP|PERP))?$/, ''));
+    if (p.exchange === 'binance' ? !isBinanceBaseAsset(asset) || binanceUsdtBaseAsset(p.symbol) !== asset : !/^[a-zA-Z0-9._:/-]{1,60}$/.test(asset)) throw new Error('基础资产格式无效');
     assets.set(asset, (assets.get(asset) || 0) + notional);
     const liq = nonnegative(p.liquidationPrice);
     return {exchange: p.exchange, symbol: p.symbol, side: quantity > 0 ? 'long' : 'short', quantity, mark, notional,
