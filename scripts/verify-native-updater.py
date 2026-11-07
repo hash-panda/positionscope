@@ -71,7 +71,7 @@ app.on('window-all-closed',()=>{});
             info['ElectronAsarIntegrity']={'Resources/app.asar':{'algorithm':'SHA256','hash':hashlib.sha256(header['headerString'].encode()).hexdigest()}}
             plist.write_bytes(plistlib.dumps(info))
             if bootstrap_only:
-                run(['codesign','--force','--sign','-',str(bundle)])
+                run(['codesign','--force','--deep','--sign','-',str(bundle)])
             else:
                 run(['codesign','--force','--timestamp','--sign',identity,'--keychain',str(keychain),'--options','runtime','--entitlements',str(root/'build/entitlements.mac.plist'),str(bundle)])
             run(['codesign','--verify','--deep','--strict',str(bundle)])
