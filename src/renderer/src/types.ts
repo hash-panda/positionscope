@@ -104,7 +104,11 @@ export interface ElectronAPI {
   getAutoLaunch(): Promise<boolean>;
   saveAutoLaunch(value: boolean): Promise<void | Result>;
   getAppVersion(): Promise<string>;
-  checkForUpdates(): Promise<import('../../main/services/app-updates').AppUpdateResult>;
+  checkForUpdates(): Promise<import('../../main/services/update-install').UpdateState>;
+  getUpdateState(): Promise<import('../../main/services/update-install').UpdateState>;
+  downloadUpdate(): Promise<import('../../main/services/update-install').UpdateState>;
+  installUpdate(): Promise<boolean>;
+  onAppUpdateState(callback: (state: import('../../main/services/update-install').UpdateState) => void): () => void;
   getPositionOrder(): Promise<string[]>;
   savePositionOrder(order: string[]): Promise<Result>;
   getAISettings(): Promise<AISettings | null>;

@@ -84,6 +84,7 @@ async function fixture(run) {
   const replacements = {
     electron: { app, BrowserWindow: FakeWindow, Tray: FakeTray, Menu: { buildFromTemplate: items => items },
       ipcMain: { handle: (channel, handler) => handlers.set(channel, handler) },
+      autoUpdater: {}, session: { fromPartition: () => ({ fetch: async () => { throw Error('unexpected update network'); } }) },
       nativeImage: { createFromPath: image, createFromBuffer: image }, shell: { openExternal: async () => {} } },
     './settings': { SettingsManager: { open: async () => settings } },
     './settings-crypto': { macSettingsCipher: {} },
@@ -94,7 +95,7 @@ async function fixture(run) {
     './services/research/ai-research': { BoundedResearchAIService: ResearchAI },
     './services/research/research-ledger': { ResearchLedger: { open: async () => ledger } },
     './services/research/research-controller': { ResearchController: Controller },
-    './services/app-updates': { checkForUpdates: async version => ({ status: 'current', currentVersion: version }) },
+    './services/update-install': { UpdateInstaller: class { snapshot(){return {state:'current'};} check(){return this.snapshot();} download(){return {state:'downloading'};} restart(){return false;} dispose(){} } },
   };
   const main = require.resolve('../dist/main/main.js');
   const originalLoad = Module._load, originalSetInterval = global.setInterval, originalClearInterval = global.clearInterval;
@@ -237,3 +238,12 @@ test('deletion or model reconfiguration during public preflight cannot send the 
     assert.equal(result.success,false);assert.equal(h.calls.model,0);assert.equal(h.calls.privateReads,0);
   });
 });
+
+test('update IPC accepts only owned top-level windows; no renderer supplied download URL',async()=>fixture(async h=>{
+ const owner=h.sender(h.windows[0]);
+ for(const channel of ['get-update-state','check-for-updates','download-update','install-update'])for(const event of [{sender:{},senderFrame:{}},{sender:owner.sender,senderFrame:{}}])assert.throws(()=>h.invoke(channel,event),/Invalid update request/);
+ assert.equal((await h.invoke('get-update-state',owner)).state,'current');
+ assert.equal((await h.invoke('check-for-updates',owner)).state,'current');
+ assert.equal((await h.invoke('download-update',owner,'https://untrusted.example')).state,'downloading');
+ assert.equal(await h.invoke('install-update',owner),false);
+}));

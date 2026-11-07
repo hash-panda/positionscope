@@ -216,3 +216,5 @@
 .app.positionscope-app .button.primary:hover:not(:disabled) { filter: brightness(.94); }
 
 .workspace-settings .screen-header > .icon-button:first-child { display: none; }
+
+.holdings-table caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

@@ -107,6 +107,12 @@ def main():
             run(['codesign','--verify','--deep','--strict',str(app)])
             info=subprocess.run(['codesign','-dv','--verbose=4',str(app)],capture_output=True,text=True,check=True).stderr
             if f'TeamIdentifier={env["APPLE_TEAM_ID"]}' not in info or 'Authority=Developer ID Application:' not in info: raise RuntimeError('Signed app identity/team mismatch')
+            print('Stage: signed isolated native update and restart rehearsal',flush=True)
+            updater_record=root/'test-results'/f'updater-native-{args.arch}.json'
+            run(['python3','scripts/verify-native-updater.py','--app',str(app),'--keychain',str(keychain),'--output',str(updater_record)],diagnostics=True)
+            updater_smoke=json.loads(updater_record.read_text())
+            if not all(updater_smoke.get(key) is True for key in ('synthetic_profile_only','stream_hash_verified','native_signature_checked','installed_bundle_replaced','new_version_relaunched')):
+                raise RuntimeError('Native update and restart verification failed')
             print('Stage: application signature verified; validate Apple notarization credentials',flush=True)
             profile='positionscope-notary'
             run(['xcrun','notarytool','store-credentials',profile,'--apple-id',env['APPLE_ID'],'--password',env['APPLE_PASSWORD'],'--team-id',env['APPLE_TEAM_ID'],'--keychain',str(keychain)])
@@ -126,7 +132,7 @@ def main():
             dmg_submission=notarize(dmg,profile,keychain);staple_and_validate(dmg)
             evidence={'version':version,'architecture':args.arch,'app_notarization':app_submission,'dmg_notarization':dmg_submission,'signature_verified':True,'staple_validated':True,'gatekeeper_assessment':'accepted','artifacts':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in (zip_path,dmg)}}
             evidence.update(app_id=app_info['CFBundleIdentifier'],minimum_macos_version=app_info.get('LSMinimumSystemVersion'),settings_storage_smoke=storage)
-            evidence.update(branding={**bundled_branding,'native_smoke':branding})
+            evidence.update(branding={**bundled_branding,'native_smoke':branding},native_updater_smoke=updater_smoke)
             (output/f'{stem}-verification.json').write_text(json.dumps(evidence,indent=2)+'\n')
             print(f'Verified signed and notarized {args.arch} ZIP and DMG; no credentials included in artifacts')
         finally:

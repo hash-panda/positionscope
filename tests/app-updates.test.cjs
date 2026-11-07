@@ -1,6 +1,6 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
-const {LATEST_RELEASE_URL, checkForUpdates, inspectLatestRelease, isNewerStableVersion} = require('../dist/main/services/app-updates');
+const {inspectLatestRelease, isNewerStableVersion} = require('../dist/main/services/app-updates');
 function release(version='0.2.1') {
   const tag = `v${version}`, base = 'https://github.com/hash-panda/positionscope/releases';
   return {tag_name:tag, draft:false, prerelease:false, html_url:`${base}/tag/${tag}`, assets:
@@ -22,10 +22,4 @@ test('only complete stable official release assets offer the official release pa
 test('missing architecture, checksum or verification record fails closed',()=>{
   for(let index=0;index<7;index++){const value=release();value.assets.splice(index,1);assert.equal(inspectLatestRelease('0.2.0-beta.16',value).state,'unavailable');}
   for(const value of [null,[],false,{}, {assets:[null]}])assert.equal(inspectLatestRelease('0.2.1',value).state,'unavailable');
-});
-test('checking performs one public fixed-origin read and scrubs transport errors',async()=>{
-  const urls=[];const value=await checkForUpdates('0.2.0-beta.16',async url=>{urls.push(url);return release();});
-  assert.deepEqual(urls,[LATEST_RELEASE_URL]);assert.equal(value.state,'available');
-  const failure=await checkForUpdates('0.2.1',async()=>{throw new Error('synthetic-secret-http-response');});
-  assert.equal(failure.state,'unavailable');assert.equal(JSON.stringify(failure).includes('synthetic-secret'),false);
 });

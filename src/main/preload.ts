@@ -4,6 +4,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getWindowMode: () => ipcRenderer.invoke('get-window-mode'),
   openWorkspace: (page?: string) => ipcRenderer.invoke('open-workspace', page),
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  getUpdateState: () => ipcRenderer.invoke('get-update-state'),
+  downloadUpdate: () => ipcRenderer.invoke('download-update'),
+  installUpdate: () => ipcRenderer.invoke('install-update'),
+  onAppUpdateState: (callback: (state: import('./services/update-install').UpdateState) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, state: import('./services/update-install').UpdateState) => callback(state);
+    ipcRenderer.on('app-update-state', listener);
+    return () => ipcRenderer.removeListener('app-update-state', listener);
+  },
   getResearchSnapshot: () => ipcRenderer.invoke('get-research-snapshot'),
   getResearchEvidence: (symbol: string) => ipcRenderer.invoke('get-research-evidence', symbol),
   getWatchlistMarket: () => ipcRenderer.invoke('get-watchlist-market'),
