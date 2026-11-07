@@ -30,6 +30,11 @@ const {UpdateInstaller,serveVerifiedUpdate,writeVerifiedPackage}=require(path.jo
 function record(value){fs.writeFileSync(path.join(work,'state.json'),JSON.stringify(value));}
 process.on('uncaughtException',()=>{record({error:'uncaught'});app.exit(1);});
 process.on('unhandledRejection',()=>{record({error:'unhandled'});app.exit(1);});
+autoUpdater.on('error',error=>{
+ const text=String(error?.message||'').toLowerCase();
+ const category=['signature','permission','transport','connection','read-only','directory','application'].find(x=>text.includes(x))||'other';
+ fs.writeFileSync(path.join(work,'native-error.json'),JSON.stringify({category,code:Number.isFinite(error?.code)?error.code:null}));
+});
 app.whenReady().then(async()=>{
  if(app.getVersion()==='0.0.2'){record({version:app.getVersion(),restarted:true});app.quit();return;}
  const release=fs.readFileSync(path.join(work,'release.json')),verification=fs.readFileSync(path.join(work,'verification.json'));
@@ -77,7 +82,9 @@ app.on('window-all-closed',()=>{});
                 if (directory/'state.json').exists():
                     try: state=json.loads((directory/'state.json').read_text())
                     except json.JSONDecodeError: pass
-                    if state.get('error') or state.get('state')=='unavailable':raise RuntimeError('Signed native updater rehearsal failed before restart')
+                    if state.get('error') or state.get('state')=='unavailable':
+                        diagnostic=json.loads((directory/'native-error.json').read_text()) if (directory/'native-error.json').exists() else {'category':'harness'}
+                        raise RuntimeError('Signed native updater rehearsal failed: '+json.dumps(diagnostic))
                     if state.get('restarted') is True:break
                 time.sleep(1)
             else:raise RuntimeError('Signed native updater rehearsal timed out at '+str(state.get('state','launch')))

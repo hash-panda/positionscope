@@ -9,6 +9,7 @@ on:
       - 'build/**'
       - 'assets/**'
       - 'scripts/release-signed-mac.py'
+      - 'scripts/verify-native-updater.py'
       - 'scripts/check-release-version.py'
       - 'package.json'
       - 'pnpm-lock.yaml'
