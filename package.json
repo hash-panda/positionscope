@@ -1,8 +1,8 @@
 {
   "name": "positionscope",
   "productName": "PositionScope",
-  "version": "0.2.0-beta.16",
-  "description": "Local-first multi-exchange position monitor for macOS",
+  "version": "0.2.1",
+  "description": "Local-first Binance position monitor and public-market AI research workspace for macOS",
   "main": "dist/main/main.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:renderer\" \"npm run dev:electron\"",
