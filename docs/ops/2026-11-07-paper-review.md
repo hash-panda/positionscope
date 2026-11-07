@@ -11,3 +11,5 @@
 验证（本地实际执行）：221 项 Node 测试、Vue 类型检查、主进程与 renderer 构建通过。新增校验覆盖时间/样本/费用/缺口/回撤门槛、候选风险边界、旧交易冻结、未来事件对照及模型调用先预留。UI/axe、Mac 原生检查在 PR CI 中运行，以最终链接为准，未运行的不写通过。
 
 限制：仅应用运行联网时观察，休眠/退出不补成交；可见盘口不模拟真实排队。阈值为预先声明工程规则，未验证经济优势；长期容量和真实模型费用未知。沿用 Binance 官方只读市场接口：https://developers.binance.com/en/docs/catalog/core-trading-derivatives-trading-usd-s-m-futures/api/rest-api/market-data （2026-11-07 核对）。
+
+后续实际验收：#79最终CI [42388835708](https://github.com/hash-panda/positionscope/actions/runs/42388835708) 的221 Node、25 Python、类型/构建、UI/axe与Mac检查通过；0.2.6已签名发布，详见[发布汇总](2026-11-07-paper-release.md)。真实模型与长期运行仍未验证。

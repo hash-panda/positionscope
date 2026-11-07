@@ -1,0 +1,82 @@
+{
+  "version": "0.2.7",
+  "architecture": "x64",
+  "app_notarization": "37eadfff-4a8c-4cc8-8a75-2c6b60ede76b",
+  "dmg_notarization": "59eca0f4-0350-41eb-bf5c-b371b138c4ef",
+  "signature_verified": true,
+  "staple_validated": true,
+  "gatekeeper_assessment": "accepted",
+  "artifacts": {
+    "PositionScope-0.2.7-x64.zip": "702659ce3fe33b07f9b51f839f527e1b242f785a68429ddd398e8b3706f91164",
+    "PositionScope-0.2.7-x64.dmg": "23324818a3edea77c9602aac683a9b52412199468cbc246a52cadc2dbb6a38b5"
+  },
+  "app_id": "app.funagent.positionscope",
+  "minimum_macos_version": "13.0",
+  "settings_storage_smoke": {
+    "platform": "darwin",
+    "electron": "45.0.0",
+    "asynchronous_system_encryption": true,
+    "cross_process_reload": true,
+    "reset_preserves_credentials": true,
+    "targeted_removal": true,
+    "deletion": true,
+    "synthetic_profile_only": true,
+    "packaged_app_keychain_prompt_tested": false
+  },
+  "branding": {
+    "app_icon_file": "icon.icns",
+    "app_icon_sha256": "d7974cb6a941820783775d1d77ade2dafb30aefc1f351beba9f6161e52bcfcb5",
+    "packaged_app_icon_matches": true,
+    "packaged_tray_icons_match": true,
+    "native_smoke": {
+      "platform": "darwin",
+      "electron": "45.0.0",
+      "icns_decoded": true,
+      "app_artwork_matches": true,
+      "template_image": true,
+      "retina_representation": true,
+      "native_ui_tested": false
+    }
+  },
+  "native_updater_smoke": {
+    "platform": "darwin",
+    "architecture": "x64",
+    "synthetic_profile_only": true,
+    "separate_test_identity": true,
+    "stream_hash_verified": true,
+    "native_signature_checked": true,
+    "installed_bundle_replaced": true,
+    "new_version_relaunched": true,
+    "real_user_profile_tested": false,
+    "stage_history": [
+      {
+        "stage": "bootstrap",
+        "elapsed_seconds": 86.9
+      },
+      {
+        "stage": "checking",
+        "elapsed_seconds": 89.1
+      },
+      {
+        "stage": "downloading",
+        "elapsed_seconds": 90.1
+      },
+      {
+        "stage": "verifying",
+        "elapsed_seconds": 97.4
+      },
+      {
+        "stage": "ready",
+        "elapsed_seconds": 108.3
+      },
+      {
+        "stage": "bootstrap",
+        "elapsed_seconds": 189.0
+      },
+      {
+        "stage": "restarted",
+        "elapsed_seconds": 191.3
+      }
+    ]
+  }
+}

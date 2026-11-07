@@ -1,6 +1,20 @@
 # PositionScope 质量评审与迭代
 
-## 当前已发布版本（2026-11-07，0.2.3）
+## 当前已发布版本（2026-11-07，0.2.7）
+
+[PR #82](https://github.com/hash-panda/positionscope/pull/82) 修复首次从提醒打开工作台时误选模拟复盘页签，保持与已有窗口一样直接进入研究记录。0.2.6的冻结模拟复盘与候选前向对照能力保留，未改变成本、模型或风险规则。
+
+来源 `a5a774bd896d8eb2043a8416d9332154ac552716`，[签名运行](https://github.com/hash-panda/positionscope/actions/runs/42390725972)完成双架构签名、公证、装订、Gatekeeper、图标与隔离原生更新演练；[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.7) 于 `2026-11-07T16:37:49Z` 发布，七资产见 [releases/v0.2.7](releases/v0.2.7/)。[CI42390531962](https://github.com/hash-panda/positionscope/actions/runs/42390531962) 通过221 Node、25 Python、类型/构建、完整UI/axe及Mac原生检查，新增首次窗口深链接场景。
+
+当前官网与下载推广见 [本轮报告](ops/2026-11-07-paper-release.md) 和 PR #80。真实账户保持只读；模拟不证明现实盈利；用户Mac、真实模型/账单、连续七天与大账本容量仍未验证，跟踪 #3。不重配正常Apple凭证，不迁移旧预览版。
+
+## 历史已发布版本（2026-11-07，0.2.6）
+
+0.2.4（#73/#74）完成菜单栏纯数字盈亏、单方向图标、设置滚动与单版Release说明；0.2.5（#75/#77/#78）完成独立模拟账本、周期保留、公开研究与模型预算；0.2.6（#79/#81）增加冻结复盘、周期比较与候选策略前向对照。来源 `50a8974012ac14d8441dda7e3420a2e3c67de118`，[签名运行](https://github.com/hash-panda/positionscope/actions/runs/42389421613)与[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.6) 已核对，七项资产和摘要见 [releases/v0.2.6](releases/v0.2.6/)。221 Node、25 Python、类型/构建、UI/axe和Mac原生检查见 [功能CI](https://github.com/hash-panda/positionscope/actions/runs/42388835708)及[版本CI](https://github.com/hash-panda/positionscope/actions/runs/42389151034)。
+
+真实账户仍只读；模拟是用户明确确认预算后的独立本地虚拟账本，无真实下单或转账。候选筛选门槛不等于统计显著性或盈利证明。真实Mac/钥匙串弹窗/账户/模型、七天连续运行与大账本容量仍未验证，跟踪 #3。官网改版与部署凭据见 [本轮报告](ops/2026-11-07-paper-release.md) 和 PR #80。旧预览版不迁移，正常Apple凭证不重配。
+
+## 历史已发布版本（2026-11-07，0.2.3）
 
 已完成卡片布局/完整持仓表/退出标题、报价语义与应用内更新，见 [PR #67](https://github.com/hash-panda/positionscope/pull/67)、[PR #68](https://github.com/hash-panda/positionscope/pull/68)和[发布报告](ops/2026-11-07-in-app-updates.md)。196 Node、21 Python、类型/构建、UI/axe、合成 Mac 存储/图标，以及双架构原生更新替换重启、签名、公证、装订、Gatekeeper有可复核证据。此处更新验证基线，不凭新增功能虚增百分制评分；真实 Mac 权限/配置、账户/模型语义和盈利能力未验收，访问/激活/留存/收入未知。
 
