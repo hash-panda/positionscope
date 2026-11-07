@@ -9,6 +9,8 @@ import ResearchPanel from './ResearchPanel.vue';
 import PositionsPanel from './PositionsPanel.vue';
 import ReviewPanel from './ReviewPanel.vue';
 import PaperPanel from './PaperPanel.vue';
+import PaperReviewPanel from './PaperReviewPanel.vue';
+const reviewTab = ref('paper');
 import brandMark from '../../../../../assets/brand/mark.svg';
 const props = defineProps<{ model: AppModel; initialPage?: string; unread: number }>();
 const emit = defineEmits<{ confirm: [action: 'reset' | 'delete' | Exchange]; notifications: [] }>();
@@ -23,7 +25,7 @@ const reversed = computed(() => (props.model.preferences as typeof props.model.p
 let cleanup: (() => void) | undefined;
 function navigate(next: Page) { page.value = next; props.model.currentView = next === 'settings' ? 'settings' : 'overview'; }
 function escape(event: KeyboardEvent) { if (event.key !== 'Escape' || event.defaultPrevented || document.querySelector('[data-app-overlay][data-state="open"],dialog[open],.holdings-analysis-overlay,.notification-screen')) return; if (page.value !== 'research') navigate('research'); else document.querySelector<HTMLElement>('.event-row.selected')?.focus(); }
-onMounted(() => { const api = window.electronAPI as typeof window.electronAPI & { onWorkspacePage?: (callback: (page: string) => void) => (() => void) }; const unsubscribe = api?.onWorkspacePage?.(next => { if (valid(next)) navigate(next); }); if (typeof unsubscribe === 'function') cleanup = unsubscribe; document.addEventListener('keydown', escape); });
+onMounted(() => { const api = window.electronAPI as typeof window.electronAPI & { onWorkspacePage?: (callback: (page: string) => void) => (() => void) }; const unsubscribe = api?.onWorkspacePage?.(next => { if (valid(next)) { if(next==='review')reviewTab.value='research'; navigate(next); } }); if (typeof unsubscribe === 'function') cleanup = unsubscribe; document.addEventListener('keydown', escape); });
 onUnmounted(() => { cleanup?.(); document.removeEventListener('keydown', escape); });
 </script>
 <template>
@@ -32,7 +34,11 @@ onUnmounted(() => { cleanup?.(); document.removeEventListener('keydown', escape)
     <ResearchPanel v-show="page === 'research'" :model="research" :reversed="reversed" />
     <PaperPanel v-if="page === 'paper'" :model="model" @settings="navigate('settings'); settingsPage = 'ai'" />
     <PositionsPanel v-if="page === 'positions'" :model="model" @settings="navigate('settings'); settingsPage = $event || 'exchanges'" />
-    <ReviewPanel v-if="page === 'review'" :model="research" />
+    <template v-if="page === 'review'"><nav class="review-nav" aria-label="复盘类型"><button :aria-pressed="reviewTab==='paper'" @click="reviewTab='paper'">模拟复盘</button><button :aria-pressed="reviewTab==='research'" @click="reviewTab='research'">研究记录</button></nav><PaperReviewPanel v-if="reviewTab==='paper'" :model="model"/><ReviewPanel v-else :model="research" /></template>
     <div v-if="page === 'settings'" class="workspace-settings"><aside><h1>设置</h1><p>你的工作方式。</p><button v-for="section in settingSections" :key="section.id" :aria-current="settingsPage === section.id ? 'page' : undefined" @click="settingsPage = section.id as SettingsPage"><component :is="section.icon" :size="17" aria-hidden="true"/>{{ section.label }}</button></aside><SettingsPanel v-model:page="settingsPage" :model="model" @close="navigate('research')" @confirm="emit('confirm', $event)" /></div>
   </section>
 </template>
+
+<style scoped>
+.review-nav{display:flex;gap:24px;padding:14px 28px 0;flex-shrink:0}.review-nav button{font-size:12px;border:0;background:none;padding:8px 0;color:var(--muted);border-bottom:2px solid transparent}.review-nav button[aria-pressed=true]{color:var(--text);border-color:var(--brand)}
+</style>
