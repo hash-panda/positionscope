@@ -2,7 +2,7 @@ import { requestDiagnostic } from './utils/request-diagnostics';
 import { validateAISettingsModels } from './utils/ai-model';
 import { buildRiskFacts } from './services/ai/risk-facts';
 import { publicMarketService } from './services/public-market';
-import { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell } from 'electron';
+import { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell, autoUpdater, session } from 'electron';
 
 import * as path from 'path';
 import { ExchangeManager } from './services/exchangeManager';
@@ -19,7 +19,8 @@ import { BoundedResearchAIService } from './services/research/ai-research';
 import { ResearchLedger } from './services/research/research-ledger';
 import { ResearchController } from './services/research/research-controller';
 import { menuSignalPng } from './utils/menu-image';
-import { checkForUpdates } from './services/app-updates';
+import { UpdateInstaller } from './services/update-install';
+import { updateNetwork } from './services/update-network';
 
 // Global error handlers to prevent crashes from EPIPE and other errors
 process.on('uncaughtException', (error) => {
@@ -39,6 +40,7 @@ app.setName('PositionScope');
 app.setPath('userData', path.join(app.getPath('appData'), 'PositionScope'));
 
 const menuPriceHistory = new MenuPriceHistory();
+let installer: UpdateInstaller | undefined;
 let tray: Tray | null = null;
 let window: BrowserWindow | null = null;
 let workspaceWindow: BrowserWindow | null = null;
@@ -406,7 +408,7 @@ app.whenReady().then(async () => {
 
 // Keep the menu-bar process alive after its window closes.
 app.on('window-all-closed', () => {});
-app.on('before-quit', () => { if (researchTimer) clearInterval(researchTimer); stopAutoRefresh(); researchController?.invalidate(); });
+app.on('before-quit', () => { installer?.dispose(); if (researchTimer) clearInterval(researchTimer); stopAutoRefresh(); researchController?.invalidate(); });
 
 // IPC handlers
 ipcMain.handle('get-window-mode', event => event.sender === workspaceWindow?.webContents ? 'workspace' : 'popup');
@@ -415,7 +417,23 @@ ipcMain.handle('open-workspace', (_event, page: unknown) => {
   openWorkspace((page || 'research') as WorkspacePage);
   return { success: true };
 });
-ipcMain.handle('check-for-updates', () => checkForUpdates(app.getVersion()));
+function updateHandler(channel: string, action: (updates: UpdateInstaller) => unknown) {
+  ipcMain.handle(channel, (event) => {
+    const owner = [window, workspaceWindow].find(w => w && !w.isDestroyed() && w.webContents === event.sender);
+    if (!owner || event.senderFrame !== owner.webContents.mainFrame) throw new Error('Invalid update request');
+    if (!installer) {
+      const network = updateNetwork(session.fromPartition('positionscope-updates').fetch.bind(session.fromPartition('positionscope-updates')));
+      installer = new UpdateInstaller(app.getVersion(), process.arch,
+        process.platform === 'darwin' && app.isPackaged && !app.getAppPath().includes('/AppTranslocation/') && !app.getAppPath().startsWith('/Volumes/'),
+        app.getPath('temp'), autoUpdater, network, state => broadcast('app-update-state', state), process.getSystemVersion?.() || '0.0');
+    }
+    return action(installer);
+  });
+}
+updateHandler('check-for-updates', updates => updates.check());
+updateHandler('get-update-state', updates => updates.snapshot());
+updateHandler('download-update', updates => updates.download());
+updateHandler('install-update', updates => updates.restart());
 
 function researchHandler(channel: string, action: (...args: any[]) => unknown) {
   ipcMain.handle(channel, async (event, ...args) => {

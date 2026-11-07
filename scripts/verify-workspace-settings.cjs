@@ -30,8 +30,13 @@ async function mutableSettings(page,options={}) {
     api.saveProxySettings=async value=>{const r=saved('saveProxySettings',value);if(r.success)state.proxyUrl=value;return r;};
     api.saveAutoLaunch=async value=>{const r=saved('saveAutoLaunch',value);if(r.success)state.autoLaunch=value;return r;};
     api.saveExchangeCredentials=async(exchange,credentials)=>{const r=saved('saveExchangeCredentials',exchange,credentials);if(r.success){state.stored[exchange]=structuredClone(credentials);state.configured=true;}return r;};
-    state.updateState='available';
-    api.checkForUpdates=async()=>{calls.push(['checkForUpdates']);if(state.blockUpdateCheck)await new Promise(resolve=>{state.releaseUpdateCheck=resolve;});return state.updateState==='available'?{state:'available',currentVersion:'0.2.1',latestVersion:'9.0.0',releaseUrl:'https://github.com/hash-panda/positionscope/releases/tag/v9.0.0',message:'发现 9.0.0，前往官方发布页查看。'}:{state:state.updateState,currentVersion:'0.2.1',message:state.updateState==='current'?'当前已是最新可用版本。':'暂时无法确认可用更新，请稍后重试。'};};
+    state.updateState='available';state.downloadState={state:'current',currentVersion:'0.2.2',message:'点击检查更新。'};
+    api.getUpdateState=async()=>structuredClone(state.downloadState);
+    api.onAppUpdateState=callback=>{state.updateListener=callback;return()=>{state.updateListener=null;};};
+    state.emitUpdate=value=>{state.downloadState={...state.downloadState,...value};state.updateListener?.(structuredClone(state.downloadState));};
+    api.checkForUpdates=async()=>{calls.push(['checkForUpdates']);if(state.blockUpdateCheck)await new Promise(resolve=>{state.releaseUpdateCheck=resolve;});const value=state.updateState==='available'?{state:'available',currentVersion:'0.2.2',latestVersion:'9.0.0',message:'发现 9.0.0，可在应用内下载。'}:{state:state.updateState,currentVersion:'0.2.2',message:state.updateState==='current'?'当前已是最新可用版本。':'暂时无法确认可用更新，请稍后重试。'};state.emitUpdate(value);return value;};
+    api.downloadUpdate=async()=>{calls.push(['downloadUpdate']);state.emitUpdate({state:'downloading',progress:42,message:'正在下载官方更新…'});return structuredClone(state.downloadState);};
+    api.installUpdate=async()=>{calls.push(['installUpdate']);return state.downloadState.state==='ready';};
     api.aiAnalyzeHealth=async(...args)=>{calls.push(['aiAnalyzeHealth',...args]);return{success:false,error:'合成模型校验失败，未生成分析'};};
     const originalPositions=api.getFuturesPositions,originalAccounts=api.getFuturesAccountInfo;
     api.getFuturesPositions=async()=>{const old=await originalPositions();if(state.blockPositions)await new Promise(resolve=>{state.releasePositions=()=>resolve();});state.positionReadCompleted=true;return state.returnOldPositions?old:state.configured?old:[];};
@@ -103,10 +108,14 @@ async function mutableSettings(page,options={}) {
 
     await settings(p,'关于与更新');assert.equal(await p.evaluate(()=>window.__calls.filter(c=>c[0]==='checkForUpdates').length),0);
     await p.evaluate(()=>window.__qa.blockUpdateCheck=true);await p.getByRole('button',{name:'检查更新',exact:true}).click();assert(await p.getByRole('button',{name:'正在检查…',exact:true}).isDisabled());
-    await p.evaluate(()=>{window.__qa.blockUpdateCheck=false;window.__qa.releaseUpdateCheck();});await p.getByRole('button',{name:'查看 9.0.0 发布页',exact:true}).click();assert(await p.evaluate(()=>window.__calls.some(c=>c[0]==='openExternal'&&c[1]==='https://github.com/hash-panda/positionscope/releases/tag/v9.0.0')));
-    for(const state of ['current','unavailable']){await p.evaluate(state=>window.__qa.updateState=state,state);await p.getByRole('button',{name:'检查更新',exact:true}).click();await p.getByText(state==='current'?'当前已是最新可用版本。':'暂时无法确认可用更新，请稍后重试。',{exact:true}).waitFor();assert.equal(await p.getByRole('button',{name:'查看 9.0.0 发布页',exact:true}).count(),0);}
+    await p.evaluate(()=>{window.__qa.blockUpdateCheck=false;window.__qa.releaseUpdateCheck();});await p.getByRole('button',{name:'下载 9.0.0 更新',exact:true}).waitFor();
+    for(const state of ['current','unavailable']){await p.evaluate(state=>window.__qa.updateState=state,state);await p.getByRole('button',{name:'检查更新',exact:true}).click();await p.getByText(state==='current'?'当前已是最新可用版本。':'暂时无法确认可用更新，请稍后重试。',{exact:true}).waitFor();assert.equal(await p.getByRole('button',{name:'下载 9.0.0 更新',exact:true}).count(),0);}
+    await p.evaluate(()=>window.__qa.updateState='available');await p.getByRole('button',{name:'检查更新',exact:true}).click();await p.getByRole('button',{name:'下载 9.0.0 更新',exact:true}).click();await p.getByText('42%',{exact:true}).waitFor();assert(await p.getByRole('button',{name:'正在下载…',exact:true}).isDisabled());assert.equal(await p.getByRole('button',{name:'重启更新',exact:true}).count(),0);
+    await settings(p,'外观');await settings(p,'关于与更新');await p.getByText('42%',{exact:true}).waitFor();
+    await p.evaluate(()=>window.__qa.emitUpdate({state:'verifying',progress:100,message:'正在进行 macOS 签名检查…'}));assert(await p.getByRole('button',{name:'正在验证…',exact:true}).isDisabled());
+    await p.evaluate(()=>window.__qa.emitUpdate({state:'ready',progress:100,message:'更新已准备好。'}));await p.getByRole('button',{name:'重启更新',exact:true}).click();assert(await p.evaluate(()=>window.__calls.some(c=>c[0]==='installUpdate')));assert(!await p.evaluate(()=>window.__calls.some(c=>c[0]==='openExternal'&&c[1]?.includes('/releases/'))));
     for(const action of ['恢复默认设置','删除所有数据']){await p.getByRole('button',{name:action,exact:true}).click();const dialog=p.getByRole('dialog');await dialog.waitFor();await p.keyboard.press('Tab');assert(await dialog.evaluate(e=>e.contains(document.activeElement)));await p.keyboard.press('Escape');await dialog.waitFor({state:'detached'});}
-    assert.equal(await p.evaluate(()=>window.__calls.filter(c=>['resetToDefaults','deleteAllData'].includes(c[0])).length),0);await capture(p,'03-update-states');results.push('explicit-only update checking, loading/current/available/unavailable, official release link; reset/delete modal focus and cancellation');
+    assert.equal(await p.evaluate(()=>window.__calls.filter(c=>['resetToDefaults','deleteAllData'].includes(c[0])).length),0);await capture(p,'03-update-states');results.push('explicit-only update checking, loading/current/available/unavailable, in-app download/progress, navigation persistence, native verification then restart; reset/delete modal focus and cancellation');
 
     await p.getByRole('button',{name:'持仓',exact:true}).click();await p.getByRole('button',{name:'持仓分析',exact:true}).click();await p.getByRole('dialog',{name:'发送持仓风险事实进行分析？'}).waitFor();await p.keyboard.press('Escape');
     assert.equal(await p.evaluate(()=>window.__calls.filter(c=>c[0]==='aiAnalyzeHealth').length),0,'private analysis requires confirmation');

@@ -1,7 +1,7 @@
 {
   "name": "positionscope",
   "productName": "PositionScope",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Local-first Binance position monitor and public-market AI research workspace for macOS",
   "main": "dist/main/main.js",
   "scripts": {
@@ -61,7 +61,12 @@
         "dmg"
       ],
       "type": "distribution",
-      "identity": null
+      "identity": null,
+      "extendInfo": {
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        }
+      }
     },
     "files": [
       "dist/**/*",

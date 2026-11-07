@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { onUnmounted, ref } from 'vue';
-import { Check, ChevronRight, Copy, ExternalLink, RefreshCw, Trash2, Wrench } from 'lucide-vue-next';
-import type { AppUpdateResult } from '../../../../main/services/app-updates';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { Check, ChevronRight, Copy, Download, RotateCw, RefreshCw, Trash2, Wrench } from 'lucide-vue-next';
+import type { UpdateState } from '../../../../main/services/update-install';
 import type { AppModel } from '../../composables/useTradingApp';
 import appIcon from '../../../../../assets/brand/app-icon-128.png';
 
@@ -10,10 +10,28 @@ const emit = defineEmits<{ confirm: [action: 'reset' | 'delete'] }>();
 const address = '0xC471515aa7B64832c0550814C230bEA1376cbbD3';
 const copied = ref(false);
 const checking = ref(false);
-const update = ref<AppUpdateResult | null>(null);
+const update = ref<UpdateState | null>(null);
+const busy = computed(() => checking.value || ['checking', 'downloading', 'verifying'].includes(update.value?.state || ''));
+let unsubscribe: (() => void) | undefined;
+onMounted(async () => {
+  let notified = false;
+  unsubscribe = props.model.api?.onAppUpdateState?.(state => { notified = true; if (!disposed) update.value = state; });
+  try { const state = await props.model.api?.getUpdateState?.(); if (!disposed && !notified && state) update.value = state; } catch { /* Explicit check remains available. */ }
+});
+async function downloadUpdate() {
+  if (busy.value || update.value?.state !== 'available') return;
+  checking.value = true;
+  try { const state = await props.model.api?.downloadUpdate(); if (!disposed && state) update.value = state; }
+  catch { if (!disposed) update.value = { state: 'unavailable', currentVersion: props.model.appVersion, message: '下载未完成，请检查网络后重试。' }; }
+  finally { if (!disposed) checking.value = false; }
+}
+async function installUpdate() {
+  try { if (await props.model.api?.installUpdate() === false && !disposed) await checkUpdates(); }
+  catch { if (!disposed) update.value = { state: 'unavailable', currentVersion: props.model.appVersion, message: '未能重启更新，请退出后重新打开应用。' }; }
+}
 let disposed = false;
 async function checkUpdates() {
-  if (checking.value) return;
+  if (busy.value) return;
   checking.value = true;
   update.value = null;
   try {
@@ -39,6 +57,7 @@ async function copyAddress() {
 }
 onUnmounted(() => {
   disposed = true;
+  unsubscribe?.();
   if (copyTimer) clearTimeout(copyTimer);
 });
 </script>
@@ -60,10 +79,13 @@ onUnmounted(() => {
   </dl>
   <section class="settings-section update-section">
     <h2>软件更新</h2>
-    <button class="button secondary compact-button" :disabled="checking" :aria-busy="checking" @click="checkUpdates"><RefreshCw :size="15" />{{ checking ? '正在检查…' : '检查更新' }}</button>
-    <p class="helper" role="status">{{ checking ? '正在读取官方发布信息…' : update?.message || '仅在点击时查询官方稳定版本。' }}</p>
-    <button v-if="update?.state === 'available' && update.releaseUrl" class="button primary compact-button" @click="model.api?.openExternal(update.releaseUrl!)"><ExternalLink :size="15" />查看 {{ update.latestVersion }} 发布页</button>
-    <p class="helper">更新包附带签名、公证记录与校验和。下载安装由你确认，不自动替换应用。</p>
+    <button v-if="update?.state !== 'ready'" class="button secondary compact-button" :disabled="busy" :aria-busy="busy" @click="checkUpdates"><RefreshCw :size="15" />{{ update?.state === 'downloading' ? '正在下载…' : update?.state === 'verifying' ? '正在验证…' : checking || update?.state === 'checking' ? '正在检查…' : '检查更新' }}</button>
+    <p class="helper" role="status">{{ update?.message || '仅在点击时查询官方稳定版本。' }}</p>
+    <progress v-if="update?.state === 'downloading' || update?.state === 'verifying'" class="update-progress" :value="update.progress || 0" max="100" aria-label="更新包下载进度" />
+    <p v-if="update?.state === 'downloading'" class="helper">{{ update.progress || 0 }}%</p>
+    <button v-if="update?.state === 'available'" class="button primary compact-button" :disabled="busy" @click="downloadUpdate"><Download :size="15" />下载 {{ update.latestVersion }} 更新</button>
+    <button v-if="update?.state === 'ready'" class="button primary compact-button" @click="installUpdate"><RotateCw :size="15" />重启更新</button>
+    <p class="helper">下载前核对官方签名公证记录，下载后验证摘要与 macOS 签名。准备完成后，重启或下次退出时安装。关闭此页面不会中断下载。</p>
   </section>
   <section class="settings-section">
     <h2>打赏支持</h2>
@@ -96,5 +118,6 @@ onUnmounted(() => {
   </section>
 </template>
 <style scoped>
+.update-progress { width: 100%; accent-color: var(--brand); margin-top: 10px; }
 .about-app-icon { display: block; margin: 0 auto 8px; }
 </style>
