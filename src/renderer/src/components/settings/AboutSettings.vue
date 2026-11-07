@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onUnmounted, ref } from 'vue';
-import { Check, ChevronRight, Copy, Trash2, Wrench } from 'lucide-vue-next';
+import { Check, ChevronRight, Copy, ExternalLink, RefreshCw, Trash2, Wrench } from 'lucide-vue-next';
+import type { AppUpdateResult } from '../../../../main/services/app-updates';
 import type { AppModel } from '../../composables/useTradingApp';
 import appIcon from '../../../../../assets/brand/app-icon-128.png';
 
@@ -8,6 +9,21 @@ const props = defineProps<{ model: AppModel }>();
 const emit = defineEmits<{ confirm: [action: 'reset' | 'delete'] }>();
 const address = '0xC471515aa7B64832c0550814C230bEA1376cbbD3';
 const copied = ref(false);
+const checking = ref(false);
+const update = ref<AppUpdateResult | null>(null);
+let disposed = false;
+async function checkUpdates() {
+  if (checking.value) return;
+  checking.value = true;
+  update.value = null;
+  try {
+    if (!props.model.api) throw new Error('Desktop only');
+    const result = await props.model.api.checkForUpdates();
+    if (!disposed) update.value = result;
+  } catch {
+    if (!disposed) update.value = { state: 'unavailable', currentVersion: props.model.appVersion, message: '暂时无法检查更新，请稍后重试。' };
+  } finally { if (!disposed) checking.value = false; }
+}
 let copyTimer: ReturnType<typeof setTimeout> | undefined;
 async function copyAddress() {
   try {
@@ -22,6 +38,7 @@ async function copyAddress() {
   }
 }
 onUnmounted(() => {
+  disposed = true;
   if (copyTimer) clearTimeout(copyTimer);
 });
 </script>
@@ -29,7 +46,7 @@ onUnmounted(() => {
   <div class="about-heading">
     <img class="about-app-icon" :src="appIcon" width="64" height="64" alt="" aria-hidden="true" />
     <h2>PositionScope · 仓位镜</h2>
-    <p>菜单栏持仓监控工具</p>
+    <p>Binance 只读持仓与 AI 研究</p>
   </div>
   <dl class="about-details">
     <div>
@@ -41,6 +58,13 @@ onUnmounted(() => {
       <dd>Wang</dd>
     </div>
   </dl>
+  <section class="settings-section update-section">
+    <h2>软件更新</h2>
+    <button class="button secondary compact-button" :disabled="checking" :aria-busy="checking" @click="checkUpdates"><RefreshCw :size="15" />{{ checking ? '正在检查…' : '检查更新' }}</button>
+    <p class="helper" role="status">{{ checking ? '正在读取官方发布信息…' : update?.message || '仅在点击时查询官方稳定版本。' }}</p>
+    <button v-if="update?.state === 'available' && update.releaseUrl" class="button primary compact-button" @click="model.api?.openExternal(update.releaseUrl!)"><ExternalLink :size="15" />查看 {{ update.latestVersion }} 发布页</button>
+    <p class="helper">更新包附带签名、公证记录与校验和。下载安装由你确认，不自动替换应用。</p>
+  </section>
   <section class="settings-section">
     <h2>打赏支持</h2>
     <div class="donation-row">

@@ -87,6 +87,12 @@ async function fixture(page, options = {}) {
       fetchCount: 0,
       failSave: false,
       blockDisplaySave: false,
+      display: { maxDisplayCount: 2, refreshInterval: 60, colorScheme: 'green-up', watchlistSymbols: ['BTCUSDT', 'ETHUSDT'] },
+      hideAmounts: false,
+      updateState: 'available',
+      blockUpdateCheck: false,
+      blockPreferenceRead: false,
+      proxyUrl: '',
     };
     const result = (method, ...args) => {
       calls.push([method, ...args]);
@@ -95,7 +101,7 @@ async function fixture(page, options = {}) {
     window.__qa = state;
     window.__calls = calls;
     window.electronAPI = {
-      getProxySettings: async () => '',
+      getProxySettings: async () => state.proxyUrl,
       getStorageStatus: async () => options.storageBlocked ? {state: 'blocked', message: '加密配置无法读取，原文件已保留。请解锁系统钥匙串并重启。'} : {state: 'encrypted', message: '配置已通过系统加密存储。'},
       restartForStorage: async () => result('restartForStorage'),
       hasCredentials: async () => configured,
@@ -113,13 +119,22 @@ async function fixture(page, options = {}) {
             : [account]
           : [];
       },
-      getDisplaySettings: async () => ({ maxDisplayCount: 2, refreshInterval: 60 }),
+      getDisplaySettings: async () => {
+        if (state.blockPreferenceRead) await new Promise(resolve => { state.releasePreferenceRead = resolve; });
+        return structuredClone(state.display);
+      },
       getTheme: async () => (options.light ? 'light' : 'dark'),
-      getHideAmounts: async () => false,
+      getHideAmounts: async () => state.hideAmounts,
       getDebugMode: async () => false,
       getWindowOpacity: async () => 1,
       getAutoLaunch: async () => false,
       getAppVersion: async () => options.appVersion,
+      checkForUpdates: async () => {
+        calls.push(['checkForUpdates']);
+        if (state.blockUpdateCheck) await new Promise(resolve => { state.releaseUpdateCheck = resolve; });
+        if (state.updateState === 'available') return { state:'available', currentVersion:options.appVersion, latestVersion:'9.0.0', releaseUrl:'https://github.com/hash-panda/positionscope/releases/tag/v9.0.0', message:'发现 9.0.0，可前往官方发布页查看更新。' };
+        return { state:state.updateState, currentVersion:options.appVersion, message:state.updateState === 'current' ? '当前已是最新可用版本。' : '暂时无法确认可用更新，请稍后重试。' };
+      },
       getPositionOrder: async () => [],
       getAISettings: async () => ai,
       saveAISettings: async (value) => {
@@ -146,13 +161,17 @@ async function fixture(page, options = {}) {
       savePositionOrder: async (value) => result('savePositionOrder', value),
       saveDisplaySettings: async (value) => {
         if (state.blockDisplaySave) await new Promise(resolve => { state.releaseDisplaySave = resolve; });
-        return result('saveDisplaySettings', value);
+        const saved = result('saveDisplaySettings', value);
+        if (saved.success) state.display = structuredClone(value);
+        return saved;
       },
       saveTheme: async (value) => {
         return result('saveTheme', value);
       },
       saveHideAmounts: async (value) => {
-        return result('saveHideAmounts', value);
+        const saved = result('saveHideAmounts', value);
+        if (saved.success) state.hideAmounts = value;
+        return saved;
       },
       saveDebugMode: async (value) => {
         return result('saveDebugMode', value);
@@ -191,6 +210,18 @@ async function fixture(page, options = {}) {
       },
       onExchangeErrors: (fn) => {
         state.onErrors = fn;
+        return () => {};
+      },
+      onPreferencesChanged: (fn) => {
+        state.preferencesChanged = fn;
+        return () => {};
+      },
+      onDataCleared: (fn) => {
+        state.dataCleared = () => {
+          configured = false; stored = {}; ai = null;
+          state.hideAmounts = false; state.proxyUrl = '';
+          fn();
+        };
         return () => {};
       },
       resetToDefaults: async () => result('resetToDefaults'),
@@ -369,12 +400,11 @@ async function fixture(page, options = {}) {
         await page.evaluate(() => (window.__qa.failSave = false));
         await page.getByRole('button', { name: '保存配置', exact: true }).click();
         await page.getByText('凭证已保存', { exact: true }).first().waitFor();
-        await page.getByRole('tab', { name: 'OKX', exact: true }).click();
-        assert(await page.getByLabel('Passphrase', { exact: true }).isVisible());
-        await page.getByRole('tab', { name: 'Hyperliquid', exact: true }).click();
-        assert(await page.getByLabel('钱包地址', { exact: true }).isVisible());
-        assert.equal(await page.getByLabel('API Secret', { exact: true }).count(), 0);
-        assert(await page.getByText('仅使用公开钱包地址，无需私钥。暂仅支持标准账户（disabled），其他模式不生成汇总。', { exact: true }).isVisible());
+        assert.equal(await page.getByRole('tab', { name: /OKX|Bybit|Hyperliquid/ }).count(), 0);
+        assert.equal(await page.getByLabel('Passphrase', { exact: true }).count(), 0);
+        assert.equal(await page.getByLabel('钱包地址', { exact: true }).count(), 0);
+        assert.equal(await page.getByRole('heading', { name: '其他已保存平台', exact: true }).count(), 0);
+        assert(await page.getByText('只读权限即可，请勿开启交易或提现。持仓研究仅覆盖 USDT 线性合约。', { exact: true }).isVisible());
       }
       if (section === '外观') {
         const slider = page.getByRole('slider', { name: '窗口透明度', exact: true });
@@ -409,6 +439,30 @@ async function fixture(page, options = {}) {
         await page.waitForFunction(() => !document.querySelector('[aria-label="菜单栏显示数量"]').disabled);
         assert(await picker.evaluate(element => element === document.activeElement));
         assert(await page.evaluate(() => window.__calls.some(c => c[0] === 'saveDisplaySettings' && c[1].maxDisplayCount === 1)));
+        const colors = page.getByRole('combobox', { name: '涨跌配色', exact: true });
+        await colors.click();
+        await page.getByRole('option', { name: '红涨绿跌', exact: true }).click();
+        await page.waitForFunction(() => window.__qa.display.colorScheme === 'red-up');
+        await page.getByLabel('最多 8 个 USDT 永续合约，用逗号分隔', { exact: true }).fill('BTCUSDT, BTCUSDT');
+        const saves = await page.evaluate(() => window.__calls.filter(c => c[0] === 'saveDisplaySettings').length);
+        await page.getByRole('button', { name: '保存观察币种', exact: true }).click();
+        await page.getByText('观察币种最多 8 个，请使用不重复的 Binance USDT 永续合约代码', { exact: true }).waitFor();
+        assert.equal(await page.evaluate(() => window.__calls.filter(c => c[0] === 'saveDisplaySettings').length), saves);
+        await page.getByLabel('最多 8 个 USDT 永续合约，用逗号分隔', { exact: true }).fill('BTCUSDT, ETHUSDT, SOLUSDT');
+        await page.getByRole('button', { name: '保存观察币种', exact: true }).click();
+        await page.waitForFunction(() => window.__qa.display.watchlistSymbols.length === 3);
+        assert.deepEqual(await page.evaluate(() => window.__qa.display.watchlistSymbols), ['BTCUSDT','ETHUSDT','SOLUSDT']);
+        await page.evaluate(() => {
+          window.__qa.blockPreferenceRead = true;
+          window.__qa.hideAmounts = true;
+          window.__qa.preferencesChanged();
+        });
+        await page.waitForFunction(() => document.querySelector('.menubar-preview')?.textContent.includes('••••••'));
+        assert.equal(await page.locator('.menubar-preview .positive, .menubar-preview .negative').count(), 0, 'mask direction before the other window finishes reading preferences');
+        await page.evaluate(() => { window.__qa.blockPreferenceRead = false; window.__qa.releasePreferenceRead(); });
+        await page.waitForFunction(() => document.querySelector('[role="switch"][aria-label="隐藏金额"]')?.getAttribute('aria-checked') === 'true');
+        await page.evaluate(() => { window.__qa.hideAmounts = false; window.__qa.preferencesChanged(); });
+        await page.waitForFunction(() => !document.querySelector('.menubar-preview')?.textContent.includes('••••••'));
       }
       if (section === '系统') {
         await page.evaluate(() => {
@@ -431,6 +485,19 @@ async function fixture(page, options = {}) {
         );
       }
       if (section === '关于') {
+        assert.equal(await page.evaluate(() => window.__calls.filter(c => c[0] === 'checkForUpdates').length), 0, 'no implicit update network request');
+        await page.evaluate(() => { window.__qa.blockUpdateCheck = true; });
+        await page.getByRole('button', { name: '检查更新', exact: true }).click();
+        assert(await page.getByRole('button', { name: '正在检查…', exact: true }).isDisabled());
+        await page.evaluate(() => { window.__qa.blockUpdateCheck = false; window.__qa.releaseUpdateCheck(); });
+        await page.getByRole('button', { name: '查看 9.0.0 发布页', exact: true }).click();
+        assert(await page.evaluate(() => window.__calls.some(c => c[0] === 'openExternal' && c[1] === 'https://github.com/hash-panda/positionscope/releases/tag/v9.0.0')));
+        for (const state of ['current', 'unavailable']) {
+          await page.evaluate(value => { window.__qa.updateState = value; }, state);
+          await page.getByRole('button', { name: '检查更新', exact: true }).click();
+          await page.getByText(state === 'current' ? '当前已是最新可用版本。' : '暂时无法确认可用更新，请稍后重试。', { exact: true }).waitFor();
+          assert.equal(await page.getByRole('button', { name: '查看 9.0.0 发布页', exact: true }).count(), 0);
+        }
         await page.getByRole('button', { name: '删除所有数据', exact: true }).click();
         const dialog = page.getByRole('dialog');
         await dialog.waitFor();
@@ -449,7 +516,7 @@ async function fixture(page, options = {}) {
       await page.getByRole('button', { name: '返回设置', exact: true }).click();
     }
     results.push(
-      'all 7 settings pages, credential validation / save failure, reveal, OKX, Hyperliquid, themes, proxy validation, dialog focus / cancel'
+      'all 7 settings pages, Binance-only credential validation / save failure, reveal, color/watchlist preferences, explicit update checking states, themes, proxy validation, dialog focus / cancel'
     );
     await page.getByRole('button', { name: '返回持仓', exact: true }).click();
     await page.getByRole('button', { name: /^通知中心/ }).click();
@@ -461,6 +528,20 @@ async function fixture(page, options = {}) {
     assert(!(await page.locator('.position-pnl').innerText()).includes('431.73'));
     await capture(page, '07-hidden');
     results.push('notifications read state and amount privacy');
+
+    const cleared = await open();
+    await cleared.getByRole('button', { name: 'AI 持仓分析', exact: true }).click();
+    await cleared.getByRole('heading', { name: 'AI 持仓分析', exact: true }).waitFor();
+    await cleared.evaluate(() => window.__qa.dataCleared());
+    await cleared.getByRole('heading', { name: '连接你的第一个交易所' }).waitFor();
+    assert.equal(await cleared.locator('.position-item').count(), 0);
+    assert.equal(await cleared.getByText('当前持仓集中，需关注杠杆与风险敞口。', { exact: true }).count(), 0);
+    await cleared.getByRole('button', { name: '设置', exact: true }).click();
+    await cleared.getByRole('button', { name: /^API 配置/ }).click();
+    assert.equal(await cleared.getByLabel('API Key', { exact: true }).inputValue(), '');
+    assert.equal(await cleared.getByLabel('API Secret', { exact: true }).inputValue(), '');
+    await cleared.close();
+    results.push('cross-window deletion clears private positions, analysis and credential drafts before default privacy reload');
 
     const multi = await open({ multiple: true });
     await capture(multi, '07-multiple-overview');
@@ -572,8 +653,16 @@ async function fixture(page, options = {}) {
     await hyperliquid.getByText('Hyperliquid · 统计范围与估值假设', { exact: true }).click();
     assert(await hyperliquid.getByText(/按 USDC 与 USDT 1:1 估算/).isVisible());
     await capture(hyperliquid, '18-hyperliquid-assumptions');
+    await hyperliquid.getByRole('button', { name: '设置', exact: true }).click();
+    await hyperliquid.getByRole('button', { name: /^API 配置/ }).click();
+    await hyperliquid.getByRole('heading', { name: '其他已保存平台', exact: true }).waitFor();
+    assert.equal(await hyperliquid.getByLabel('钱包地址', { exact: true }).count(), 0);
+    await hyperliquid.getByRole('button', { name: '移除 Hyperliquid 凭证', exact: true }).click();
+    await hyperliquid.getByRole('dialog').waitFor();
+    await hyperliquid.keyboard.press('Escape');
+    assert.equal(await hyperliquid.evaluate(() => window.__calls.filter(c => c[0] === 'removeExchangeCredentials').length), 0);
     await hyperliquid.close();
-    results.push('Hyperliquid valuation assumptions and account-scope disclosure at 320px');
+    results.push('retained Hyperliquid assumptions and removable saved credentials; no new non-Binance onboarding');
     const storageBlocked = await open({ storageBlocked: true }, 320);
     assert(await storageBlocked.getByText('配置未能安全读取', { exact: true }).isVisible());
     assert.equal(await storageBlocked.getByRole('heading', { name: '连接你的第一个交易所' }).count(), 0);

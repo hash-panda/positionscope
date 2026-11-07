@@ -57,8 +57,10 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
   const preferences = reactive<Preferences>({
     maxDisplayCount: 2,
     refreshInterval: 5,
+    colorScheme: 'green-up',
+    watchlistSymbols: ['BTCUSDT', 'ETHUSDT'],
     hideAmounts: false,
-    dark: true,
+    dark: false,
     windowOpacity: 1,
     autoLaunch: false,
     debugMode: false,
@@ -72,6 +74,8 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
   const aiKeyDrafts = reactive(emptyKeys());
   const aiModelDrafts = reactive(emptyKeys());
   let savedAI: AISettings['credentials'] = {};
+  let savedProxyUrl = '';
+  const dataClearRevision = ref(0);
   const appVersion = ref('');
   const savedOrder = ref<string[]>([]);
   const editingOrder = ref<string[]>([]);
@@ -88,6 +92,7 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
   let timer: ReturnType<typeof setInterval> | undefined;
   let disposed = false;
   let generation = 0;
+  let preferenceGeneration = 0;
   const cleanups: (() => void)[] = [];
   let committedPreferences = { ...preferences };
 
@@ -195,17 +200,11 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
 
   async function saveExchange(exchange: Exchange) {
     formError.value = '';
+    if (exchange !== 'binance') { formError.value = '本版仅支持新增 Binance 账户；已保存的其他平台凭证可单独移除。'; return; }
     const draft = credentialDrafts[exchange];
-    if (
-      !draft.apiKey.trim() ||
-      (exchange !== 'hyperliquid' && !draft.apiSecret.trim()) ||
-      (exchange === 'okx' && !draft.passphrase?.trim())
-    ) {
-      formError.value = exchange === 'hyperliquid' ? '请输入钱包地址' : '请完整填写所需凭证';
-      return;
-    }
-    if (exchange === 'hyperliquid' && !/^0x[0-9a-fA-F]{40}$/.test(draft.apiKey.trim())) {
-      formError.value = '请输入有效的 0x 钱包地址（40 位十六进制字符）';
+    const requestGeneration = generation;
+    if (!draft.apiKey.trim() || !draft.apiSecret.trim()) {
+      formError.value = '请完整填写所需凭证';
       return;
     }
     await runSave(
@@ -214,7 +213,6 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
         const credentials = {
           apiKey: draft.apiKey.trim(),
           apiSecret: draft.apiSecret.trim(),
-          ...(exchange === 'okx' ? { passphrase: draft.passphrase?.trim() } : {}),
         };
         check(
           await api!.saveExchangeCredentials(exchange, {
@@ -222,8 +220,11 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
             proxyUrl: preferences.proxyUrl.trim(),
           })
         );
+        if (disposed || requestGeneration !== generation) return;
         Object.assign(savedCredentials[exchange], credentials);
-        hasCredentials.value = await api!.hasCredentials();
+        const configured = await api!.hasCredentials();
+        if (disposed || requestGeneration !== generation) return;
+        hasCredentials.value = configured;
         notify({
           type: 'success',
           title: '凭证已保存',
@@ -261,6 +262,7 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
   async function savePreference(
     key: 'display' | 'hideAmounts' | 'dark' | 'windowOpacity' | 'autoLaunch' | 'debugMode'
   ) {
+    const requestGeneration = generation;
     const previous = { ...committedPreferences };
     const success = await runSave(
       key,
@@ -270,6 +272,8 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
             await api!.saveDisplaySettings({
               maxDisplayCount: preferences.maxDisplayCount,
               refreshInterval: preferences.refreshInterval,
+              colorScheme: preferences.colorScheme,
+              watchlistSymbols: [...preferences.watchlistSymbols],
             })
           );
         else if (key === 'dark') check(await api!.saveTheme(preferences.dark ? 'dark' : 'light'));
@@ -281,16 +285,20 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
       },
       '设置已保存'
     );
+    if (disposed || requestGeneration !== generation) return;
     if (success) {
       committedPreferences = { ...preferences };
       restartTimer();
     } else if (key === 'display') {
       preferences.maxDisplayCount = previous.maxDisplayCount;
       preferences.refreshInterval = previous.refreshInterval;
+      preferences.colorScheme = previous.colorScheme;
+      preferences.watchlistSymbols = [...previous.watchlistSymbols];
     } else Object.assign(preferences, { [key]: previous[key] });
   }
 
   async function saveProxy() {
+    const requestGeneration = generation;
     const value = preferences.proxyUrl.trim();
     if (value) {
       try {
@@ -305,13 +313,16 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
       'proxy',
       async () => {
         check(await api!.saveProxySettings(value));
+        if (disposed || requestGeneration !== generation) return;
         preferences.proxyUrl = value;
+        savedProxyUrl = value;
       },
       value ? '代理已保存，将应用于后续请求' : '代理已清除'
     );
   }
 
   async function saveAI(commitKeys = false) {
+    const requestGeneration = generation;
     const credentials = commitKeys
       ? Object.fromEntries(
           providers.map(({ id }) => [
@@ -335,6 +346,7 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
       },
       'AI 配置已保存'
     );
+    if (disposed || requestGeneration !== generation) return;
     if (success) {
       savedAI = structuredClone(credentials);
       committedPreferences = { ...preferences };
@@ -356,8 +368,8 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
       check(result);
       if (!result.data || result.data.version !== 'market-context-v1') throw new Error('市场结果格式无效');
       marketSnapshot.value = result.data;
-    } catch { marketError.value = '公开行情获取失败；若保留上次快照，请核对其时间。'; }
-    finally { marketLoading.value = false; }
+    } catch { if (!disposed && requestGeneration === generation) marketError.value = '公开行情获取失败；若保留上次快照，请核对其时间。'; }
+    finally { if (requestGeneration === generation) marketLoading.value = false; }
   }
 
   async function analyze() {
@@ -404,9 +416,9 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
         },
       });
     } catch (cause) {
-      notify({ type: 'error', title: 'AI 分析失败', message: message(cause) });
+      if (!disposed && requestGeneration === generation) notify({ type: 'error', title: 'AI 分析失败', message: message(cause) });
     } finally {
-      analyzing.value = false;
+      if (requestGeneration === generation) analyzing.value = false;
     }
     return true;
   }
@@ -423,17 +435,20 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
     editingOrder.value = keys;
   }
   async function saveOrder() {
+    const requestGeneration = generation;
     const order = sortedPositions.value.map(positionKey);
     if (
       await runSave(
         'order',
         async () => {
           check(await api!.savePositionOrder(order));
+          if (disposed || requestGeneration !== generation) return;
           savedOrder.value = order;
         },
         '顺序已保存'
       )
     ) {
+      if (disposed || requestGeneration !== generation) return;
       currentView.value = 'overview';
       notify({ type: 'success', title: '顺序已保存', message: '持仓与菜单栏已使用新顺序' });
     }
@@ -451,33 +466,75 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
 
   async function loadPreferences() {
     if (!api) return;
-    const settings = await api.getDisplaySettings();
-    const theme = await api.getTheme();
+    const requestGeneration = ++preferenceGeneration;
+    const [settings, theme, hideAmounts, debugMode, windowOpacity, autoLaunch, ai, proxyUrl] = await Promise.all([
+      api.getDisplaySettings(), api.getTheme(), api.getHideAmounts(), api.getDebugMode(),
+      api.getWindowOpacity(), api.getAutoLaunch(), api.getAISettings(), api.getProxySettings(),
+    ]);
+    if (disposed || requestGeneration !== preferenceGeneration) return;
     Object.assign(preferences, {
       ...settings,
       dark:
         theme === 'auto'
           ? window.matchMedia('(prefers-color-scheme: dark)').matches
           : theme !== 'light',
-      hideAmounts: await api.getHideAmounts(),
-      debugMode: await api.getDebugMode(),
-      windowOpacity: await api.getWindowOpacity(),
-      autoLaunch: await api.getAutoLaunch(),
+      hideAmounts, debugMode, windowOpacity, autoLaunch,
     });
-    const ai = await api.getAISettings();
+    // A remote preference save must not overwrite a local unsaved secret draft.
+    // Deletion explicitly clears drafts before reaching this path.
+    if (preferences.proxyUrl === savedProxyUrl) preferences.proxyUrl = proxyUrl;
+    savedProxyUrl = proxyUrl;
+    const nextCredentials = structuredClone(ai?.credentials || {});
+    for (const { id } of providers) {
+      if (aiKeyDrafts[id] === (savedAI[id]?.apiKey || '')) aiKeyDrafts[id] = nextCredentials[id]?.apiKey || '';
+      if (aiModelDrafts[id] === (savedAI[id]?.model || '')) aiModelDrafts[id] = nextCredentials[id]?.model || '';
+    }
+    savedAI = nextCredentials;
     if (ai) {
       preferences.aiEnabled = ai.enabled;
       preferences.defaultProvider = ai.defaultProvider;
       preferences.useCustomKeys = ai.useCustomKeys;
-      savedAI = structuredClone(ai.credentials || {});
-      for (const { id } of providers) { aiKeyDrafts[id] = savedAI[id]?.apiKey || ''; aiModelDrafts[id] = savedAI[id]?.model || ''; }
     } else {
-      Object.assign(aiKeyDrafts, emptyKeys());
-      Object.assign(aiModelDrafts, emptyKeys());
-      savedAI = {};
       preferences.aiEnabled = false;
     }
     committedPreferences = { ...preferences };
+  }
+  function clearPrivateState() {
+    generation++;
+    preferenceGeneration++;
+    dataClearRevision.value++;
+    loading.value = false;
+    analyzing.value = false;
+    marketLoading.value = false;
+    positions.value = [];
+    positionEvents.value = [];
+    journalBaseline = null;
+    historyGap.value = false;
+    accounts.value = [];
+    exchangeErrors.value = [];
+    hasCredentials.value = false;
+    lastUpdated.value = null;
+    healthScore.value = null;
+    analysisTime.value = null;
+    analysisProvider.value = '';
+    marketSnapshot.value = null;
+    marketError.value = '';
+    error.value = '';
+    formError.value = '';
+    formSuccess.value = '';
+    Object.assign(credentialDrafts, emptyCredentials());
+    Object.assign(savedCredentials, emptyCredentials());
+    Object.assign(aiKeyDrafts, emptyKeys());
+    Object.assign(aiModelDrafts, emptyKeys());
+    savedAI = {};
+    savedProxyUrl = '';
+    savedOrder.value = [];
+    editingOrder.value = [];
+    preferences.proxyUrl = '';
+    preferences.aiEnabled = false;
+    preferences.hideAmounts = true;
+    committedPreferences = { ...preferences };
+    currentView.value = 'overview';
   }
 
   async function resetDefaults() {
@@ -493,6 +550,8 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
           await api!.saveDisplaySettings({
             maxDisplayCount: preferences.maxDisplayCount,
             refreshInterval: preferences.refreshInterval,
+            colorScheme: preferences.colorScheme,
+            watchlistSymbols: [...preferences.watchlistSymbols],
           })
         );
         await api!.saveWindowOpacity(preferences.windowOpacity);
@@ -507,23 +566,7 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
       'delete',
       async () => {
         check(await api!.deleteAllData());
-        generation++;
-        loading.value = false;
-        positions.value = [];
-        positionEvents.value = []; journalBaseline = null; historyGap.value = false;
-        accounts.value = [];
-        exchangeErrors.value = [];
-        hasCredentials.value = false;
-        lastUpdated.value = null;
-        healthScore.value = null;
-        Object.assign(credentialDrafts, emptyCredentials());
-        Object.assign(savedCredentials, emptyCredentials());
-        Object.assign(aiKeyDrafts, emptyKeys());
-      Object.assign(aiModelDrafts, emptyKeys());
-        savedAI = {};
-        savedOrder.value = [];
-        editingOrder.value = [];
-        preferences.proxyUrl = '';
+        clearPrivateState();
         await loadPreferences();
         restartTimer();
       },
@@ -548,25 +591,43 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
       return;
     }
     try {
+      const requestGeneration = generation;
+      const preferencesCleanup = api.onPreferencesChanged(() => {
+        // Conceal immediately; do not leave another window's old PnL color visible
+        // while asynchronously reading the newly committed privacy preference.
+        preferences.hideAmounts = true;
+        void loadPreferences().then(() => { if (!disposed) restartTimer(); }).catch(() => {
+          formError.value = '设置同步暂时失败，金额已隐藏；请重新打开窗口。';
+        });
+      });
+      const dataCleanup = api.onDataCleared(() => {
+        clearPrivateState();
+        void loadPreferences().then(() => { if (!disposed) restartTimer(); }).catch(() => {
+          formError.value = '数据已清除，设置暂未同步；请重新打开窗口。';
+        });
+      });
+      if (dataCleanup) cleanups.push(dataCleanup);
+      if (preferencesCleanup) cleanups.push(preferencesCleanup);
       storageStatus.value = await api.getStorageStatus();
       await loadPreferences();
       const credentials = await api.getAllExchangesCredentials();
+      if (disposed || requestGeneration !== generation) return;
       for (const { id } of exchanges) {
         if (credentials[id]) {
           Object.assign(savedCredentials[id], credentials[id]);
           Object.assign(credentialDrafts[id], credentials[id]);
         }
       }
-      preferences.proxyUrl = await api.getProxySettings();
-
       appVersion.value = await api.getAppVersion();
-      savedOrder.value = await api.getPositionOrder();
-      hasCredentials.value = await api.hasCredentials();
+      const [order, configured] = await Promise.all([api.getPositionOrder(), api.hasCredentials()]);
+      if (disposed || requestGeneration !== generation) return;
+      savedOrder.value = order;
+      hasCredentials.value = configured;
       const refreshCleanup = api.onRefreshData(() => {
         void fetchData();
       });
       const errorCleanup = api.onExchangeErrors((errors) => {
-        exchangeErrors.value = errors;
+        if (hasCredentials.value) exchangeErrors.value = errors;
       });
       if (refreshCleanup) cleanups.push(refreshCleanup);
       if (errorCleanup) cleanups.push(errorCleanup);
@@ -604,6 +665,7 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
     aiKeyDrafts,
     aiModelDrafts,
     appVersion,
+    dataClearRevision,
     saving,
     formError,
     formSuccess,

@@ -13,7 +13,7 @@
     "build:main": "tsc -p tsconfig.main.json && tsc -p tsconfig.preload.json",
     "typecheck": "vue-tsc --noEmit -p tsconfig.json",
     "test": "npm run build:main && node --test tests/*.test.cjs",
-    "test:ui": "node scripts/verify-ui.cjs",
+    "test:ui": "node scripts/verify-research-ui.cjs",
     "start": "electron .",
     "watch:main": "tsc -p tsconfig.main.json --watch & tsc -p tsconfig.preload.json --watch",
     "package": "npm run build && electron-builder --mac --dir",
