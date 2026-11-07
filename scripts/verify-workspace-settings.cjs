@@ -65,6 +65,7 @@ async function mutableSettings(page,options={}) {
     await page.addScriptTag({path:require.resolve('axe-core/axe.min.js')});
     const violations=await page.evaluate(async()=>(await window.axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa']}})).violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>({target:n.target,reason:n.failureSummary}))})));
     assert.deepEqual(violations,[],name+' accessibility');await page.screenshot({path:path.join(screenshots,name+'.png')});
+    if(process.env.POSITIONSCOPE_VISUAL_REVIEW==='1'&&name==='00-display-layout')console.log(`POSITIONSCOPE_SYNTHETIC_SETTINGS:${(await page.screenshot({type:'jpeg',quality:65})).toString('base64')}`);
   }
   try{
     browser=await chromium.launch({headless:true,...(process.env.UI_BROWSER_EXECUTABLE?{executablePath:process.env.UI_BROWSER_EXECUTABLE,args:['--no-sandbox','--disable-gpu','--disable-dev-shm-usage']}: {})});
@@ -81,7 +82,10 @@ async function mutableSettings(page,options={}) {
     assert.equal(await p.evaluate(()=>window.__calls.filter(c=>c[0]==='removeExchangeCredentials').length),0);
     results.push('Binance-only onboarding; masked credentials, empty validation, failed-save draft retention, removal cancellation');
 
-    await settings(p,'显示与参考币种');const picker=p.getByRole('combobox',{name:'菜单栏显示数量',exact:true});const original=await picker.innerText();
+    await settings(p,'显示与菜单栏');await p.getByText('+25.00',{exact:true}).waitFor();
+    for(const width of [960,1180]) { await p.setViewportSize({width,height:760}); assert(await p.locator('.workspace-settings .screen-body').evaluate(e=>Math.abs(e.getBoundingClientRect().right-innerWidth)<2),'settings scroll viewport reaches right window edge'); assert(await p.locator('.settings-content').evaluate(e=>e.getBoundingClientRect().width<=780)); }
+    await capture(p,'00-display-layout');
+    const picker=p.getByRole('combobox',{name:'菜单栏显示数量',exact:true});const original=await picker.innerText();
     await picker.focus();await picker.press('Enter');await p.getByRole('listbox').waitFor();await p.keyboard.press('Home');await p.keyboard.press('Escape');await p.getByRole('listbox').waitFor({state:'detached'});assert.equal(await picker.innerText(),original);assert(await picker.evaluate(e=>e===document.activeElement));
     await p.evaluate(()=>window.__qa.blockDisplaySave=true);await picker.click();await p.getByRole('option',{name:'1 个',exact:true}).click();assert(await picker.isDisabled());
     await p.evaluate(()=>{window.__qa.blockDisplaySave=false;window.__qa.releaseDisplaySave();});await p.waitForFunction(()=>window.__qa.display.maxDisplayCount===1);await p.waitForFunction(()=>!document.querySelector('[aria-label="菜单栏显示数量"]').disabled);

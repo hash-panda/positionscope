@@ -21,7 +21,17 @@ export class MenuPriceHistory {
     return result;
   }
 }
-export function menuPriceLabel(p: Position, direction: number, hidden: boolean) {
+export function menuPriceLabel(p: Position, hidden: boolean) {
   const symbol = p.symbol.replace(/USDT$/, '');
-  return hidden ? `${symbol} ••••` : `${symbol} ${priceText(Number(p.markPrice))}${direction > 0 ? ' ↑' : direction < 0 ? ' ↓' : ''}`;
+  return hidden ? `${symbol} ••••` : `${symbol} ${priceText(Number(p.markPrice))}`;
+}
+
+/** One account total, not the PnL of the limited set of visible symbols. */
+export function menuProfitLabel(positions: Pick<Position, 'unRealizedProfit'>[], hidden: boolean) {
+  if (hidden) return '••••';
+  const values = positions.map(p => typeof p.unRealizedProfit === 'string' && p.unRealizedProfit.trim() ? Number(p.unRealizedProfit) : NaN);
+  const total = values.reduce((sum, n) => sum + n, 0);
+  if (!values.every(Number.isFinite) || !Number.isFinite(total)) return '—';
+  const rounded = Number(total.toFixed(2));
+  return `${rounded < 0 ? '-' : '+'}${Math.abs(rounded).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }

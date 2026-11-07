@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
-import { Power, Bell, ChartNoAxesCombined, ClipboardList, Search, Settings } from 'lucide-vue-next';
+import { Power, Bell, ChartNoAxesCombined, ClipboardList, Search, Settings, KeyRound, Monitor, Palette, Sparkles, Wrench, CircleHelp } from 'lucide-vue-next';
 import { useResearch } from '../../composables/useResearch';
 import type { AppModel } from '../../composables/useTradingApp';
 import type { Exchange, SettingsPage } from '../../types';
@@ -17,6 +17,7 @@ const page = ref<Page>(props.initialPage && valid(props.initialPage) ? props.ini
 const settingsPage = ref<SettingsPage>('exchanges');
 const research = reactive(useResearch());
 const tabs = [{ id: 'research' as const, label: '研究', icon: Search }, { id: 'positions' as const, label: '持仓', icon: ChartNoAxesCombined }, { id: 'review' as const, label: '复盘', icon: ClipboardList }, { id: 'settings' as const, label: '设置', icon: Settings }];
+const settingSections = [{id:'display',label:'显示与菜单栏',icon:Monitor},{id:'exchanges',label:'Binance 连接',icon:KeyRound},{id:'ai',label:'AI 与模型',icon:Sparkles},{id:'appearance',label:'外观',icon:Palette},{id:'system',label:'系统',icon:Settings},{id:'developer',label:'开发者',icon:Wrench},{id:'about',label:'关于与更新',icon:CircleHelp}];
 const reversed = computed(() => (props.model.preferences as typeof props.model.preferences & { colorScheme?: string }).colorScheme === 'red-up');
 let cleanup: (() => void) | undefined;
 function navigate(next: Page) { page.value = next; props.model.currentView = next === 'settings' ? 'settings' : 'overview'; }
@@ -30,6 +31,6 @@ onUnmounted(() => { cleanup?.(); document.removeEventListener('keydown', escape)
     <ResearchPanel v-show="page === 'research'" :model="research" :reversed="reversed" />
     <PositionsPanel v-if="page === 'positions'" :model="model" @settings="navigate('settings'); settingsPage = $event || 'exchanges'" />
     <ReviewPanel v-if="page === 'review'" :model="research" />
-    <div v-if="page === 'settings'" class="workspace-settings"><aside><h1>设置</h1><p>你的工作方式。</p><button v-for="section in [{id:'exchanges',label:'Binance 连接'},{id:'display',label:'显示与参考币种'},{id:'appearance',label:'外观'},{id:'ai',label:'AI 与模型'},{id:'system',label:'系统'},{id:'developer',label:'开发者'},{id:'about',label:'关于与更新'}]" :key="section.id" :aria-current="settingsPage === section.id ? 'page' : undefined" @click="settingsPage = section.id as SettingsPage">{{ section.label }}</button></aside><SettingsPanel v-model:page="settingsPage" :model="model" @close="navigate('research')" @confirm="emit('confirm', $event)" /></div>
+    <div v-if="page === 'settings'" class="workspace-settings"><aside><h1>设置</h1><p>你的工作方式。</p><button v-for="section in settingSections" :key="section.id" :aria-current="settingsPage === section.id ? 'page' : undefined" @click="settingsPage = section.id as SettingsPage"><component :is="section.icon" :size="17" aria-hidden="true"/>{{ section.label }}</button></aside><SettingsPanel v-model:page="settingsPage" :model="model" @close="navigate('research')" @confirm="emit('confirm', $event)" /></div>
   </section>
 </template>

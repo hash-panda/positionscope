@@ -12,7 +12,7 @@ import { Position, ExchangeType } from './types/exchange';
 import { aiService } from './services/ai';
 import { AIProvider, AISettings } from './types/ai';
 import { orderPositions } from './utils/position-order';
-import { MenuPriceHistory, menuPriceLabel } from './utils/menu-price';
+import { MenuPriceHistory, menuPriceLabel, menuProfitLabel } from './utils/menu-price';
 import { binanceResearchSymbol } from './utils/binance-symbol';
 import { BinanceResearchService } from './services/research/market-scanner';
 import { BoundedResearchAIService } from './services/research/ai-research';
@@ -236,10 +236,10 @@ async function updateTrayTitle(snapshot?: Position[]) {
 
     const directions = menuPriceHistory.observe(positions, Date.now(), Math.max(15000, refreshIntervalSeconds * 3000));
     const hidden = privacyMaskPending || settingsManager.getHideAmounts();
-    tray.setTitle(displayPositions.map(p => menuPriceLabel(p, directions.get(`${p.exchange}:${p.symbol}`) || 0, hidden)).join(' | '));
+    tray.setTitle(`${displayPositions.map(p => menuPriceLabel(p, hidden)).join(' | ')} · ${menuProfitLabel(positions, hidden)}`);
     const first = displayPositions[0];
     setMenuSignal(first ? directions.get(`${first.exchange}:${first.symbol}`) || 0 : null);
-    tray.setToolTip(hidden ? 'PositionScope · 已隐藏金额' : 'PositionScope · Binance 标记价（USDT）\n箭头比较同合约上次有效报价；彩色图标对应第一个币种。非盈亏、非24h涨跌。');
+    tray.setToolTip(hidden ? 'PositionScope · 已隐藏金额' : 'PositionScope · Binance 标记价（USDT）\n唯一彩色图标：第一个币种相对上次报价的方向，非24h涨跌。\n末尾带正负号金额：全部持仓未实现盈亏（USDT），不是已结算利润。');
   } catch (error) {
     console.error('[Main] Error updating tray:', requestDiagnostic(error));
     menuPriceHistory.clear();

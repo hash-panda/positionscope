@@ -11,6 +11,7 @@ on:
       - 'scripts/release-signed-mac.py'
       - 'scripts/verify-native-updater.py'
       - 'scripts/check-release-version.py'
+      - 'scripts/extract-release-notes.py'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'tsconfig*.json'
@@ -46,6 +47,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck && pnpm test && pnpm build
       - run: python3 -m unittest discover -s tests -p "test_release_policy.py"
+      - run: python3 -m unittest discover -s tests -p "test_release_notes.py"
       - name: Check immutable release version and numeric policy
         id: release
         env:
@@ -103,4 +105,5 @@ jobs:
           test "$(find signed -name '*.zip' | wc -l)" -eq 2
           test "$(find signed -name '*.dmg' | wc -l)" -eq 2
           (cd signed && sha256sum *.zip *.dmg > SHA256SUMS.txt)
-          gh release create "v${version}" signed/* --target "$GITHUB_SHA" --prerelease=false --title "PositionScope ${version} — signed & notarized" --notes-file docs/release-notes.md
+          python3 scripts/extract-release-notes.py --version "$version" --output /tmp/positionscope-current-release.md
+          gh release create "v${version}" signed/* --target "$GITHUB_SHA" --prerelease=false --title "PositionScope ${version} — signed & notarized" --notes-file /tmp/positionscope-current-release.md
