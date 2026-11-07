@@ -144,7 +144,8 @@ const distance = (p: Position) => { const n = liquidationDistance(p); return n =
           <div><dt>维持保证金 · {{ position.marginCurrency || '单位未知' }}</dt><dd class="numeric">{{ hidden ? '••••' : amount(position.maintenanceMargin) }}</dd></div>
           <div><dt>初始保证金 · {{ position.marginCurrency || '单位未知' }}</dt><dd class="numeric">{{ hidden ? '••••' : amount(position.initialMargin) }}</dd></div>
           <div v-if="position.usedMargin != null"><dt>已用保证金</dt><dd class="numeric">{{ hidden ? '••••' : amount(position.usedMargin) }}</dd></div>
-          <div v-if="position.marginType === 'isolated'"><dt>逐仓抵押</dt><dd class="numeric">{{ hidden ? '••••' : amount(position.isolatedMargin) }}</dd></div>
+          <div v-if="position.marginType === 'isolated'"><dt>逐仓保证金</dt><dd class="numeric">{{ hidden ? '••••' : amount(position.isolatedMargin) }}</dd></div>
+          <div v-if="position.marginType === 'isolated' && position.exchange === 'binance'"><dt>逐仓钱包余额</dt><dd class="numeric">{{ hidden ? '••••' : amount(position.isolatedWallet) }}</dd></div>
         </dl>
           <p class="position-margin helper">{{ mode(position.marginType) }} · {{ hidden ? '••••' : Math.abs(Number(position.positionAmt)) }} {{ position.baseAsset || symbol(position.symbol) }}</p>
           <p v-if="position.rawQuantityUnit === 'contracts'" class="helper">原始张数 {{ hidden ? '••••' : amount(position.rawQuantity, 4) }} · 已按合约规格换算币数</p>

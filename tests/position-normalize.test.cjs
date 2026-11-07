@@ -14,7 +14,7 @@ test('OKX contracts convert to signed base units, preserving collateral vs requi
 });
 test('Binance v3 adds symbol configuration and preserves absent liquidation instead of zero',()=>{
  const raw={symbol:'BTCUSDT',marginAsset:'USDT',positionSide:'SHORT',positionAmt:'-2',entryPrice:'120',markPrice:'100',unRealizedProfit:'40',liquidationPrice:'0',positionInitialMargin:'20',maintMargin:'0',isolatedWallet:'25'};
- const p=binance(raw,{marginType:'ISOLATED',leverage:10});assert.equal(p.marginType,'isolated');assert.equal(p.isolatedMargin,'25');assert.equal(p.maintenanceMargin,'0');assert.equal(p.liquidationPrice,null);
+ const p=binance(raw,{marginType:'ISOLATED',leverage:10});assert.equal(p.marginType,'isolated');assert.equal(p.isolatedMargin,null);assert.equal(p.isolatedWallet,'25');assert.equal(p.maintenanceMargin,'0');assert.equal(p.liquidationPrice,null);
  assert.equal(binance(raw,undefined).marginType,'unknown');assert.throws(()=>binance({...raw,positionAmt:'2'},{}));
 });
 test('Bybit confirms mode from account info, not deprecated tradeMode, and portfolio has no position requirements',()=>{

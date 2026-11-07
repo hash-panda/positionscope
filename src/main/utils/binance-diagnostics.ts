@@ -9,7 +9,7 @@ export type BinanceDataErrorCode = keyof typeof failures;
 
 /** Only this locally constructed type carries a trusted mapping code. Never
  * accept an upstream .code/.message or retain the raw response/cause. */
-export const positionFields = ['response', 'positionAmt', 'positionSide', 'markPrice', 'entryPrice', 'unRealizedProfit', 'isolatedWallet', 'liquidationPrice', 'positionInitialMargin', 'maintMargin', 'updateTime'] as const;
+export const positionFields = ['response', 'positionAmt', 'positionSide', 'markPrice', 'entryPrice', 'unRealizedProfit', 'isolatedWallet', 'isolatedMargin', 'liquidationPrice', 'positionInitialMargin', 'maintMargin', 'updateTime'] as const;
 export type PositionField = typeof positionFields[number];
 export class BinanceDataError extends Error {
   constructor(readonly code: BinanceDataErrorCode, readonly field?: PositionField) {
