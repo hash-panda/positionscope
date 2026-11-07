@@ -1,8 +1,8 @@
-name: Quality and preview release
+name: Quality and release checks
 on:
   pull_request:
   push:
-    branches: [master]
+    branches: [main, master]
   workflow_dispatch:
 permissions:
   contents: read
