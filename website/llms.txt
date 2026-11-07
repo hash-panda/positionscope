@@ -1,17 +1,19 @@
 # PositionScope
 
-> Independent, read-only macOS menu-bar position monitor. Current release v0.2.0-beta.16 is signed and notarized for Apple Silicon and Intel; native UI and real-account tests are still pending. Planned features are not released features.
+> Independent, read-only Binance research app for macOS. Current download metadata: v0.2.1. Native UI, packaged Keychain prompts, real accounts and model reasoning quality remain separately unverified.
 
 ## Product
-- [Overview](https://positionscope.funagent.app/): Features and synthetic demonstration
-- [English overview](https://positionscope.funagent.app/en/): Current capabilities and limits
-- [Downloads](https://positionscope.funagent.app/download/): Verified release status
-- [Risk methodology](https://positionscope.funagent.app/guides/portfolio-risk/): Formulas and limitations
-- [Read-only setup](https://positionscope.funagent.app/guides/read-only-api/): Permissions and local credentials
-- [Privacy](https://positionscope.funagent.app/privacy/): Current data handling
-- [Roadmap](https://positionscope.funagent.app/roadmap/): Released versus planned capabilities
-- [Source](https://github.com/hash-panda/positionscope): MIT-declared source repository
+- [Overview](https://positionscope.funagent.app/): Compact portfolio popup and independent evidence workspace
+- [English overview](https://positionscope.funagent.app/en/): Scope and limitations
+- [Downloads](https://positionscope.funagent.app/download/): Actual release and verification links
+- [Methodology](https://positionscope.funagent.app/guides/portfolio-risk/): Facts, events, depth and forward price observations
+- [Read-only setup](https://positionscope.funagent.app/guides/read-only-api/): Binance permissions and model configuration
+- [Privacy](https://positionscope.funagent.app/privacy/): Encrypted settings versus local public research records
+- [Roadmap](https://positionscope.funagent.app/roadmap/): Acceptance gaps and next research questions
+- [Source](https://github.com/hash-panda/positionscope): MIT-declared repository
 
-Hyperliquid is limited to confirmed standard (disabled) accounts, default perp DEX and spot; other account modes are rejected. USDC/USDT parity is an estimate. Other DEX, staking and lending assets are excluded.
+Research covers Binance USDT perpetuals, not all crypto markets. Event screening is cross-sectional, not proof of historical anomaly or early value. Public AI research uses at most two explicit-action model calls, only validated public facts and no account positions/equity. Separate portfolio analysis is opt-in and sends sensitive position-level risk facts to the selected provider. Model IDs remain explicit except for the verified DeepSeek alias.
 
-No exchange affiliation. No profit forecasts or verified performance claims. Settings use macOS Keychain-managed keys for asynchronous local encryption; no plaintext fallback. This is a fresh app identity without pre-release compatibility. AI processing is opt-in and sends sensitive position-level risk facts, account equity and public market context to the selected model provider. On-demand research is limited to Binance USDT perpetual contracts; new listings are not early-value recommendations, and asset price statistics are not portfolio performance. Model IDs are explicit except for the verified DeepSeek alias; check compatibility and pricing.
+Alerts are in-app and require the process to be running and online. Frozen judgments retain failures and abstentions. Optional future price observations are indicative, unleveraged price changes, not executable trades or net returns; fees, funding, slippage, predictive quality and costs are unknown.
+
+Settings use macOS Keychain-managed encryption without plaintext fallback. Public research, watch rules and alerts use atomic local 0600 JSON files, not encryption. No old-preview migration, automatic trading, funds transfer, profit forecast or exchange affiliation. Manual update checks open the official release page and do not install software.

@@ -1,12 +1,12 @@
 # PositionScope 数字版本实施与验收计划
 
-2026-11-07 建立并更新，维护者已授权分阶段实现、独立 PR、验证后合并与发布。GitHub 已核对默认分支为 `main`；工作流暂兼容 `main` / `master`，实际签名以仓库事件中的默认分支为准。已发布基线仍为 [v0.2.0-beta.16](https://github.com/hash-panda/positionscope/releases/tag/v0.2.0-beta.16)，源码 `ad3dcf9ed033b7da622752bbb95357e8f1f17198`，推广提交 `c7d4df0ed341d65de076757c991500bbf3f02c6a`。0.2.1 为下一发布候选，阶段记录见 [候选验收报告](ops/2026-11-07-numeric-release.md)。
+2026-11-07 建立并更新，维护者已授权分阶段实现、独立 PR、验证后合并与发布。GitHub 已核对默认分支为 `main`；工作流暂兼容 `main` / `master`，实际签名以仓库事件中的默认分支为准。当前已发布 [0.2.1](https://github.com/hash-panda/positionscope/releases/tag/v0.2.1)，源码 `fb4c6e0d660875a846dc078e73e672f866e11153`，双架构签名、公证、装订、Gatekeeper 和七资产已核对；阶段记录见[发布验收报告](ops/2026-11-07-numeric-release.md)。
 
 ## 版本与交付约束
 
-下一次新发布使用 **0.2.1**，以后只用纯数字 `x.y.z`（无 beta/rc/build 后缀，无多余前导零），Git tag 可为 `v0.2.1`。GitHub Release `prerelease=false`；这是发布渠道政策，不是对真实账户、盈利能力或全部使用场景已验证的承诺。
+本轮已发布 **0.2.1**，下一次新发布使用 **0.2.2**，以后只用纯数字 `x.y.z`（无 beta/rc/build 后缀，无多余前导零），Git tag 可为 `v0.2.1`。GitHub Release `prerelease=false`；这是发布渠道政策，不是对真实账户、盈利能力或全部使用场景已验证的承诺。
 
-功能阶段不改 `package.json` 版本，保留已发布 beta.16 作为阶段基线；既有 Release 先查询并跳过，不重新签名或覆盖。只有最后发布 PR 在全部适用门槛通过后改成0.2.1及对应说明。不存在的新预发布版本必须拒绝，GitHub查询失败也不能当作“版本不存在”。旧公开产物和证据保留，不做旧预览版配置兼容或迁移。
+功能阶段不改 `package.json` 版本，保留当前已发布版本作为阶段基线；既有 Release 先查询并跳过，不重新签名或覆盖。只有最后发布 PR 在全部适用门槛通过后改成下一个数字版本及对应说明。不存在的新预发布版本必须拒绝，GitHub查询失败也不能当作“版本不存在”。旧公开产物和证据保留，不做旧预览版配置兼容或迁移。
 
 ## 分阶段 PR 顺序
 
@@ -20,9 +20,9 @@
 | 4 | AI研究与复盘契约，依赖2、3 | 输入/结构化输出校验、证据引用、反证与失效条件、模型/规则/时间可追溯；新证据不复用旧结论；费用、失败和缺数据可见 | [#59](https://github.com/hash-panda/positionscope/pull/59) 已合并；[CI 42366119736](https://github.com/hash-panda/positionscope/actions/runs/42366119736) 通过，真实模型语义未知 |
 | 5 | 偏好、菜单栏语义及更新检查，依赖1、2 | 默认浅色、红跌绿涨可反转；隐私状态一致；公开更新元数据来源可信、数字版本比较正确；用户主动下载，不静默安装 | [#58](https://github.com/hash-panda/positionscope/pull/58) 已合并；原生菜单/IPC/全局主题由 #60 接线；用户 Mac 视觉待验 |
 | 6 | 速览与独立研究工作台，依赖2–5 | 480×600速览、可调1180×760工作台；左队列右常驻证据、同候选矩阵与后续观察；键盘、reduced-motion、空/错/旧态；无大型K线或拖卡 | [#60](https://github.com/hash-panda/positionscope/pull/60) 已合并；[CI 42367072522](https://github.com/hash-panda/positionscope/actions/runs/42367072522) 全通过，含两套UI/axe、480×600三持仓密度和合成Mac |
-| 7 | 整体验证、0.2.1发布与官网同步，依赖1–6 | 最终版本PR、相关回归/构建/隐私审查、双架构签名公证/装订/Gatekeeper、七资产核验、安装器与下载同步、线上核对 | 最终版本 PR 将 package 改为0.2.1；182 Node、9 Python、类型/构建本地通过；签名新包及推广待实际流水线 |
+| 7 | 整体验证、0.2.1发布与官网同步，依赖1–6 | 最终版本PR、相关回归/构建/隐私审查、双架构签名公证/装订/Gatekeeper、七资产核验、安装器与下载同步、线上核对 | [#61](https://github.com/hash-panda/positionscope/pull/61)/[#62](https://github.com/hash-panda/positionscope/pull/62) 已合并；182 Node、14 Python、UI/axe、构建与 Mac CI 通过；[签名发布](https://github.com/hash-panda/positionscope/actions/runs/42368451830)和七资产核对通过；下载推广另经 PR，确切线上结果见验收报告链接 |
 
-核对时点为 `2026-11-07T11:12:26Z`，阶段状态不替代各 PR 最终确切 head 的 CI。阶段3为无运行入口的独立模块，可先于引擎合并；运行依赖由阶段6接通。阶段2–6的模块完成、UI集成、签名包和用户场景分别验收，不预填后续结果。根任务在合并/发布后把确切链接和结果回填阶段报告；合并代码不能自动把真实场景列为通过。
+核对时点为 `2026-11-07T11:38:20Z`，阶段状态不替代各 PR 最终确切 head 的 CI。阶段3为无运行入口的独立模块，可先于引擎合并；运行依赖由阶段6接通。阶段2–6的模块完成、UI集成、签名包和用户场景分别验收，不预填后续结果。根任务在合并/发布后把确切链接和结果回填阶段报告；合并代码不能自动把真实场景列为通过。
 
 ## 质量门槛
 
