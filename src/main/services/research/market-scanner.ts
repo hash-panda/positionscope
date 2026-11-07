@@ -1,4 +1,7 @@
 import axios from 'axios';
+import type { PaperBook, PaperFundingWindow } from '../../types/paper';
+import { validateBook } from '../paper/engine';
+import { decimal } from '../paper/decimal';
 import { createHash } from 'crypto';
 import type { PublicResearchTransport, PublicResearchSample, ResearchWatchQuote, ResearchEvent, ResearchEventKind, ResearchEvidence, ResearchFact, ResearchSnapshot } from '../../types/research';
 import { binanceUsdtBaseAsset, isBinanceBaseAsset, isBinanceUsdtPerpetualSymbol } from '../../utils/binance-symbol';
@@ -85,6 +88,47 @@ export class BinanceResearchService {
     })();
     this.metadataFlight = flight;
     try { return await flight; } finally { if (this.metadataFlight === flight) this.metadataFlight = null; }
+  }
+  /** Dedicated public-only simulation evidence. No key, signature, account or order API. */
+  async getPaperBook(symbol: string): Promise<PaperBook> {
+    if (!isBinanceUsdtPerpetualSymbol(symbol)) throw new Error('模拟标的无效');
+    const budget = { remaining: 2, deadline: this.now() + 16000, generation: this.generation };
+    const spec = (await this.getMetadata(budget)).get(symbol);
+    if (!spec || !Array.isArray(spec.filters)) throw new Error('模拟合约规则缺失');
+    const lot = spec.filters.find((f: any) => f.filterType === 'LOT_SIZE');
+    const market = spec.filters.find((f: any) => f.filterType === 'MARKET_LOT_SIZE');
+    const notional = spec.filters.find((f: any) => f.filterType === 'MIN_NOTIONAL');
+    if (!lot || !notional) throw new Error('模拟合约规则缺失');
+    let stepSize = lot.stepSize, minQty = lot.minQty, maxQty = lot.maxQty;
+    if (market) {
+      if (decimal(market.stepSize) > 0n) {
+        if (decimal(market.stepSize) % decimal(lot.stepSize) !== 0n) throw new Error('模拟数量步进不兼容');
+        stepSize = market.stepSize;
+      }
+      if (decimal(market.minQty) > decimal(minQty)) minQty = market.minQty;
+      if (decimal(market.maxQty) > 0n && decimal(market.maxQty) < decimal(maxQty)) maxQty = market.maxQty;
+    }
+    const raw = await this.read('/fapi/v1/depth', { symbol, limit: 100 }, budget);
+    const book: PaperBook = { symbol, updateId: String(raw?.lastUpdateId), observedAt: raw?.T, fetchedAt: this.now(),
+      bids: raw?.bids, asks: raw?.asks, stepSize, minQty, maxQty, minNotional: notional.notional };
+    if (!Number.isSafeInteger(raw?.lastUpdateId)) throw new Error('模拟盘口身份无效');
+    validateBook(book, this.now()); return book;
+  }
+  async getPaperFunding(symbol: string, start: number, end: number): Promise<PaperFundingWindow> {
+    if (!isBinanceUsdtPerpetualSymbol(symbol) || !Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 ||
+        end < start || end > this.now() - 300000 || end - start > 7 * 86400000) throw new Error('资金费查询范围无效');
+    const budget = { remaining: 2, deadline: this.now() + 16000, generation: this.generation };
+    if (!(await this.getMetadata(budget)).has(symbol)) throw new Error('模拟合约暂不可用');
+    const data = await this.read('/fapi/v1/fundingRate', { symbol, startTime: start, endTime: end, limit: 1000 }, budget);
+    if (!Array.isArray(data) || data.length >= 1000) throw new Error('资金费覆盖不完整');
+    const rows = data.map((r: any) => {
+      if (r?.symbol !== symbol || !Number.isSafeInteger(r.fundingTime) || r.fundingTime < start || r.fundingTime > end ||
+          (r.rateType !== undefined && r.rateType !== 'Regular') || decimal(r.markPrice) <= 0n) throw new Error('资金费记录不可核对');
+      decimal(r.fundingRate);
+      return { time: r.fundingTime, rate: r.fundingRate, markPrice: r.markPrice };
+    });
+    if (new Set(rows.map(r => r.time)).size !== rows.length) throw new Error('资金费记录重复');
+    return { symbol, start, end, rows };
   }
   async isSupportedSymbol(symbol: string): Promise<boolean> {
     if (!isBinanceUsdtPerpetualSymbol(symbol)) return false;
