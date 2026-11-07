@@ -19,3 +19,16 @@
   --ps-light-muted: #566373;
   --ps-light-brand: #735011;
 }
+/* Research workspace and website use this shared quiet-finance palette. */
+:root {
+  --ps-workspace-canvas: #faf9f6;
+  --ps-workspace-surface: #fff;
+  --ps-workspace-raised: #f0efeb;
+  --ps-workspace-border: #e5e3dd;
+  --ps-workspace-text: #252b2b;
+  --ps-workspace-muted: #626a6a;
+  --ps-workspace-brand: #785715;
+  --ps-workspace-brand-soft: #f3ecdc;
+  --ps-workspace-positive: #167459;
+  --ps-workspace-negative: #bc3c4e;
+}
