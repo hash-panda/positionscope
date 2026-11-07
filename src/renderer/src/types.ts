@@ -73,6 +73,7 @@ export interface ElectronAPI {
   registerResearchShadow(input: import('../../main/types/research-ledger').ShadowRegistration): Promise<Result>;
   onWorkspacePage(callback: (page: string) => void): (() => void) | void;
   onResearchLedgerChanged(callback: () => void): (() => void) | void;
+  onResearchAlert(callback: (alerts: {id: string; symbol: string; metric: string; threshold: number; triggeredAt: number | null}[]) => void): (() => void) | void;
   getProxySettings(): Promise<string>;
   getStorageStatus(): Promise<import('../../main/settings').StorageStatus>;
   restartForStorage(): Promise<Result>;

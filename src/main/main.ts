@@ -103,6 +103,9 @@ async function observeResearch() {
     const samples = await researchMarket.getPublicSamples(symbols);
     if (epoch !== researchEpoch) return;
     const outcome = await researchLedger.observePublicSamples(samples);
+    if (outcome.triggeredAlerts.length) broadcast('research-alert-triggered', outcome.triggeredAlerts.map(a => ({
+      id: a.id, symbol: a.symbol, metric: a.metric, threshold: a.threshold, triggeredAt: a.triggeredAt,
+    })));
     if (outcome.triggeredAlerts.length || outcome.completedShadows.length) broadcast('research-ledger-changed');
   } catch { /* Offline is a gap, never a trigger. No provider calls or private account reads. */ }
   finally { observing = false; }
@@ -704,6 +707,7 @@ ipcMain.handle('delete-all-data', async () => {
     }
 
     console.log('[IPC] All data deleted successfully');
+    privacyMaskPending = false;
     broadcast('research-ledger-changed');
     broadcast('data-cleared');
     broadcast('preferences-changed');
@@ -953,7 +957,9 @@ ipcMain.handle('clear-exchange-errors', async () => {
  */
 ipcMain.handle('open-external', async (_, url: string) => {
   try {
-    await shell.openExternal(url);
+    const destination = new URL(url);
+    if (destination.protocol !== 'https:' || destination.username || destination.password) throw new Error('Only public HTTPS links are supported');
+    await shell.openExternal(destination.toString());
     return { success: true };
   } catch (error: any) {
     console.error('[IPC] Error opening external URL:', requestDiagnostic(error));

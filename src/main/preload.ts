@@ -34,6 +34,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('research-ledger-changed', listener);
     return () => ipcRenderer.removeListener('research-ledger-changed', listener);
   },
+  onResearchAlert: (callback: (alerts: unknown[]) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, alerts: unknown[]) => callback(alerts);
+    ipcRenderer.on('research-alert-triggered', listener);
+    return () => ipcRenderer.removeListener('research-alert-triggered', listener);
+  },
   getProxySettings: () => ipcRenderer.invoke('get-proxy-settings'),
   getStorageStatus: () => ipcRenderer.invoke('get-storage-status'),
   restartForStorage: () => ipcRenderer.invoke('restart-for-storage'),

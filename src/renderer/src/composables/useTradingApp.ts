@@ -592,7 +592,7 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
     }
     try {
       const requestGeneration = generation;
-      const preferencesCleanup = api.onPreferencesChanged(() => {
+      const preferencesCleanup = api.onPreferencesChanged?.(() => {
         // Conceal immediately; do not leave another window's old PnL color visible
         // while asynchronously reading the newly committed privacy preference.
         preferences.hideAmounts = true;
@@ -600,7 +600,7 @@ export function useTradingApp(notify: (notice: NoticeInput) => void) {
           formError.value = '设置同步暂时失败，金额已隐藏；请重新打开窗口。';
         });
       });
-      const dataCleanup = api.onDataCleared(() => {
+      const dataCleanup = api.onDataCleared?.(() => {
         clearPrivateState();
         void loadPreferences().then(() => { if (!disposed) restartTimer(); }).catch(() => {
           formError.value = '数据已清除，设置暂未同步；请重新打开窗口。';

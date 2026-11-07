@@ -1,5 +1,5 @@
 .app.positionscope-app { --brand: #c4a464; --brand-soft: rgb(196 164 100 / .12); --positive: #49c99c; --negative: #ef8190; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; }
-.app.positionscope-app.light-mode { --canvas: #faf9f6; --surface: #fff; --raised: #f0efeb; --border: #e5e3dd; --text: #252b2b; --muted: #626a6a; --brand: #8b691d; --brand-soft: #f3ecdc; --positive: #167459; --negative: #bc3c4e; }
+.app.positionscope-app.light-mode { --canvas: #faf9f6; --surface: #fff; --raised: #f0efeb; --border: #e5e3dd; --text: #252b2b; --muted: #626a6a; --brand: #785715; --brand-soft: #f3ecdc; --positive: #167459; --negative: #bc3c4e; }
 .app.positionscope-app.red-up { --positive: #ef8190; --negative: #49c99c; --positive-soft: rgb(239 129 144 / .1); --negative-soft: rgb(73 201 156 / .1); }
 .app.positionscope-app.light-mode.red-up { --positive: #bc3c4e; --negative: #167459; }
 .positionscope-app button { transition: background-color 200ms, color 200ms, border-color 200ms; }
@@ -172,6 +172,7 @@
 .popup-header { display: flex; justify-content: space-between; align-items: center; height: 60px; min-height: 60px; border-bottom: 1px solid var(--border); -webkit-app-region: drag; }
 .popup-header .new-wordmark { font-size: 16px; }
 .popup-header .new-wordmark img { width: 24px; height: 24px; }
+.popup-actions { display: flex; gap: 5px; align-items: center; }
 .popup-summary { padding: 20px 0 18px; flex-shrink: 0; }
 .popup-summary-label { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); }
 .popup-summary-label small { font-size: 9px; margin-left: 4px; }

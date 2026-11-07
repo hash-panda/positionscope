@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
-import { ArrowUpRight, CircleAlert, Eye, EyeOff, RefreshCw, Settings } from 'lucide-vue-next';
+import { ArrowUpRight, Bell, CircleAlert, Eye, EyeOff, RefreshCw, Settings } from 'lucide-vue-next';
 import type { AppModel } from '../../composables/useTradingApp';
 import type { ResearchAPI } from '../../composables/useResearch';
 import { amount, signed, symbol } from '../../utils/format';
 import { number, percent, sign, time } from './format';
 import brandMark from '../../../../../assets/brand/mark.svg';
-const props = defineProps<{ model: AppModel }>();
+const props = defineProps<{ model: AppModel; unread: number }>();
 const api = window.electronAPI as typeof window.electronAPI & Partial<ResearchAPI>;
-const emit = defineEmits<{ settings: []; positions: []; research: [] }>();
+const emit = defineEmits<{ settings: []; positions: []; research: []; notifications: [] }>();
 const preferences = computed(() => props.model.preferences as typeof props.model.preferences & { watchlistSymbols?: string[]; colorScheme?: string });
 const watchlist = computed(() => preferences.value.watchlistSymbols || ['BTCUSDT', 'ETHUSDT']);
 interface Quote { symbol: string; lastPrice: number; change24hPercent: number; observedAt: number; fetchedAt: number }
@@ -38,7 +38,7 @@ watch(() => watchlist.value.join(','), () => void refreshMarket());
 </script>
 <template>
   <section class="popup-dashboard" aria-labelledby="popup-title">
-    <header class="popup-header"><div class="new-wordmark"><img :src="brandMark" alt=""/><h1 id="popup-title">PositionScope</h1></div><button class="icon-button" aria-label="设置" @click="emit('settings')"><Settings :size="18"/></button></header>
+    <header class="popup-header"><div class="new-wordmark"><img :src="brandMark" alt=""/><h1 id="popup-title">PositionScope</h1></div><div class="popup-actions"><button class="icon-button notification-button" :aria-label="`通知中心${unread ? `，${unread} 条未读` : ''}`" @click="emit('notifications')"><Bell :size="17"/><span v-if="unread" class="notification-count">{{ unread }}</span></button><button class="icon-button" aria-label="设置" @click="emit('settings')"><Settings :size="18"/></button></div></header>
     <div v-if="model.storageStatus.state === 'blocked'" class="popup-warning" role="alert"><CircleAlert :size="16"/><div><strong>配置未能安全读取</strong><p>{{ model.storageStatus.message }}</p><button class="text-button" @click="model.api?.restartForStorage()">重启并重新读取</button></div></div>
     <div v-else-if="model.error || stale" class="popup-warning" role="status"><CircleAlert :size="16"/><div><strong>{{ stale ? 'Binance 连接需关注' : model.error }}</strong><details><summary>查看连接详情</summary><p v-for="item in model.exchangeErrors.filter(e => e.exchange === 'binance')" :key="item.errorCode">{{ item.errorCode }} · {{ item.suggestion }}</p><p>上次数据不会当作实时数据。空值不代表没有持仓。</p></details><button class="text-button" :disabled="model.loading" @click="model.retry">重新连接</button><button class="text-button subdued" @click="emit('settings')">检查配置</button></div></div>
     <div class="popup-summary"><div class="popup-summary-label"><span>未实现盈亏 <small>USDT</small></span><button class="icon-button small" :aria-label="model.preferences.hideAmounts ? '显示金额' : '隐藏金额'" :aria-pressed="model.preferences.hideAmounts" @click="model.preferences.hideAmounts = !model.preferences.hideAmounts; model.savePreference('hideAmounts')"><EyeOff v-if="model.preferences.hideAmounts" :size="14"/><Eye v-else :size="14"/></button></div><strong class="popup-pnl numeric" :class="model.preferences.hideAmounts ? '' : sign(pnl)">{{ model.preferences.hideAmounts ? '••••••' : pnl == null ? '—' : signed(pnl) }}</strong><div class="popup-equity"><span>合约权益 <b class="numeric">{{ model.preferences.hideAmounts ? '••••' : number(account?.totalMarginBalance) }}</b></span><span>可用 <b class="numeric">{{ model.preferences.hideAmounts ? '••••' : number(account?.availableBalance) }}</b></span><span v-if="stale" class="stale-label">上次数据</span></div></div>
