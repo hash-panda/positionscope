@@ -1,53 +1,29 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
-import {
-  AlertTriangle,
-  ArrowLeft,
-  ArrowUpRight,
-  Bell,
-  ChevronRight,
-  Eye,
-  EyeOff,
-  Inbox,
-  KeyRound,
-  MoreHorizontal,
-  Power,
-  RefreshCw,
-  Settings,
-  SlidersHorizontal,
-  Sparkles,
-  X,
-} from 'lucide-vue-next';
 import { useTradingApp } from './composables/useTradingApp';
 import type { Exchange, NoticeInput, SettingsPage } from './types';
 import { exchanges } from './types';
-import { amount, direction, signed } from './utils/format';
+import type { ResearchAPI } from './composables/useResearch';
 import ConfirmDialog from './components/ConfirmDialog.vue';
-import ExchangeLogo from './components/ExchangeLogo.vue';
-import MarketPanel from './components/MarketPanel.vue';
-import HealthPanel from './components/HealthPanel.vue';
 import NotificationCenter from './components/NotificationCenter.vue';
-import PositionList from './components/PositionList.vue';
 import SettingsPanel from './components/SettingsPanel.vue';
-import ActivityPanel from './components/ActivityPanel.vue';
-import brandMark from '../../../assets/brand/mark.svg';
-
+import WorkspaceShell from './components/research/WorkspaceShell.vue';
+import PopupDashboard from './components/research/PopupDashboard.vue';
+import './components/research/research.css';
 const notificationCenter = ref<InstanceType<typeof NotificationCenter>>();
 const notificationsOpen = ref(false);
 const unread = ref(0);
-const app = reactive(
-  useTradingApp((notice: NoticeInput) => notificationCenter.value?.addNotification(notice))
-);
+const app = reactive(useTradingApp((notice: NoticeInput) => notificationCenter.value?.addNotification(notice)));
+const query = new URLSearchParams(window.location.search);
+const mode = ref<'popup' | 'workspace'>(query.get('mode') === 'workspace' ? 'workspace' : 'popup');
 const settingsPage = ref<SettingsPage>('index');
-const moreOpen = ref(false);
-const menu = ref<HTMLElement>();
-const moreButton = ref<HTMLButtonElement>();
-const notificationButton = ref<HTMLButtonElement>();
-const mainTitle = ref<HTMLElement>();
 const confirmation = ref<'quit' | 'delete' | 'reset' | Exchange | null>(null);
 const confirmError = ref('');
 const confirmBusy = ref(false);
-const staleExchanges = computed(() => app.exchangeErrors.map((item) => item.exchange));
+const reversed = computed(() => (app.preferences as typeof app.preferences & { colorScheme?: string }).colorScheme === 'red-up');
+const dataClearRevision = computed(() => (app as typeof app & { dataClearRevision?: number }).dataClearRevision || 0);
+watch(dataClearRevision, () => { notificationCenter.value?.clearAll(); notificationsOpen.value = false; confirmation.value = null; });
+watch(notificationsOpen, async open => { if (!open) { await nextTick(); document.querySelector<HTMLElement>('.workspace-header button[aria-label^="通知中心"],.popup-header button[aria-label^="通知中心"]')?.focus(); } });
 const confirmationCopy = computed(() => {
   if (confirmation.value === 'quit')
     return {
@@ -60,7 +36,7 @@ const confirmationCopy = computed(() => {
     return {
       title: '删除所有数据？',
       button: '删除所有数据',
-      body: '将删除交易所凭证、AI 配置、持仓顺序和应用设置。此操作无法撤销。',
+      body: '将删除交易所凭证、AI 配置、持仓顺序、关注、提醒、复盘记录和应用设置。此操作无法撤销。',
       danger: true,
     };
   if (confirmation.value === 'reset')
@@ -78,16 +54,6 @@ const confirmationCopy = computed(() => {
     danger: true,
   };
 });
-function openSettings(page: SettingsPage = 'index') {
-  settingsPage.value = page;
-  app.currentView = 'settings';
-  moreOpen.value = false;
-}
-function askConfirmation(action: NonNullable<typeof confirmation.value>) {
-  confirmError.value = '';
-  confirmation.value = action;
-  moreOpen.value = false;
-}
 async function confirmAction() {
   if (!confirmation.value || confirmBusy.value) return;
   confirmBusy.value = true;
@@ -108,427 +74,36 @@ async function confirmAction() {
     confirmBusy.value = false;
   }
 }
-async function analyze() {
-  const result = await app.analyze();
-  if (result === false) settingsPage.value = 'ai';
+
+function askConfirmation(action: NonNullable<typeof confirmation.value>) { confirmError.value = ''; confirmation.value = action; }
+async function open(page: 'research' | 'positions' | 'review' | 'settings') {
+  const api = window.electronAPI as typeof window.electronAPI & Partial<ResearchAPI>;
+  if (api?.openWorkspace) { const result = await api.openWorkspace(page); if (!result.success) notificationCenter.value?.addNotification({ type: 'error', title: '打开工作台失败', message: result.error || '请稍后重试。' }); }
+  else if (page === 'settings') { app.currentView = 'settings'; settingsPage.value = 'index'; }
+  else mode.value = 'workspace';
 }
-function connectionLabel(exchange: Exchange) {
-  if (app.exchangeErrors.some((item) => item.exchange === exchange)) return '连接异常';
-  return app.accounts.some((item) => item.exchange === exchange) && !app.error
-    ? '已连接'
-    : '等待同步';
-}
-function closeMenu(event: PointerEvent) {
-  if (
-    !menu.value?.contains(event.target as Node) &&
-    !moreButton.value?.contains(event.target as Node)
-  )
-    moreOpen.value = false;
-}
-function handleEscape(event: KeyboardEvent) {
-  if (event.defaultPrevented || event.key !== 'Escape' || confirmation.value) return;
-  // Let the component dismiss its own overlay and restore focus first.
-  if (document.querySelector('[data-app-overlay][data-state="open"]')) return;
-  if (moreOpen.value) {
-    moreOpen.value = false;
-    moreButton.value?.focus();
-  } else if (notificationsOpen.value) notificationsOpen.value = false;
-  else if (app.currentView === 'settings' && settingsPage.value !== 'index')
-    settingsPage.value = 'index';
-  else if (app.currentView !== 'overview') app.currentView = 'overview';
-}
-watch([() => app.currentView, settingsPage], async () => {
-  await nextTick();
-  document.querySelector<HTMLElement>('.screen h1')?.focus();
+type AlertNotice = { id: string; symbol: string; metric: 'price' | 'funding' | 'openInterest'; threshold: number; triggeredAt: number };
+let alertCleanup: (() => void) | undefined;
+onMounted(async () => {
+  const api = window.electronAPI as typeof window.electronAPI & Partial<ResearchAPI> & { onResearchAlert?: (callback: (alerts: AlertNotice[]) => void) => (() => void) | void };
+  const cleanup = api?.onResearchAlert?.(alerts => {
+    for (const alert of alerts) {
+      const metric = alert.metric === 'price' ? '成交价' : alert.metric === 'funding' ? '资金费率' : '未平仓量';
+      const threshold = alert.metric === 'funding' ? `${(alert.threshold * 100).toFixed(4)}%` : `${alert.threshold.toLocaleString('en-US')} ${alert.metric === 'price' ? 'USDT' : '币'}`;
+      notificationCenter.value?.addNotification({ type: 'info', title: `${alert.symbol} · 条件触发`, message: `应用内提醒：${metric}穿越已设阈值 ${threshold}。请复核最新证据；不会执行交易。`, persistent: true, actionLabel: '查看复盘', onAction: () => { void open('review'); } });
+    }
+  });
+  if (typeof cleanup === 'function') alertCleanup = cleanup;
+  if (api?.getWindowMode) mode.value = await api.getWindowMode();
 });
-watch(notificationsOpen, async (open) => {
-  if (!open) {
-    await nextTick();
-    notificationButton.value?.focus();
-  }
-});
-onMounted(() => {
-  document.addEventListener('pointerdown', closeMenu);
-  document.addEventListener('keydown', handleEscape);
-});
-onUnmounted(() => {
-  document.removeEventListener('pointerdown', closeMenu);
-  document.removeEventListener('keydown', handleEscape);
-});
+onUnmounted(() => alertCleanup?.());
 </script>
-
 <template>
-  <div class="app" :class="{ 'light-mode': !app.preferences.dark }">
-    <template v-if="!notificationsOpen">
-      <SettingsPanel
-        v-if="app.currentView === 'settings'"
-        v-model:page="settingsPage"
-        :model="app"
-        @close="app.currentView = 'overview'"
-        @confirm="askConfirmation"
-      />
-      <ActivityPanel v-else-if="app.currentView === 'activity'" :model="app" @close="app.currentView = 'overview'" />
-      <MarketPanel v-else-if="app.currentView === 'market'" :snapshot="app.marketSnapshot" :loading="app.marketLoading" :error="app.marketError" @close="app.currentView = 'overview'" @refresh="app.loadMarket()" />
-      <HealthPanel
-        v-else-if="app.currentView === 'health' && app.healthScore"
-        :score="app.healthScore"
-        :provider="app.analysisProvider"
-        :time="app.analysisTime"
-        :analyzing="app.analyzing"
-        :hidden="app.preferences.hideAmounts"
-        @close="app.currentView = 'overview'"
-        @analyze="analyze"
-      />
-      <section v-else-if="app.currentView === 'sort'" class="screen" aria-labelledby="sort-title">
-        <header class="screen-header">
-          <button
-            class="icon-button"
-            aria-label="取消排序"
-            :disabled="!!app.saving"
-            @click="app.currentView = 'overview'"
-          >
-            <ArrowLeft :size="19" />
-          </button>
-          <h1 id="sort-title" tabindex="-1">调整顺序</h1>
-          <button
-            class="text-button subdued header-end"
-            :disabled="!!app.saving"
-            @click="app.currentView = 'overview'"
-          >
-            取消
-          </button>
-        </header>
-        <div class="screen-body">
-          <p class="page-intro">上下移动，决定持仓与菜单栏的展示顺序。</p>
-          <PositionList
-            :positions="app.sortedPositions"
-            :hidden="app.preferences.hideAmounts"
-            sorting
-            @move="app.movePosition"
-          />
-          <p v-if="app.formError" class="form-feedback error-feedback" role="alert">
-            {{ app.formError }}
-          </p>
-        </div>
-        <footer class="sort-footer">
-          <button class="button primary full-width" :disabled="!!app.saving" @click="app.saveOrder">
-            {{ app.saving ? '正在保存…' : '保存顺序' }}
-          </button>
-        </footer>
-      </section>
-      <section v-else class="screen overview-screen" aria-labelledby="overview-title">
-        <header class="screen-header overview-header">
-          <div class="wordmark"><img class="brand-mark" :src="brandMark" alt="" aria-hidden="true" /><div><h1 id="overview-title" ref="mainTitle" tabindex="-1">持仓盈亏</h1><span class="product-caption">PositionScope · 仓位镜</span></div></div>
-          <div class="header-actions">
-            <button
-              ref="notificationButton"
-              class="icon-button notification-button"
-              :aria-label="`通知中心${unread ? `，${unread} 条未读` : ''}`"
-              @click="notificationsOpen = true"
-            >
-              <Bell :size="18" /><span v-if="unread" class="notification-count">{{
-                unread > 99 ? '99+' : unread
-              }}</span>
-            </button>
-            <button class="icon-button" aria-label="设置" @click="openSettings()">
-              <Settings :size="18" />
-            </button>
-            <div class="more-menu-wrapper">
-              <button
-                ref="moreButton"
-                class="icon-button"
-                aria-label="更多操作"
-                aria-haspopup="true"
-                :aria-expanded="moreOpen"
-                @click="moreOpen = !moreOpen"
-              >
-                <MoreHorizontal :size="20" />
-              </button>
-              <div v-if="moreOpen" ref="menu" class="more-menu">
-                <button @click="app.currentView = 'market'; moreOpen = false; app.loadMarket()"><Sparkles :size="15" />公共市场 · 研究观察</button>
-                <button @click="app.currentView = 'activity'; moreOpen = false"><SlidersHorizontal :size="15" />持仓动态 · 交易室</button>
-                <button
-                  :disabled="!app.hasCredentials || app.loading"
-                  @click="
-                    app.fetchData();
-                    moreOpen = false;
-                  "
-                >
-                  <RefreshCw :size="15" />刷新数据</button
-                ><button
-                  @click="
-                    app.api?.minimizeWindow();
-                    moreOpen = false;
-                  "
-                >
-                  <X :size="15" />收起窗口</button
-                ><button class="danger-text" @click="askConfirmation('quit')">
-                  <Power :size="15" />退出应用
-                </button>
-              </div>
-            </div>
-          </div>
-        </header>
-        <main class="screen-body overview-body">
-          <template v-if="!app.ready"
-            ><div class="skeleton-overview" role="status" aria-label="正在加载账户">
-              <div class="skeleton line short" />
-              <div class="skeleton number" />
-              <div class="skeleton line" />
-              <div class="skeleton group" />
-              <div class="skeleton group" /></div
-          ></template>
-          <template v-else>
-            <div v-if="app.storageStatus.state === 'blocked'" class="connection-warning" role="alert">
-              <AlertTriangle :size="17" /><div><strong>配置未能安全读取</strong><p>{{ app.storageStatus.message }}</p><p>已暂停读取账户；不会用空配置覆盖原文件。</p><div class="inline-actions"><button class="text-button" @click="app.api?.restartForStorage()">重启并重新读取</button><button class="text-button subdued" @click="openSettings('about')">数据管理</button></div></div>
-            </div>
-            <div
-              v-if="app.error || app.exchangeErrors.length"
-              class="connection-warning"
-              role="status"
-            >
-              <AlertTriangle :size="17" />
-              <div>
-                <strong>{{ app.exchangeErrors.length ? '部分交易所连接异常' : app.error }}</strong>
-                <p>
-                  {{
-                    app.positions.length || app.accounts.length
-                      ? '保留上次数据，请以连接恢复后的数据为准。'
-                      : '尚未取得完整数据，请查看连接详情后重试。'
-                  }}
-                </p>
-                <details v-if="app.exchangeErrors.length">
-                  <summary>查看连接详情</summary>
-                  <div v-for="item in app.exchangeErrors" :key="item.exchange" class="error-detail">
-                    <strong>{{ item.exchange.toUpperCase() }} · {{ item.errorCode }}</strong>
-                    <p>{{ item.suggestion }}</p>
-                  </div>
-                </details>
-                <div class="inline-actions">
-                  <button class="text-button" :disabled="app.loading" @click="app.retry">
-                    {{ app.loading ? '正在连接…' : '重新连接' }}</button
-                  ><button class="text-button subdued" @click="openSettings('exchanges')">
-                    检查配置<ArrowUpRight :size="13" />
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div v-if="!app.hasCredentials && app.storageStatus.state !== 'blocked'" class="empty-state onboarding">
-              <span class="empty-symbol"><KeyRound :size="28" /></span>
-              <h2>连接你的第一个交易所</h2>
-              <p>配置只读凭证，在菜单栏查看资产与持仓。</p>
-              <div class="exchange-preview">
-                <ExchangeLogo
-                  v-for="exchange in exchanges"
-                  :key="exchange.id"
-                  :exchange="exchange.id"
-                />
-              </div>
-              <button
-                class="button primary"
-                :disabled="!app.api"
-                @click="openSettings('exchanges')"
-              >
-                配置交易所</button
-              ><span class="helper">支持 Binance、Bybit、OKX、Hyperliquid</span>
-            </div>
-            <template v-else-if="app.hasCredentials">
-              <section class="asset-summary" aria-label="资产概览">
-                <div class="asset-label">
-                  <span>总资产</span
-                  ><button
-                    class="icon-button small"
-                    :aria-label="app.preferences.hideAmounts ? '显示金额' : '隐藏金额'"
-                    :aria-pressed="app.preferences.hideAmounts"
-                    :disabled="!!app.saving"
-                    @click="
-                      app.preferences.hideAmounts = !app.preferences.hideAmounts;
-                      app.savePreference('hideAmounts');
-                    "
-                  >
-                    <EyeOff v-if="app.preferences.hideAmounts" :size="15" /><Eye
-                      v-else
-                      :size="15"
-                    /></button
-                  ><span v-if="app.stale" class="data-stale-label">{{ app.accounts.length ? '含上次数据' : '尚未取得数据' }}</span>
-                </div>
-                <div class="asset-total numeric">
-                  {{ app.accounts.length ? app.mask(amount(app.totals.totalAssets)) : '暂无'
-                  }}<span>USDT</span>
-                </div>
-                <div class="total-pnl-row">
-                  <span class="muted">未实现盈亏</span
-                  ><strong class="numeric" :class="direction(app.totalPnL)">{{
-                    app.mask(signed(app.totalPnL))
-                  }}</strong
-                  ><span class="currency">USDT</span>
-                </div>
-                <dl class="asset-breakdown">
-                  <div>
-                    <dt>现货资产</dt>
-                    <dd class="numeric">
-                      {{ app.accounts.length ? app.mask(amount(app.totals.spot)) : '暂无' }}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>监控权益</dt>
-                    <dd class="numeric">
-                      {{ app.accounts.length ? app.mask(amount(app.totals.margin)) : '暂无' }}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>可用余额</dt>
-                    <dd class="numeric">
-                      {{ app.accounts.length ? app.mask(amount(app.totals.available)) : '暂无' }}
-                    </dd>
-                  </div>
-                </dl>
-              </section>
-              <details v-if="app.configuredExchanges.some(item => item.id === 'hyperliquid')" class="account-disclosure"><summary>Hyperliquid · 统计范围与估值假设</summary><p class="small-text muted">仅统计标准账户的默认永续 DEX 与现货；按 USDC 与 USDT 1:1 估算，可用余额为未占用保证金估算。其他 DEX、质押与借贷未计入。</p></details>
-              <details class="account-disclosure"><summary><span>账户连接 <span class="count numeric">{{ app.configuredExchanges.length }}</span></span><span class="muted">{{ app.stale ? '连接需关注' : '查看明细' }} <ChevronRight :size="13" /></span></summary>              <div class="exchange-status-list" aria-label="交易所连接状态">
-                <div
-                  v-for="exchange in app.configuredExchanges"
-                  :key="exchange.id"
-                  class="exchange-status"
-                >
-                  <button class="exchange-name" @click="openSettings('exchanges')">
-                    <ExchangeLogo :exchange="exchange.id" /><span>{{ exchange.name }}</span></button
-                  ><span
-                    class="connection-state"
-                    :class="{ 'warning-text': staleExchanges.includes(exchange.id) }"
-                    ><span
-                      v-if="connectionLabel(exchange.id) === '已连接'"
-                      class="connection-dot"
-                    />{{ connectionLabel(exchange.id) }}</span
-                  >
-                  <details
-                    v-if="
-                      app.configuredExchanges.length > 1 &&
-                      app.accounts.some((item) => item.exchange === exchange.id)
-                    "
-                    class="exchange-account-detail"
-                  >
-                    <summary aria-label="查看交易所资产"><ChevronRight :size="15" /></summary>
-                    <dl
-                      v-for="account in app.accounts.filter(
-                        (item) => item.exchange === exchange.id
-                      )"
-                      :key="account.exchange"
-                    >
-                      <div>
-                        <dt>{{ exchange.id === 'okx' ? '资金账户' : '现货资产' }}</dt>
-                        <dd>
-                          {{
-                            app.mask(
-                              amount(
-                                exchange.id === 'okx'
-                                  ? account.fundingAccountUSDT
-                                  : account.spotTotalUSDT
-                              )
-                            )
-                          }}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>{{ exchange.id === 'okx' ? '交易账户' : '监控权益' }}</dt>
-                        <dd>
-                          {{
-                            app.mask(
-                              amount(
-                                exchange.id === 'okx'
-                                  ? account.tradingAccountUSDT
-                                  : account.totalMarginBalance
-                              )
-                            )
-                          }}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>未实现盈亏</dt>
-                        <dd :class="direction(account.totalUnrealizedProfit)">
-                          {{ app.mask(signed(account.totalUnrealizedProfit)) }}
-                        </dd>
-                      </div>
-                    </dl>
-                  </details>
-                </div>
-              </div>
-</details>
-              <button
-                v-if="app.sortedPositions.length"
-                class="button secondary full-width analysis-button"
-                :disabled="app.analyzing || app.loading || app.stale"
-                @click="analyze"
-              >
-                <Sparkles :size="16" />{{ app.analyzing ? '正在分析持仓…' : 'AI 持仓分析'
-                }}<ChevronRight v-if="!app.analyzing" :size="14" class="header-end" />
-              </button>              <div class="section-heading positions-heading">
-                <h2>
-                  持仓<span class="count numeric">{{ app.stale ? (app.sortedPositions.length ? `${app.sortedPositions.length}（上次）` : '—') : app.sortedPositions.length }}</span>
-                </h2>
-                <button
-                  class="text-button"
-                  :disabled="app.sortedPositions.length < 2"
-                  @click="app.beginSort"
-                >
-                  <SlidersHorizontal :size="14" />调整顺序
-                </button>
-              </div>
-              <PositionList
-                v-if="app.sortedPositions.length"
-                :positions="app.sortedPositions"
-                :hidden="app.preferences.hideAmounts"
-                :stale-exchanges="staleExchanges"
-              />
-              <div v-else class="empty-state compact">
-                <Inbox :size="26" />
-                <h2>{{ app.stale ? '持仓暂不可用' : '暂无持仓' }}</h2>
-                <p>
-                  {{ app.retryPaused ? '连接检查已暂停，请点击“重新连接”重试。' : app.stale ? '正在重试读取，请查看连接详情。' : '账户已连接，有持仓后会自动显示。' }}
-                </p>
-              </div>
-
-            </template>
-          </template>
-        </main>
-        <footer class="status-bar">
-          <button
-            class="icon-button small"
-            aria-label="刷新数据"
-            :disabled="!app.hasCredentials || app.loading || !app.ready"
-            @click="app.retryPaused ? app.retry() : app.fetchData()"
-          >
-            <RefreshCw :size="14" :class="{ spinning: app.loading }" /></button
-          ><span>{{
-            app.loading
-              ? '正在更新…'
-              : app.stale
-                ? '数据未完整更新'
-                : app.lastUpdated
-                  ? `更新于 ${app.lastUpdated.toLocaleTimeString('zh-CN', { hour12: false })}`
-                  : '等待连接'
-          }}</span
-          ><span class="status-end">{{ app.retryPaused ? '部分连接已暂停' : app.hasCredentials ? `每 ${app.preferences.refreshInterval} 秒刷新` : '等待配置' }}</span>
-        </footer>
-      </section>
-    </template>
-    <NotificationCenter
-      ref="notificationCenter"
-      v-model:open="notificationsOpen"
-      @unread-change="unread = $event"
-    />
-    <ConfirmDialog
-      v-if="confirmation"
-      :title="confirmationCopy.title"
-      :confirm-label="confirmationCopy.button"
-      :danger="confirmationCopy.danger"
-      :busy="confirmBusy"
-      @close="confirmation = null"
-      @confirm="confirmAction"
-      ><p>{{ confirmationCopy.body }}</p>
-      <p v-if="confirmError" class="error-feedback" role="alert">
-        {{ confirmError }}
-      </p></ConfirmDialog
-    >
+  <div :data-color-scheme="reversed ? 'red-up' : 'green-up'" class="app positionscope-app" :class="{ 'light-mode': !app.preferences.dark, 'red-up': reversed, 'workspace-mode': mode === 'workspace' }">
+    <WorkspaceShell v-if="mode === 'workspace'" :key="dataClearRevision" :inert="notificationsOpen || undefined" :model="app" :initial-page="query.get('page') || 'research'" :unread="unread" @confirm="askConfirmation" @notifications="notificationsOpen = true" />
+    <SettingsPanel v-else-if="app.currentView === 'settings'" v-model:page="settingsPage" :inert="notificationsOpen || undefined" :model="app" @close="app.currentView = 'overview'" @confirm="askConfirmation" />
+    <PopupDashboard v-else :key="dataClearRevision" :inert="notificationsOpen || undefined" :model="app" :unread="unread" @notifications="notificationsOpen = true" @settings="open('settings')" @positions="open('positions')" @research="open('research')" />
+    <NotificationCenter ref="notificationCenter" v-model:open="notificationsOpen" @unread-change="unread = $event" />
+    <ConfirmDialog v-if="confirmation" :title="confirmationCopy.title" :confirm-label="confirmationCopy.button" :danger="confirmationCopy.danger" :busy="confirmBusy" @close="confirmation = null" @confirm="confirmAction"><p>{{ confirmationCopy.body }}</p><p v-if="confirmError" class="error-feedback" role="alert">{{ confirmError }}</p></ConfirmDialog>
   </div>
 </template>

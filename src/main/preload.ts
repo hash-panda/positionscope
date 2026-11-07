@@ -1,6 +1,44 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  getWindowMode: () => ipcRenderer.invoke('get-window-mode'),
+  openWorkspace: (page?: string) => ipcRenderer.invoke('open-workspace', page),
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  getResearchSnapshot: () => ipcRenderer.invoke('get-research-snapshot'),
+  getResearchEvidence: (symbol: string) => ipcRenderer.invoke('get-research-evidence', symbol),
+  getWatchlistMarket: () => ipcRenderer.invoke('get-watchlist-market'),
+  getResearchLedger: () => ipcRenderer.invoke('get-research-ledger'),
+  analyzeResearch: (input: unknown) => ipcRenderer.invoke('analyze-research', input),
+  setResearchWatch: (symbol: string, watched: boolean) => ipcRenderer.invoke('set-research-watch', symbol, watched),
+  createResearchAlert: (input: unknown) => ipcRenderer.invoke('create-research-alert', input),
+  removeResearchAlert: (id: string) => ipcRenderer.invoke('remove-research-alert', id),
+  rearmResearchAlert: (id: string) => ipcRenderer.invoke('rearm-research-alert', id),
+  registerResearchShadow: (input: unknown) => ipcRenderer.invoke('register-research-shadow', input),
+  onWorkspacePage: (callback: (page: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, page: string) => callback(page);
+    ipcRenderer.on('workspace-page', listener);
+    return () => ipcRenderer.removeListener('workspace-page', listener);
+  },
+  onPreferencesChanged: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('preferences-changed', listener);
+    return () => ipcRenderer.removeListener('preferences-changed', listener);
+  },
+  onDataCleared: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('data-cleared', listener);
+    return () => ipcRenderer.removeListener('data-cleared', listener);
+  },
+  onResearchLedgerChanged: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('research-ledger-changed', listener);
+    return () => ipcRenderer.removeListener('research-ledger-changed', listener);
+  },
+  onResearchAlert: (callback: (alerts: unknown[]) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, alerts: unknown[]) => callback(alerts);
+    ipcRenderer.on('research-alert-triggered', listener);
+    return () => ipcRenderer.removeListener('research-alert-triggered', listener);
+  },
   getProxySettings: () => ipcRenderer.invoke('get-proxy-settings'),
   getStorageStatus: () => ipcRenderer.invoke('get-storage-status'),
   restartForStorage: () => ipcRenderer.invoke('restart-for-storage'),

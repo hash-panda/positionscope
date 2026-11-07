@@ -32,6 +32,16 @@ jobs:
         timeout-minutes: 5
         run: sudo apt-get update && sudo apt-get install -y fonts-noto-cjk
       - run: pnpm test:ui
+        env: {POSITIONSCOPE_VISUAL_REVIEW: '1'}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: workspace-ui-evidence
+          path: |
+            test-results/ui
+            test-results/research-ui
+            test-results/workspace-settings
+          if-no-files-found: ignore
   storage-macos:
     runs-on: macos-15
     timeout-minutes: 10
@@ -44,6 +54,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:main && bash scripts/verify-secure-settings-native.sh
       - run: bash scripts/verify-branding-native.sh
+      - name: Decode synthetic menu signals with native Electron
+        run: pnpm exec electron scripts/verify-menu-signal.cjs
       - name: Verify direct package download despite an unavailable local proxy
         run: |
           export https_proxy=http://127.0.0.1:1

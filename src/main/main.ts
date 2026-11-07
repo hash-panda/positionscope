@@ -14,6 +14,12 @@ import { AIProvider, AISettings } from './types/ai';
 import { orderPositions } from './utils/position-order';
 import { menuValues } from './utils/menu-format';
 import { binanceResearchSymbol } from './utils/binance-symbol';
+import { BinanceResearchService } from './services/research/market-scanner';
+import { BoundedResearchAIService } from './services/research/ai-research';
+import { ResearchLedger } from './services/research/research-ledger';
+import { ResearchController } from './services/research/research-controller';
+import { menuSignalPng } from './utils/menu-image';
+import { checkForUpdates } from './services/app-updates';
 
 // Global error handlers to prevent crashes from EPIPE and other errors
 process.on('uncaughtException', (error) => {
@@ -34,11 +40,76 @@ app.setPath('userData', path.join(app.getPath('appData'), 'PositionScope'));
 
 let tray: Tray | null = null;
 let window: BrowserWindow | null = null;
+let workspaceWindow: BrowserWindow | null = null;
+const researchMarket = new BinanceResearchService();
+let researchLedger: ResearchLedger;
+let researchController: ResearchController;
+let researchTimer: NodeJS.Timeout | null = null;
+let observing = false;
+let researchEpoch = 0;
+let privacyMaskPending = false;
 const exchangeManager = new ExchangeManager();
 let settingsManager: SettingsManager;
 let refreshInterval: NodeJS.Timeout | null = null;
 let maxDisplayCount: number = 2; // 菜单栏最多显示的持仓数（默认2个）
 let refreshIntervalSeconds: number = 5; // 刷新间隔（秒），默认5秒
+
+type WorkspacePage = 'research' | 'positions' | 'review' | 'settings';
+const workspacePages = new Set(['research', 'positions', 'review', 'settings']);
+function broadcast(channel: string, ...values: unknown[]) {
+  for (const target of [window, workspaceWindow]) if (target && !target.isDestroyed()) target.webContents.send(channel, ...values);
+}
+function secureWindow(target: BrowserWindow) {
+  target.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  target.webContents.on('will-navigate', event => event.preventDefault());
+}
+function openWorkspace(page: WorkspacePage = 'research') {
+  if (workspaceWindow && !workspaceWindow.isDestroyed()) {
+    workspaceWindow.show(); workspaceWindow.focus();
+    workspaceWindow.webContents.send('workspace-page', page);
+    return;
+  }
+  workspaceWindow = new BrowserWindow({ width: 1180, height: 760, minWidth: 960, minHeight: 640,
+    show: false, title: 'PositionScope', backgroundColor: '#f6f7f9',
+    webPreferences: { nodeIntegration: false, contextIsolation: true, preload: path.join(__dirname, 'preload.js') } });
+  secureWindow(workspaceWindow);
+  workspaceWindow.once('ready-to-show', () => { workspaceWindow?.show(); workspaceWindow?.focus(); });
+  workspaceWindow.on('closed', () => { workspaceWindow = null; });
+  if (app.isPackaged) void workspaceWindow.loadFile(path.join(__dirname, '../renderer/index.html'), { query: { mode: 'workspace', page } });
+  else void workspaceWindow.loadURL(`http://localhost:3000/?mode=workspace&page=${page}`);
+  window?.hide();
+}
+function setMenuSignal(pnl: number | null, stale = false) {
+  if (!tray) return;
+  const options = { colorScheme: settingsManager.getDisplaySettings().colorScheme, hideAmounts: privacyMaskPending || settingsManager.getHideAmounts(), stale };
+  const small = menuSignalPng(pnl, { ...options, scaleFactor: 1 });
+  const retina = menuSignalPng(pnl, { ...options, scaleFactor: 2 });
+  const icon = nativeImage.createFromBuffer(small.buffer, { scaleFactor: 1 });
+  icon.addRepresentation({ buffer: retina.buffer, scaleFactor: 2 });
+  icon.setTemplateImage(false);
+  tray.setImage(icon);
+}
+
+async function observeResearch() {
+  if (observing || !researchLedger) return;
+  const state = researchLedger.snapshot();
+  const symbols = [...new Set([...state.alerts.filter(a => a.status === 'armed').map(a => a.symbol),
+    ...state.shadows.filter(s => s.status === 'awaiting-entry' || s.status === 'observing').map(s => s.symbol)])];
+  if (!symbols.length) return;
+  observing = true;
+  const epoch = researchEpoch;
+  try {
+    researchMarket.setProxy(settingsManager.getProxyUrl());
+    const samples = await researchMarket.getPublicSamples(symbols);
+    if (epoch !== researchEpoch) return;
+    const outcome = await researchLedger.observePublicSamples(samples);
+    if (outcome.triggeredAlerts.length) broadcast('research-alert-triggered', outcome.triggeredAlerts.map(a => ({
+      id: a.id, symbol: a.symbol, metric: a.metric, threshold: a.threshold, triggeredAt: a.triggeredAt,
+    })));
+    if (outcome.triggeredAlerts.length || outcome.completedShadows.length) broadcast('research-ledger-changed');
+  } catch { /* Offline is a gap, never a trigger. No provider calls or private account reads. */ }
+  finally { observing = false; }
+}
 
 function createWindow() {
   // 判断是否为开发模式
@@ -57,6 +128,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
     },
   });
+  secureWindow(window);
 
   console.log('isDev:', isDev);
   console.log('NODE_ENV:', process.env.NODE_ENV);
@@ -114,9 +186,9 @@ function formatPositionData(position: Position): PositionDisplayData {
 function formatPositionsAsText(positions: PositionDisplayData[]): string {
   const textParts: string[] = [];
   positions.forEach(pos => {
-    textParts.push(settingsManager.getHideAmounts()
-      ? `${pos.symbol} •••• •••• ••••`
-      : `${pos.symbol} ${pos.price} ${pos.pnlText} ${pos.percentText}`);
+    textParts.push(privacyMaskPending || settingsManager.getHideAmounts()
+      ? `${pos.symbol} ••••`
+      : `${pos.symbol} ${pos.pnlText}`);
   });
   return textParts.join(' | ');
 }
@@ -126,6 +198,7 @@ async function updateTrayTitle(snapshot?: Position[]) {
   if (!tray || !exchangeManager.hasAnyCredentials()) {
     if (tray) {
       tray.setTitle('--');
+      setMenuSignal(null);
       console.log('[Tray] Set title to: -- (no credentials)');
     }
     return;
@@ -137,17 +210,20 @@ async function updateTrayTitle(snapshot?: Position[]) {
     // A credential removal can complete while the request is in flight.
     if (!exchangeManager.hasAnyCredentials()) {
       tray.setTitle('--');
+      setMenuSignal(null);
       return;
     }
 
     // A partial/failed read is unknown, never proof of a flat account.
     if (exchangeManager.hasAnyErrors()) {
       tray.setTitle('数据异常');
+      setMenuSignal(null, true);
       return;
     }
 
     if (!positions || positions.length === 0) {
       tray.setTitle('无持仓');
+      setMenuSignal(0);
       console.log('[Tray] Set title to: 无持仓 (no positions)');
       return;
     }
@@ -182,10 +258,12 @@ async function updateTrayTitle(snapshot?: Position[]) {
     // 使用文字模式（纯文本，无颜色）
     const titleText = formatPositionsAsText(displayData);
     tray.setTitle(titleText);
+    setMenuSignal(positions.reduce((sum, p) => sum + Number(p.unRealizedProfit), 0));
     console.log('[Tray] Updated with text for', displayData.length, 'positions');
   } catch (error) {
     console.error('[Main] Error updating tray:', requestDiagnostic(error));
     tray.setTitle('错误');
+    setMenuSignal(null, true);
   }
 }
 
@@ -205,9 +283,7 @@ function startAutoRefresh() {
       stopAutoRefresh();
 
       // 通知前端有错误
-      if (window && window.webContents) {
-        window.webContents.send('exchange-errors', exchangeManager.getAllErrors());
-      }
+      broadcast('exchange-errors', exchangeManager.getAllErrors());
       return;
     }
 
@@ -254,7 +330,11 @@ function createTray() {
     }
   });
 
-  // 不设置右键菜单，避免遮挡显示
+  tray.on('right-click', () => tray?.popUpContextMenu(Menu.buildFromTemplate([
+    { label: '打开研究工作台', click: () => openWorkspace('research') },
+    { label: '设置', click: () => openWorkspace('settings') },
+    { type: 'separator' }, { label: '退出 PositionScope', click: () => app.quit() },
+  ])));
 }
 
 app.whenReady().then(async () => {
@@ -269,6 +349,15 @@ app.whenReady().then(async () => {
 
   // 初始化设置管理器
   settingsManager = await SettingsManager.open(app.getPath('userData'), macSettingsCipher);
+  try { researchLedger = await ResearchLedger.open({ filePath: path.join(app.getPath('userData'), 'research-ledger.json') }); }
+  catch { console.error('[Research] Local record store unavailable; existing file retained'); }
+  const researchAI = new BoundedResearchAIService({
+    getSnapshot: () => researchMarket.snapshot(), getEvidence: symbol => researchMarket.getEvidence(symbol),
+    getProvider: () => aiService.getResearchProvider(),
+  });
+  researchController = new ResearchController({ snapshot: () => researchMarket.snapshot(),
+    analyze: request => researchAI.analyze(request), record: input => researchLedger.recordJudgment(input) });
+  researchMarket.setProxy(settingsManager.getProxyUrl());
 
   // 加载保存的所有交易所凭证
   const allCredentials = settingsManager.getAllExchangesCredentials();
@@ -328,6 +417,7 @@ app.whenReady().then(async () => {
 
   createTray();
   createWindow();
+  researchTimer = setInterval(() => { void observeResearch(); }, 60_000);
 
   // 如果有凭证，启动自动刷新
   if (exchangeManager.hasAnyCredentials()) {
@@ -337,8 +427,65 @@ app.whenReady().then(async () => {
 
 // Keep the menu-bar process alive after its window closes.
 app.on('window-all-closed', () => {});
+app.on('before-quit', () => { if (researchTimer) clearInterval(researchTimer); stopAutoRefresh(); researchController?.invalidate(); });
 
 // IPC handlers
+ipcMain.handle('get-window-mode', event => event.sender === workspaceWindow?.webContents ? 'workspace' : 'popup');
+ipcMain.handle('open-workspace', (_event, page: unknown) => {
+  if (page !== undefined && (typeof page !== 'string' || !workspacePages.has(page))) return { success: false, error: '页面不存在' };
+  openWorkspace((page || 'research') as WorkspacePage);
+  return { success: true };
+});
+ipcMain.handle('check-for-updates', () => checkForUpdates(app.getVersion()));
+
+function researchHandler(channel: string, action: (...args: any[]) => unknown) {
+  ipcMain.handle(channel, async (event, ...args) => {
+    const owner = [window, workspaceWindow].find(w => w && !w.isDestroyed() && w.webContents === event.sender);
+    if (!owner || event.senderFrame !== owner.webContents.mainFrame) return { success: false, error: '研究请求来源无效' };
+    try { return { success: true, data: await action(...args) }; }
+    catch { return { success: false, error: '研究数据或本地记录暂不可用，请刷新后重试；AI 需已配置可用的模型与 Key。' }; }
+  });
+}
+const requireLedger = () => { if (!researchLedger) throw new Error('研究记录不可用'); return researchLedger; };
+researchHandler('get-research-snapshot', () => { researchMarket.setProxy(settingsManager.getProxyUrl()); return researchMarket.snapshot(); });
+researchHandler('get-watchlist-market', () => {
+  researchMarket.setProxy(settingsManager.getProxyUrl());
+  return researchMarket.getWatchlistMarket(settingsManager.getDisplaySettings().watchlistSymbols);
+});
+researchHandler('get-research-evidence', (symbol: string) => researchMarket.getEvidence(symbol));
+researchHandler('get-research-ledger', () => requireLedger().snapshot());
+researchHandler('analyze-research', async input => {
+  requireLedger();
+  const configured = settingsManager.getAISettings();
+  if (!configured.enabled || !configured.useCustomKeys || !aiService.isAvailable()) throw new Error('AI 尚未配置');
+  researchMarket.setProxy(settingsManager.getProxyUrl());
+  try { return await researchController.analyze(input); }
+  finally { broadcast('research-ledger-changed'); }
+});
+researchHandler('set-research-watch', async (symbol: string, watched: boolean) => {
+  const epoch = researchEpoch;
+  if (typeof watched !== 'boolean' || !await researchMarket.isSupportedSymbol(symbol)) throw new Error('标的不可用');
+  if (epoch !== researchEpoch) throw new Error('研究配置或数据已变更，请重新操作');
+  const result = await requireLedger().setWatched(symbol, watched);
+  broadcast('research-ledger-changed'); return result;
+});
+researchHandler('create-research-alert', async input => {
+  const epoch = researchEpoch;
+  if (!input || !['price', 'funding'].includes(input.metric) || !await researchMarket.isSupportedSymbol(input.symbol)) throw new Error('提醒范围无效');
+  if (epoch !== researchEpoch) throw new Error('研究配置或数据已变更，请重新操作');
+  // Keep public polling bounded across all armed conditions and forward experiments.
+  const state = requireLedger().snapshot();
+  if (new Set([...state.alerts.filter(a => a.status === 'armed').map(a => a.symbol),
+      ...state.shadows.filter(s => s.status === 'observing' || s.status === 'awaiting-entry').map(s => s.symbol), input.symbol]).size > 32) throw new Error('提醒标的数量已达上限');
+  const result = await researchLedger.createAlert(input);
+  broadcast('research-ledger-changed'); void observeResearch(); return result;
+});
+researchHandler('remove-research-alert', async id => { const result = await requireLedger().removeAlert(id); broadcast('research-ledger-changed'); return result; });
+researchHandler('rearm-research-alert', async id => { const result = await requireLedger().rearmAlert(id); broadcast('research-ledger-changed'); return result; });
+researchHandler('register-research-shadow', async input => {
+  const result = await requireLedger().registerShadow(input);
+  broadcast('research-ledger-changed'); void observeResearch(); return result;
+});
 ipcMain.handle('get-proxy-settings', () => settingsManager.getProxyUrl());
 ipcMain.handle('get-storage-status', () => settingsManager.getStorageStatus());
 ipcMain.handle('restart-for-storage', () => {
@@ -378,13 +525,21 @@ ipcMain.handle('has-credentials', async () => {
 // 保存显示设置
 ipcMain.handle('save-display-settings', async (_, settings: {
   maxDisplayCount: number,
-  refreshInterval: number
+  refreshInterval: number,
+  colorScheme: 'green-up' | 'red-up',
+  watchlistSymbols: string[]
 }) => {
-  maxDisplayCount = settings.maxDisplayCount;
-  refreshIntervalSeconds = settings.refreshInterval;
-
-  // 保存到持久化存储
-  await settingsManager.setDisplaySettings(settings.maxDisplayCount, settings.refreshInterval);
+  try {
+    if (!settings || !Array.isArray(settings.watchlistSymbols) || settings.watchlistSymbols.length > 8) throw new Error('观察列表最多 8 个标的');
+    const previous = settingsManager.getDisplaySettings();
+    const added = settings.watchlistSymbols.filter(symbol => !previous.watchlistSymbols.includes(symbol));
+    researchMarket.setProxy(settingsManager.getProxyUrl());
+    for (const symbol of added) if (!await researchMarket.isSupportedSymbol(symbol)) throw new Error('观察列表仅支持币安在交易的 USDT 永续合约');
+    await settingsManager.setDisplaySettings(settings.maxDisplayCount, settings.refreshInterval, {
+      colorScheme: settings.colorScheme, watchlistSymbols: settings.watchlistSymbols,
+    });
+    maxDisplayCount = settings.maxDisplayCount;
+    refreshIntervalSeconds = settings.refreshInterval;
 
   // 更新显示
   updateTrayTitle();
@@ -393,8 +548,9 @@ ipcMain.handle('save-display-settings', async (_, settings: {
   if (exchangeManager.hasAnyCredentials()) {
     startAutoRefresh();
   }
-
+  broadcast('preferences-changed');
   return { success: true };
+  } catch { return { success: false, error: '显示设置未保存，请检查数值、观察合约、网络或系统钥匙串。' }; }
 });
 
 // 获取显示设置
@@ -405,6 +561,7 @@ ipcMain.handle('get-display-settings', async () => {
 // 保存主题设置
 ipcMain.handle('save-theme', async (_, theme: 'light' | 'dark' | 'auto') => {
   await settingsManager.setTheme(theme);
+  broadcast('preferences-changed');
 });
 
 // 获取主题设置
@@ -441,8 +598,13 @@ ipcMain.handle('get-futures-account-info', async () => {
 
 // 保存隐藏金额设置
 ipcMain.handle('save-hide-amounts', async (_, hide: boolean) => {
+  if (typeof hide !== 'boolean') return { success: false, error: '显示设置无效' };
+  // Mask the native menu immediately; a network read must never delay privacy.
+  if (hide) { privacyMaskPending = true; tray?.setTitle('••••'); setMenuSignal(null); }
   await settingsManager.setHideAmounts(hide);
+  privacyMaskPending = false;
   updateTrayTitle();
+  broadcast('preferences-changed');
   return { success: true };
 });
 
@@ -475,6 +637,7 @@ ipcMain.handle('get-debug-mode', async () => {
 // 保存窗口透明度设置
 ipcMain.handle('save-window-opacity', async (_, opacity: number) => {
   await settingsManager.setWindowOpacity(opacity);
+  broadcast('preferences-changed');
 
   // 应用透明度到窗口
   if (window) {
@@ -492,6 +655,7 @@ ipcMain.handle('get-window-opacity', async () => {
 // 保存开机自动启动设置
 ipcMain.handle('save-auto-launch', async (_, autoLaunch: boolean) => {
   await settingsManager.setAutoLaunch(autoLaunch);
+  broadcast('preferences-changed');
   app.setLoginItemSettings({ openAtLogin: autoLaunch });
   return { success: true };
 });
@@ -509,7 +673,13 @@ ipcMain.handle('get-app-version', async () => {
 // 重置所有设置为默认值
 ipcMain.handle('reset-to-defaults', async () => {
   await settingsManager.resetToDefaults();
+  researchEpoch++;
+  researchController.invalidate();
+  aiService.setConfig(settingsManager.getAISettings());
+  aiService.clearCache();
+  researchMarket.setProxy(settingsManager.getProxyUrl());
   app.setLoginItemSettings({ openAtLogin: false });
+  broadcast('preferences-changed');
   return { success: true };
 });
 
@@ -518,13 +688,22 @@ ipcMain.handle('delete-all-data', async () => {
   try {
     // 1. 停止自动刷新
     stopAutoRefresh();
+    researchEpoch++;
+    researchController.invalidate();
+    if (researchLedger) await researchLedger.clearAll();
+    else {
+      await ResearchLedger.eraseFile(path.join(app.getPath('userData'), 'research-ledger.json'));
+      researchLedger = await ResearchLedger.open({ filePath: path.join(app.getPath('userData'), 'research-ledger.json') });
+    }
 
     // Persist deletion before clearing running services; failed deletion keeps them intact.
     await settingsManager.clearSettings();
     exchangeManager.removeAllCredentials();
     aiService.setConfig(settingsManager.getAISettings());
     aiService.clearCache();
+    privacyMaskPending = true;
     tray?.setTitle('--');
+    setMenuSignal(null);
     app.setLoginItemSettings({ openAtLogin: false });
     if (window) {
       window.setOpacity(1);
@@ -532,6 +711,10 @@ ipcMain.handle('delete-all-data', async () => {
     }
 
     console.log('[IPC] All data deleted successfully');
+    privacyMaskPending = false;
+    broadcast('research-ledger-changed');
+    broadcast('data-cleared');
+    broadcast('preferences-changed');
     return { success: true };
   } catch (error: any) {
     console.error('[IPC] Error deleting all data:', requestDiagnostic(error));
@@ -637,9 +820,12 @@ ipcMain.handle('save-ai-settings', async (_, aiSettings: AISettings) => {
   try {
     validateAISettingsModels(aiSettings);
     await settingsManager.setAISettings(aiSettings);
+    researchEpoch++;
 
     // 初始化AI服务
     aiService.setConfig(aiSettings);
+    researchController.invalidate();
+    broadcast('preferences-changed');
     console.log('[IPC] AI configuration applied');
 
     return { success: true };
@@ -659,6 +845,7 @@ ipcMain.handle('get-public-market', async (_, symbols: string[]) => {
   } catch { return {success:false,error:'公共市场数据暂不可用，请检查网络或稍后重试。'}; }
 });
 ipcMain.handle('ai-analyze-health', async (_, positions, accountInfo, provider?: AIProvider, forceRefresh = false) => {
+  const epoch = researchEpoch;
   try {
     const configured = settingsManager.getAISettings();
     if (!configured.enabled || !configured.useCustomKeys || !aiService.isAvailable()) {
@@ -671,7 +858,11 @@ ipcMain.handle('ai-analyze-health', async (_, positions, accountInfo, provider?:
     publicMarketService.setProxy(settingsManager.getProxyUrl());
     const symbols = [...new Set((positions as Position[]).map(binanceResearchSymbol).filter((symbol): symbol is string => symbol !== null))];
     const market = await publicMarketService.snapshot(symbols);
+    // This preflight predates the AI service's own generation guard. A deleted
+    // snapshot must never be sent later through newly configured credentials.
+    if (epoch !== researchEpoch) throw new Error('AI 配置或数据已变更，请重新分析');
     const result = await aiService.analyzePortfolioHealth(positions, accountInfo, provider, market);
+    if (epoch !== researchEpoch) throw new Error('AI 配置或数据已变更，请重新分析');
 
     return { success: true, data: result };
   } catch (error: any) {
@@ -776,7 +967,9 @@ ipcMain.handle('clear-exchange-errors', async () => {
  */
 ipcMain.handle('open-external', async (_, url: string) => {
   try {
-    await shell.openExternal(url);
+    const destination = new URL(url);
+    if (destination.protocol !== 'https:' || destination.username || destination.password) throw new Error('Only public HTTPS links are supported');
+    await shell.openExternal(destination.toString());
     return { success: true };
   } catch (error: any) {
     console.error('[IPC] Error opening external URL:', requestDiagnostic(error));
@@ -787,11 +980,9 @@ ipcMain.handle('open-external', async (_, url: string) => {
 /**
  * 最小化窗口
  */
-ipcMain.handle('minimize-window', async () => {
+ipcMain.handle('minimize-window', async event => {
   try {
-    if (window && !window.isDestroyed()) {
-      window.minimize();
-    }
+    BrowserWindow.fromWebContents(event.sender)?.minimize();
     return { success: true };
   } catch (error: any) {
     console.error('[IPC] Error minimizing window:', requestDiagnostic(error));
@@ -807,6 +998,10 @@ ipcMain.handle('save-proxy-settings', async (_, proxyUrl: string) => {
     console.log('[IPC] Saving proxy settings');
 
     await settingsManager.setProxyUrl(proxyUrl);
+    researchEpoch++;
+    researchController.invalidate();
+    researchMarket.setProxy(proxyUrl);
+    broadcast('preferences-changed');
 
     // 获取所有已配置的交易所凭证
     const allCredentials = settingsManager.getAllExchangesCredentials();

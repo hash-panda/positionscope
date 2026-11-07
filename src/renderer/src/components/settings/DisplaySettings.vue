@@ -37,10 +37,10 @@ async function saveWatchlist() {
     <h2>菜单栏预览</h2>
     <div class="menubar-preview" aria-label="菜单栏格式预览">
       <span :class="signal" aria-hidden="true"><Minus v-if="neutral" :size="16" /><ArrowUp v-else-if="model.totalPnL! > 0" :size="16" /><ArrowDown v-else :size="16" /></span>
-      <template v-if="previewValues"><span>{{ previewValues.symbol }}</span><span>{{ model.mask(previewValues.price) }}</span><span>{{ model.mask(previewValues.pnlText) }}</span><span>{{ model.mask(previewValues.percentText) }}</span></template>
+      <template v-if="previewValues"><span>{{ previewValues.symbol }}</span><span>{{ model.mask(previewValues.pnlText) }}</span></template>
       <span v-else class="muted">暂无持仓</span>
     </div>
-    <p class="helper">色标反映总未实现盈亏方向；文字使用系统菜单栏字体。数据过期时色标归为中性。</p>
+    <p class="helper">文字显示币种与未实现盈亏（USDT）；色标反映全部仓位的总盈亏方向。数据过期时色标归为中性。</p>
   </section>
   <section class="settings-section">
     <h2>观察币种</h2>
