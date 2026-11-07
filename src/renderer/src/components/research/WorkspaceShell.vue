@@ -10,9 +10,10 @@ import PositionsPanel from './PositionsPanel.vue';
 import ReviewPanel from './ReviewPanel.vue';
 import PaperPanel from './PaperPanel.vue';
 import PaperReviewPanel from './PaperReviewPanel.vue';
-const reviewTab = ref('paper');
 import brandMark from '../../../../../assets/brand/mark.svg';
 const props = defineProps<{ model: AppModel; initialPage?: string; unread: number }>();
+// Alerts deep-link to research records; ordinary navigation can open paper review.
+const reviewTab = ref(props.initialPage === 'review' ? 'research' : 'paper');
 const emit = defineEmits<{ confirm: [action: 'reset' | 'delete' | Exchange]; notifications: [] }>();
 type Page = 'paper' | 'research' | 'positions' | 'review' | 'settings';
 const valid = (page: string): page is Page => ['paper', 'research', 'positions', 'review', 'settings'].includes(page);

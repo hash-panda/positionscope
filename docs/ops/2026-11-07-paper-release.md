@@ -1,4 +1,4 @@
-# 2026-11-07：0.2.4 → 0.2.6 模拟与复盘验收
+# 2026-11-07：0.2.4 → 0.2.7 模拟与复盘验收
 
 ## 实际完成
 
@@ -7,6 +7,8 @@
 | 0.2.4 | 菜单栏价格加 `+数字/-数字`，无浮盈标签/单位，单一前置价格方向图标；设置分组与窗口最右滚动；每版Release只提取本版变动 | [Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.4)，[签名42384896495](https://github.com/hash-panda/positionscope/actions/runs/42384896495) |
 | 0.2.5 | 1,000/10,000/自定义虚拟本金，周期历史保留，条件与风险检查、后续盘口模拟、手续费/滑点假设、资金费核对，滚动模型预算 | [Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.5)，[签名42387915900](https://github.com/hash-panda/positionscope/actions/runs/42387915900) |
 | 0.2.6 | 定期冻结复盘、历史周期比较、有界候选与等本金前向对照；App/网站共享浅色工作台变量 | [Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.6)，[签名运行](https://github.com/hash-panda/positionscope/actions/runs/42389421613) |
+
+最终交付为0.2.7：来源 `a5a774bd896d8eb2043a8416d9332154ac552716`，发布时间 `2026-11-07T16:37:49Z`。[#82](https://github.com/hash-panda/positionscope/pull/82) 修复新增模拟页签后首次提醒入口误选；[CI42390531962](https://github.com/hash-panda/positionscope/actions/runs/42390531962) 的221 Node、25 Python、类型/构建、UI/axe与Mac检查通过。[签名运行](https://github.com/hash-panda/positionscope/actions/runs/42390725972) 通过双架构全部发布门槛。七资产按同样步骤核对并保存于 docs/releases/v0.2.7；当前安装器与官网manifest指向该版。
 
 0.2.6 来源 `50a8974012ac14d8441dda7e3420a2e3c67de118`，发布时间 `2026-11-07T16:15:21Z`。两架构四个DMG/ZIP与两份验证JSON、SHA256SUMS共七资产；三份文本实际下载重算摘要/长度，四个二进制API摘要与校验和、签名记录相互核对。签名、公证、装订、Gatekeeper、包内图标和隔离原生更新替换/重启均通过。没有在用户电脑安装，也未读取真实账户或调用真实模型。
 
@@ -29,4 +31,6 @@
 
 ## 官网发布交接
 
-PR #80 在已验证0.2.6记录上同步下载、安装器摘要、README、设计/运营/隐私/英文说明，合并后按现有Sites项目部署。实际版本号、部署ID、网址与线上HTTP/robots/sitemap/canonical核对由部署完成后的PR评论记录，不预写成功。
+PR #80 在已验证0.2.7记录上同步下载、安装器摘要、README、设计/运营/隐私/英文说明，合并后按现有Sites项目部署。实际版本号、部署ID、网址与线上HTTP/robots/sitemap/canonical核对由部署完成后的PR评论记录，不预写成功。
+
+发布失败保留：0.2.7首轮x64在Apple公证接受后，stapler装订返回68而阻断发布；随后仅重试失败任务，没有跳过装订或Gatekeeper，也未改动Apple凭证。最终成功以该发布运行和七资产核验为准。
