@@ -1,0 +1,41 @@
+<script setup lang="ts">
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+import type { AppModel } from '../../composables/useTradingApp';
+import type { PaperSnapshot } from '../../../../main/services/paper/controller';
+import { reviewFacts } from '../../../../main/services/paper/review';
+const props=defineProps<{model:AppModel}>();
+const state=ref<PaperSnapshot|null>(null), selected=ref(''),error=ref('');let disposed=false,request=0,cleanup:(()=>void)|void,timer:ReturnType<typeof setInterval>|undefined;
+const cycles=computed(()=>state.value?.cycles||[]),cycle=computed(()=>cycles.value.find(c=>c.id===selected.value)||cycles.value.at(-1));
+const reviews=computed(()=>state.value?.reviews.filter(r=>r.cycleId===cycle.value?.id).slice().reverse()||[]);
+const trials=computed(()=>state.value?.trials.filter(t=>t.cycleId===cycle.value?.id).slice().reverse()||[]);
+const hidden=computed(()=>props.model.preferences.hideAmounts);
+const money=(v:string)=>hidden.value?'••••••':Number(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const signed=(v:string)=>hidden.value?'••••••':(Number(v)>=0?'+':'')+money(v);
+const date=(at:number)=>new Date(at).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+const choices={'keep':'保持当前策略','reduce-allocation':'降低单笔投入','shorter-hold':'缩短持有期限','tighter-stop':'收窄止损距离','further-target':'延长止盈目标'};
+const statuses={observing:'前向观察',settling:'等待结算',promoted:'已用于后续决策',rejected:'未通过，保留原策略',cancelled:'对照已中止'};
+const labels:Record<string,string>={closedTrades:'平仓笔数',openTrades:'未平仓笔数',grossPnl:'已平仓毛盈亏',fees:'已平仓手续费',funding:'已核对资金费',knownClosedNetPnl:'已平仓暂计净盈亏',fundingComplete:'资金费完整性',sampledDrawdownBps:'采样回撤',gaps:'运行缺口',rejected:'拒绝与取消',abstentions:'弃权'};
+async function load(){const id=++request;try{const result=await window.electronAPI?.getPaperState();if(disposed||id!==request)return;if(!result?.success||!result.data)throw Error();state.value=result.data;error.value='';}catch{if(!disposed&&id===request)error.value='模拟复盘暂不可用，历史文件保留。';}}
+onMounted(()=>{void load();cleanup=window.electronAPI?.onPaperChanged?.(()=>void load());timer=setInterval(()=>void load(),5000);});onUnmounted(()=>{disposed=true;if(typeof cleanup==='function')cleanup();if(timer)clearInterval(timer);});
+</script>
+<template>
+<main class="paper-review" aria-labelledby="paper-review-title">
+ <div class="workspace-heading"><div><p class="eyebrow">证据先于改进</p><h1 id="paper-review-title">模拟复盘</h1></div><span class="review-caption">周期独立 · 历史保留</span></div>
+ <div v-if="error" role="alert" class="research-error">{{error}} <button class="text-button" @click="load">重试</button></div>
+ <p v-if="!cycles.length" class="review-empty">开启模拟周期后，这里会保留成本、决策与复盘结果。</p>
+ <template v-else>
+ <div class="review-table-wrap"><table aria-label="模拟历史周期对比"><thead><tr><th>周期</th><th>虚拟本金</th><th>已平仓暂计净盈亏</th><th>手续费</th><th>资金费</th><th>平仓 / 未平仓</th><th>状态</th></tr></thead><tbody><tr v-for="(c,i) in cycles" :key="c.id" :class="{selected:cycle?.id===c.id}"><th><button class="cycle-link" :aria-pressed="cycle?.id===c.id" @click="selected=c.id">周期 {{String(i+1).padStart(2,'0')}}</button><small>{{date(c.startedAt)}}</small></th><td>{{money(c.capital)}}</td><td>{{signed(reviewFacts(c).knownClosedNetPnl)}}</td><td>{{money(reviewFacts(c).fees)}}</td><td>{{signed(reviewFacts(c).funding)}}<small>{{reviewFacts(c).fundingComplete?'已平仓部分已核对':'待补齐'}}</small></td><td>{{reviewFacts(c).closedTrades}} / {{reviewFacts(c).openTrades}}</td><td>{{{running:'运行中',paused:'暂停开仓',settling:'待结算',archived:'已归档'}[c.status]}}</td></tr></tbody></table></div>
+ <p class="review-caption">表内费用与净盈亏仅统计已平仓交易，未平仓损益不混入。不同本金周期分别查看，不相加收益率。</p>
+ <section class="review-section"><div class="section-label"><h2>冻结的判断</h2><span>运行满 24h 或周期归档时汇总</span></div><p v-if="!reviews.length" class="review-empty">尚未到复盘时间。没有使用旧数据编造改进建议。</p>
+ <article v-for="r in reviews" :key="r.id" class="review-row"><div><time>{{date(r.at)}}</time><h3>{{r.status==='insufficient'?'本地汇总':r.status==='failed'?'复盘未完成':r.status==='awaiting-model'?'等待模型复核':choices[r.choice]}}</h3><small>{{r.sourcePolicy.version}} · {{r.model||'未调用模型'}}</small></div><div class="review-evidence"><span>已平仓 {{r.facts.closedTrades}} 笔 · 暂计净盈亏 {{signed(r.facts.knownClosedNetPnl)}} · 缺口 {{r.facts.gaps}}</span><p v-if="r.support.length">支持：{{r.support.map(k=>labels[k]).join('、')}}</p><p v-if="r.counter.length">反证：{{r.counter.map(k=>labels[k]).join('、')}}</p><p v-if="r.status==='insufficient'">仅冻结事实；样本不足、资金费待核对或周期已归档时，不发起策略调整。</p><p v-if="r.status==='failed'">预算、配置或输出校验未完成，当前策略保持不变。</p></div></article>
+ </section>
+ <section class="review-section"><div class="section-label"><h2>候选策略对照</h2><span>相同起点 · 后续真实行情 · 两本虚拟账</span></div><p v-if="!trials.length" class="review-empty">暂无候选。AI 可以保持原策略，不能凭一次盈利直接替换。</p>
+ <article v-for="t in trials" :key="t.id" class="trial-card"><header><h3>{{choices[state!.reviews.find(r=>r.id===t.reviewId)!.choice]}}</h3><span class="status-pill">{{statuses[t.status]}}</span></header><p class="review-caption">{{date(t.startedAt)}} — {{date(t.endAt)}} · 每侧本金 {{money(t.baseline.capital)}} · {{t.rulesVersion}}</p><div class="trial-pair"><div v-for="(side,i) in [t.baseline,t.challenger]" :key="side.id"><span>{{i?'候选策略':'原策略对照'}}</span><strong>{{signed(reviewFacts(side).knownClosedNetPnl)}}</strong><small>已平仓暂计净盈亏 · {{reviewFacts(side).closedTrades}} 笔</small><small>投入 {{side.policy.allocationBps/100}}% · 止损 {{side.policy.stopBps/100}}% · 止盈 {{side.policy.targetBps/100}}% · {{side.policy.maxHoldMinutes}} 分钟</small></div></div><p class="review-caption">{{t.reasons.join('；')||'观察中。旧交易不回放，不按历史最优挑选。'}}<template v-if="!['observing','settling'].includes(t.status)"> · 成对结算 {{t.paired}} 笔</template></p></article>
+ </section>
+ </template>
+ <details class="review-rules"><summary>怎样才会采用候选策略？</summary><p>预先固定：至少七天、三十笔成对已平仓交易、资金费完整且无观察缺口；候选净盈亏领先至少初始本金的 0.5%，采样回撤不高于原策略且不超过 5%。候选仅调整一项有限参数，不增加风险预算或持仓上限。</p><p>未通过就保持原策略；通过后只影响后续新决策，旧交易和冻结依据不变。这是模拟筛选门槛，不是统计显著性或未来盈利证明。模型复盘与研究共用已确认预算；应用休眠、退出或网络异常不会补造结果。</p></details>
+</main>
+</template>
+<style scoped>
+.paper-review{flex:1;min-height:0;overflow:auto;padding:0 28px 24px}.review-caption,.section-label span{font-size:11px;color:var(--muted);line-height:1.8}.review-table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}th,td{padding:16px 12px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}th:first-child,td:first-child{text-align:left;padding-left:0}thead th{font-size:10px;font-weight:500;color:var(--muted)}small{display:block;color:var(--muted);font-size:10px;line-height:1.8}tr.selected{background:var(--surface)}.cycle-link{border:0;background:none;color:var(--text);font-size:12px;padding:4px 0;cursor:pointer}.cycle-link[aria-pressed=true]{color:var(--brand);text-decoration:underline;text-underline-offset:5px}.review-section{margin-top:28px}.section-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}h2,h3{font-weight:550;font-size:13px;margin:0}.review-row{display:grid;grid-template-columns:190px 1fr;gap:24px;border-top:1px solid var(--border);padding:18px 0}.review-row time{display:block;font-size:10px;color:var(--muted);margin-bottom:8px}.review-evidence{font-size:12px;line-height:1.9}.review-evidence p{color:var(--muted);margin:5px 0}.review-empty{font-size:12px;color:var(--muted);padding:28px 0;line-height:1.8}.trial-card{border:1px solid var(--border);border-radius:12px;padding:20px;margin-top:12px}.trial-card header{display:flex;justify-content:space-between;align-items:center}.trial-pair{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:20px 0}.trial-pair>div{display:flex;flex-direction:column;gap:8px}.trial-pair>div+div{border-left:1px solid var(--border);padding-left:24px}.trial-pair span{font-size:11px;color:var(--muted)}.trial-pair strong{font-size:24px;font-weight:550;font-variant-numeric:tabular-nums}.review-rules{margin-top:28px;border-top:1px solid var(--border);padding-top:16px;font-size:11px;color:var(--muted);line-height:1.9}.review-rules summary{cursor:pointer;color:var(--text)}@media(max-width:1000px){.paper-review{padding-inline:20px}th,td{padding:12px 7px}.review-row{grid-template-columns:170px 1fr}}
+</style>

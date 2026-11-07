@@ -1,3 +1,4 @@
+import { candidatePolicy, reviewFacts, validateReviewChoice, evaluateTrial, TRIAL_RULES } from './review';
 import { isBinanceUsdtPerpetualSymbol } from '../../utils/binance-symbol';
 import type { PaperBook, PaperCycle, PaperEvent, PaperFill, PaperPolicy, PaperState, PaperTrade } from '../../types/paper';
 import { decimal as d, format as f, multiply as mul, divide as div, basisPoints as bps, cost, SCALE } from './decimal';
@@ -120,7 +121,7 @@ function execute(c: PaperCycle, s: PaperState, b: PaperBook, at: number) {
   }
   observe(c, s, at);
 }
-export const emptyPaperState = (): PaperState => ({ version: 'paper-ledger-v1', cycles: [], books: {}, calls: [] });
+export const emptyPaperState = (): PaperState => ({ version: 'paper-ledger-v1', cycles: [], books: {}, calls: [], reviews: [], trials: [] });
 /** Pure deterministic reducer. The journal is the only persisted source of truth. */
 export function applyPaperEvent(previous: PaperState, event: PaperEvent): PaperState {
   const s = clone(previous); text(event.id, 80); time(event.at); const at = event.at, command = event.command;
@@ -155,17 +156,19 @@ export function applyPaperEvent(previous: PaperState, event: PaperEvent): PaperS
     const duplicate = c.decisions.some(x => x.plan.snapshotId === p.snapshotId && x.plan.symbol === p.symbol);
     check(!duplicate);
     c.decisions.push({ id: event.id, at, plan: clone(p), policy: clone(c.policy), status: p.direction === 'abstain' ? 'abstained' : 'pending', note: p.direction === 'abstain' ? '模型弃权，不创建模拟委托' : '等待决策之后的新鲜盘口' });
+    for(const trial of s.trials.filter(t=>t.cycleId===c.id&&t.status==='observing'&&at>t.startedAt&&at<t.endAt)) for(const target of [trial.baseline,trial.challenger]) target.decisions.push({...clone(c.decisions[c.decisions.length-1]),policy:clone(target.policy)});
   } else if (command.kind === 'book') {
     const b = command.book; validateBook(b, at); const last = s.books[b.symbol];
     if (last && (BigInt(b.updateId) <= BigInt(last.updateId) || b.observedAt < last.observedAt)) return s;
     s.books[b.symbol] = clone(b);
     for (const c of s.cycles.filter(c => c.status !== 'archived')) execute(c, s, b, at);
+    for (const trial of s.trials.filter(t => ['observing','settling'].includes(t.status))) for (const c of [trial.baseline,trial.challenger]) execute(c,s,b,at);
   } else if (command.kind === 'funding') {
     const w = command.window; check(w && typeof w === 'object'); symbol(w.symbol); time(w.start); time(w.end);
     check(w.start <= w.end && w.end <= at && Array.isArray(w.rows) && w.rows.length <= 1000);
     const seen = new Set<number>();
     for (const r of w.rows) { time(r.time); check(r.time >= w.start && r.time <= w.end && !seen.has(r.time)); seen.add(r.time); check(d(r.rate) >= -SCALE && d(r.rate) <= SCALE); positive(r.markPrice); }
-    for (const c of s.cycles.filter(c => c.status !== 'archived')) {
+    for (const c of [...s.cycles,...s.trials.filter(t=>['observing','settling'].includes(t.status)).flatMap(t=>[t.baseline,t.challenger])].filter(c => c.status !== 'archived')) {
       for (const t of c.trades.filter(t => t.symbol === w.symbol)) {
         if (w.start > t.fundingThrough + 1 || w.end < t.fundingThrough) continue; // Missing interval remains unknown.
         for (const r of w.rows) {
@@ -176,6 +179,40 @@ export function applyPaperEvent(previous: PaperState, event: PaperEvent): PaperS
         t.fundingThrough = Math.max(t.fundingThrough, Math.min(w.end, t.exit?.quoteAt ?? w.end));
       }
       observe(c, s, at);
+    }
+  } else if (command.kind === 'review') {
+    const c=s.cycles.find(c=>c.id===command.cycleId);check(c);
+    const previousReviews=s.reviews.filter(r=>r.cycleId===c.id);const last=previousReviews[previousReviews.length-1];check(!last||at-last.at>=86400000||(c.status==='archived'&&last.at<c.endedAt!));
+    const facts=reviewFacts(c);
+    s.reviews.push({id:event.id,cycleId:c.id,at,sourcePolicy:clone(c.policy),facts,status:c.status==='running'&&facts.closedTrades>=3&&facts.fundingComplete?'awaiting-model':'insufficient',choice:'keep',provider:null,model:null,support:[],counter:[]});
+  } else if(command.kind==='review-failed') {
+    const r=s.reviews.find(r=>r.id===command.reviewId);check(r&&r.status==='awaiting-model');r.status='failed';
+  } else if(command.kind==='review-result') {
+    const review=s.reviews.find(r=>r.id===command.reviewId),call=s.calls.find(c=>c.id===command.callId);
+    check(review&&review.status==='awaiting-model'&&call&&call.cycleId===review.cycleId&&call.status==='reserved');
+    const c=s.cycles.find(c=>c.id===review.cycleId);check(c&&c.status==='running'&&c.policy.version===review.sourcePolicy.version);
+    const result=validateReviewChoice({choice:command.choice,support:command.support,counter:command.counter});
+    review.choice=result.choice;review.support=result.support;review.counter=result.counter;review.provider=call.provider;review.model=call.model;review.status='kept';
+    if(result.choice!=='keep'&&!s.trials.some(t=>['observing','settling'].includes(t.status))) {
+      const policy=candidatePolicy(c.policy,result.choice,`paper-${event.id.slice(0,12)}`);validatePolicy(policy);
+      const changed=Object.keys(policy).some(k=>k!=='version'&&policy[k as keyof typeof policy]!==c.policy[k as keyof typeof policy]);
+      if(changed){
+        const account=(policy:typeof c.policy,side:string):PaperCycle=>({id:event.id+'-'+side,startedAt:at,endedAt:null,settleRequestedAt:null,capital:c.capital,status:'running',policy:clone(policy),decisions:[],trades:[],curve:[{at,equity:c.capital,knownNetPnl:'0',fundingComplete:true}],gaps:[]});
+        s.trials.push({id:event.id,cycleId:c.id,reviewId:review.id,startedAt:at,endAt:at+TRIAL_RULES.minimumDays*86400000,sourceVersion:c.policy.version,rulesVersion:TRIAL_RULES.version,baseline:account(c.policy,'baseline'),challenger:account(policy,'challenger'),status:'observing',reasons:[],paired:0,advantageBps:null});review.status='trial';
+      }
+    }
+  } else if(command.kind==='trial-check') {
+    for(const trial of s.trials.filter(t=>['observing','settling'].includes(t.status))){
+      const parent=s.cycles.find(c=>c.id===trial.cycleId);
+      if(at>=trial.endAt||!parent||parent.status!=='running'||parent.policy.version!==trial.sourceVersion){
+        trial.status='settling';for(const c of [trial.baseline,trial.challenger])if(c.status==='running'){c.status='settling';c.settleRequestedAt=at;cancel(c,'前向对照结束，等待真实后续报价');observe(c,s,at);}
+      }
+      if(trial.status==='settling'&&[trial.baseline,trial.challenger].every(c=>c.status==='archived')){
+        const result=evaluateTrial(trial.baseline,trial.challenger,trial.startedAt,at);trial.paired=result.paired;trial.advantageBps=result.advantageBps;trial.reasons=result.reasons;
+        if(parent?.status!=='running'||parent.policy.version!==trial.sourceVersion){trial.status='cancelled';trial.reasons.push('所属周期已结束、暂停或策略已变化');}
+        else if(result.eligible){parent.policy=clone(trial.challenger.policy);trial.status='promoted';}
+        else trial.status='rejected';
+      }
     }
   } else if (command.kind === 'call') {
     const c = s.cycles.find(c => c.id === command.cycleId); check(c && c.status === 'running');
@@ -191,7 +228,7 @@ export function applyPaperEvent(previous: PaperState, event: PaperEvent): PaperS
   } else if (command.kind === 'gap') {
     text(command.reason, 300);
     s.books = {}; // Old quotes cannot satisfy exits or equity after interruption.
-    for (const c of s.cycles.filter(c => c.status !== 'archived')) { cancel(c, '运行中断，未成交委托取消'); c.gaps.push({ at, reason: command.reason }); observe(c, s, at); }
+    for (const c of [...s.cycles,...s.trials.filter(t=>['observing','settling'].includes(t.status)).flatMap(t=>[t.baseline,t.challenger])].filter(c => c.status !== 'archived')) { cancel(c, '运行中断，未成交委托取消'); c.gaps.push({ at, reason: command.reason }); observe(c, s, at); }
   } else throw new Error('Unknown paper command');
   return s;
 }

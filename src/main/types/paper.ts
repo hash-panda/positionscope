@@ -1,3 +1,4 @@
+import type { PaperReviewFacts, ReviewChoice } from '../services/paper/review';
 import type { ResearchFact, ResearchCondition } from './research';
 export interface PaperPolicy {
   version: string;
@@ -39,7 +40,11 @@ export interface PaperCycle {
   gaps: { at: number; reason: string }[];
 }
 export interface PaperCall { id: string; cycleId: string; at: number; provider: string; model: string; status: 'reserved' | 'complete' | 'failed'; note: string; }
-export interface PaperState { version: 'paper-ledger-v1'; cycles: PaperCycle[]; books: Record<string, PaperBook>; calls: PaperCall[]; }
+export interface PaperReview { id:string; cycleId:string; at:number; sourcePolicy:PaperPolicy; facts:PaperReviewFacts;
+  status:'insufficient'|'awaiting-model'|'kept'|'trial'|'failed'; choice:ReviewChoice; provider:string|null; model:string|null; support:string[]; counter:string[]; }
+export interface PaperTrial { id:string; cycleId:string; reviewId:string; startedAt:number; endAt:number; sourceVersion:string;
+  rulesVersion:'forward-paired-v1'; baseline:PaperCycle; challenger:PaperCycle; status:'observing'|'settling'|'promoted'|'rejected'|'cancelled'; reasons:string[]; paired:number; advantageBps:number|null; }
+export interface PaperState { version: 'paper-ledger-v1'; cycles: PaperCycle[]; books: Record<string, PaperBook>; calls: PaperCall[]; reviews: PaperReview[]; trials: PaperTrial[]; }
 export interface PaperFundingWindow {
   symbol: string; start: number; end: number;
   rows: { time: number; rate: string; markPrice: string }[];
@@ -50,6 +55,10 @@ export type PaperCommand =
   | { kind: 'decision'; cycleId: string; plan: PaperPlan }
   | { kind: 'book'; book: PaperBook }
   | { kind: 'funding'; window: PaperFundingWindow }
+  | { kind:'review'; cycleId:string }
+  | { kind:'review-result'; reviewId:string; callId:string; choice:ReviewChoice; support:string[]; counter:string[] }
+  | { kind:'review-failed'; reviewId:string }
+  | { kind:'trial-check' }
   | { kind: 'call'; cycleId: string; provider: string; model: string }
   | { kind: 'call-result'; callId: string; status: 'complete' | 'failed'; note: string }
   | { kind: 'gap'; reason: string };

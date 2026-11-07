@@ -98,7 +98,7 @@ if (require.main === module) (async()=>{
   await p.evaluate(()=>window.__qa.advanceSnapshot());await p.getByRole('button',{name:'刷新扫描',exact:true}).click();await p.getByText('上次 AI 查证已过期或证据已更新，请基于当前快照重新查证。',{exact:true}).waitFor();assert.equal(await p.getByText('证据不足，暂不判断。合成测试结果。',{exact:true}).count(),0,'old AI must disappear after a new snapshot');
   await p.evaluate(()=>window.__qa.staleEvidence=true);await p.locator('[data-event-row="0"]').click();await p.getByRole('alert').filter({hasText:'证据与当前研究快照不匹配'}).waitFor();
   await p.evaluate(()=>{window.__qa.staleEvidence=false;window.__qa.holdEvidence=true;});await p.locator('[data-event-row="0"]').click();await p.waitForFunction(()=>typeof window.__qa.releaseEvidence==='function');await p.locator('[data-event-row="2"]').click();await p.evaluate(()=>window.__qa.releaseEvidence());assert(await p.locator('.evidence-header').getByText('SOLUSDT · 只读研究').isVisible());
-  await p.getByRole('button',{name:'复盘',exact:true}).click();await p.getByText('研究复盘',{exact:true}).waitFor();await capture(p,'02-review');
+  await p.getByRole('button',{name:'复盘',exact:true}).click();await p.getByRole('button',{name:'研究记录',exact:true}).click();await p.getByText('研究复盘',{exact:true}).waitFor();await capture(p,'02-review');
   assert(await p.getByText('净收益 / 胜率',{exact:true}).isVisible());assert(await p.getByRole('button',{name:'创建价格观察',exact:true}).isDisabled());
   await p.getByRole('button',{name:'持仓',exact:true}).click();await p.getByRole('heading',{name:'我的持仓',exact:true}).waitFor();await capture(p,'03-positions');
   await p.getByRole('button',{name:'隐藏金额',exact:true}).click();assert.equal(await p.locator('.positions-table-row .positive,.positions-table-row .negative').count(),0);
