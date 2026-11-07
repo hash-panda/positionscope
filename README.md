@@ -18,7 +18,7 @@
 
 ## 下载与使用
 
-[0.2.1 签名版](https://github.com/hash-panda/positionscope/releases/tag/v0.2.1) 提供 Apple Silicon、Intel 的 DMG/ZIP、SHA256 和公证验证记录。2026-11-07 的[发布运行](https://github.com/hash-panda/positionscope/actions/runs/42368451830)已完成双架构签名、公证、装订和 Gatekeeper 验证；七项资产与摘要已核对，见[验收报告](docs/ops/2026-11-07-numeric-release.md)。需要 macOS 13.0+；真实用户 Mac、账户和模型质量仍单独验收。后续版本使用 0.2.2 等纯数字编号。
+[0.2.2 签名版](https://github.com/hash-panda/positionscope/releases/tag/v0.2.2) 修复 Binance 负逐仓钱包余额导致持仓不可用的问题，并区分钱包与保证金余额。Apple Silicon / Intel 的 DMG、ZIP、校验和与验证记录均已发布；[双架构发布运行](https://github.com/hash-panda/positionscope/actions/runs/42371046637)完成签名、公证、装订和 Gatekeeper。需要 macOS 13.0+。详见[修复验收](docs/ops/2026-11-07-isolated-wallet.md)；真实用户安装与账户恢复仍需确认。后续版本继续使用纯数字编号。
 
 在自己的 Mac 安装，可使用[本机安装与验证脚本](docs/install-and-verify-mac.md)。它先核对固定版本摘要、签名与 Gatekeeper，再把旧应用移到废纸篓并安装；不会读取或迁移旧预览版凭证，系统权限弹窗需本机处理。
 
