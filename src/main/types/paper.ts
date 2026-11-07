@@ -1,3 +1,4 @@
+import type { ResearchFact, ResearchCondition } from './research';
 export interface PaperPolicy {
   version: string;
   allocationBps: number; riskBps: number; stopBps: number; targetBps: number;
@@ -14,7 +15,7 @@ export interface PaperBook {
 }
 export interface PaperPlan {
   symbol: string; direction: 'long' | 'short' | 'abstain';
-  reason: string; evidenceIds: string[]; snapshotId: string; provider: string; model: string;
+  reason: string; evidence: ResearchFact[]; conditions: ResearchCondition[]; evidenceIds: string[]; snapshotId: string; provider: string; model: string;
 }
 export interface PaperDecision {
   id: string; at: number; plan: PaperPlan; policy: PaperPolicy;
@@ -37,7 +38,8 @@ export interface PaperCycle {
   decisions: PaperDecision[]; trades: PaperTrade[]; curve: PaperEquity[];
   gaps: { at: number; reason: string }[];
 }
-export interface PaperState { version: 'paper-ledger-v1'; cycles: PaperCycle[]; books: Record<string, PaperBook>; }
+export interface PaperCall { id: string; cycleId: string; at: number; provider: string; model: string; status: 'reserved' | 'complete' | 'failed'; note: string; }
+export interface PaperState { version: 'paper-ledger-v1'; cycles: PaperCycle[]; books: Record<string, PaperBook>; calls: PaperCall[]; }
 export interface PaperFundingWindow {
   symbol: string; start: number; end: number;
   rows: { time: number; rate: string; markPrice: string }[];
@@ -48,5 +50,7 @@ export type PaperCommand =
   | { kind: 'decision'; cycleId: string; plan: PaperPlan }
   | { kind: 'book'; book: PaperBook }
   | { kind: 'funding'; window: PaperFundingWindow }
+  | { kind: 'call'; cycleId: string; provider: string; model: string }
+  | { kind: 'call-result'; callId: string; status: 'complete' | 'failed'; note: string }
   | { kind: 'gap'; reason: string };
 export interface PaperEvent { id: string; at: number; command: PaperCommand; }

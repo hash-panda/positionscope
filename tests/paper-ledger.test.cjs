@@ -5,7 +5,7 @@ const { cycleMetrics } = require('../dist/main/services/paper/engine');
 const { decimal, format, multiply } = require('../dist/main/services/paper/decimal');
 const { DEFAULT_PAPER_POLICY: policy } = require('../dist/main/types/paper');
 function book(at, id = String(at), bid = '99', ask = '100', depth = '1000') { return {symbol:'BTCUSDT',updateId:id,observedAt:at,fetchedAt:at,bids:[[bid,depth]],asks:[[ask,depth]],stepSize:'0.001',minQty:'0.001',maxQty:'1000',minNotional:'5'}; }
-const plan = (overrides={}) => ({symbol:'BTCUSDT',direction:'long',reason:'合成公开证据',evidenceIds:['fact-1'],snapshotId:'snapshot-1',provider:'fixture',model:'synthetic',...overrides});
+const plan = (overrides={}) => ({symbol:'BTCUSDT',direction:'long',reason:'合成公开证据',evidence:[{id:'fact-1',label:'合成价格',value:100,unit:'USDT',source:'/fapi/v1/depth',observedAt:100000,fetchedAt:100000,window:'snapshot'}],conditions:[],evidenceIds:['fact-1'],snapshotId:'snapshot-1',provider:'fixture',model:'synthetic',...overrides});
 async function harness(options={}) {
   let at=100000; const ledger=await PaperLedger.open({...options,now:()=>at});
   return {ledger, set:n=>at=n, tick:()=>++at, now:()=>at,

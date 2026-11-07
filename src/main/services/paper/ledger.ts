@@ -9,6 +9,8 @@ const MAX_BYTES = 128 * 1024 * 1024;
 export class PaperLedger {
   private state = emptyPaperState();
   private events: PaperEvent[] = [];
+  private closed = false;
+  async close() { this.closed = true; await this.queue; }
   private queue: Promise<unknown> = Promise.resolve();
   private constructor(private filePath?: string, private now: () => number = Date.now) {}
   static async open(options: { filePath?: string; now?: () => number } = {}): Promise<PaperLedger> {
@@ -35,7 +37,8 @@ export class PaperLedger {
   }
   snapshot(): PaperState { return clone(this.state); }
   /** Event identity enables exactly-once retries; same ID with different content is rejected. */
-  append(command: PaperCommand, id = randomUUID()): Promise<PaperState> {
+  append(command: PaperCommand, id: string = randomUUID()): Promise<PaperState> {
+    if (this.closed) return Promise.reject(new Error("模拟账本已关闭"));
     const frozen = clone(command);
     const run = this.queue.then(async () => {
       const previous = this.events.find(e => e.id === id);

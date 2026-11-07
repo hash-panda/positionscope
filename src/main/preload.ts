@@ -12,6 +12,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('app-update-state', listener);
     return () => ipcRenderer.removeListener('app-update-state', listener);
   },
+  getPaperState: () => ipcRenderer.invoke('get-paper-state'),
+  startPaperCycle: (input: unknown) => ipcRenderer.invoke('start-paper-cycle', input),
+  setPaperMode: (id: string, mode: string) => ipcRenderer.invoke('set-paper-mode', id, mode),
+  onPaperChanged: (callback: () => void) => {
+    const listener = () => callback(); ipcRenderer.on('paper-changed', listener);
+    return () => ipcRenderer.removeListener('paper-changed', listener);
+  },
   getResearchSnapshot: () => ipcRenderer.invoke('get-research-snapshot'),
   getResearchEvidence: (symbol: string) => ipcRenderer.invoke('get-research-evidence', symbol),
   getWatchlistMarket: () => ipcRenderer.invoke('get-watchlist-market'),

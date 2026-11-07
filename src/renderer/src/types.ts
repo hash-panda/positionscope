@@ -59,8 +59,12 @@ export interface Result {
   error?: string;
 }
 export interface ElectronAPI {
+  getPaperState(): Promise<Result & { data?: import('../../main/services/paper/controller').PaperSnapshot }>;
+  startPaperCycle(input: {capital: string; callsPerDay: number; consent: boolean}): Promise<Result & { data?: import('../../main/services/paper/controller').PaperSnapshot }>;
+  setPaperMode(id: string, mode: 'running' | 'paused' | 'settling'): Promise<Result & { data?: import('../../main/services/paper/controller').PaperSnapshot }>;
+  onPaperChanged(callback: () => void): (() => void) | void;
   getWindowMode(): Promise<'popup' | 'workspace'>;
-  openWorkspace(page?: 'research' | 'positions' | 'review' | 'settings'): Promise<Result>;
+  openWorkspace(page?: 'paper' | 'research' | 'positions' | 'review' | 'settings'): Promise<Result>;
   getResearchSnapshot(): Promise<Result & {data?: import('../../main/types/research').ResearchSnapshot}>;
   getResearchEvidence(symbol: string): Promise<Result & {data?: import('../../main/types/research').ResearchEvidence}>;
   getWatchlistMarket(): Promise<Result & {data?: import('../../main/types/research').ResearchWatchQuote[]}>;
