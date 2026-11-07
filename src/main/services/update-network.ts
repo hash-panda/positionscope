@@ -12,12 +12,12 @@ export function updateNetwork(fetcher: (url: string, options: RequestInit) => Pr
   const request = async (url: string, signal: AbortSignal) => {
     for (let hop = 0; hop < 4; hop++) {
       if (!allowedUpdateURL(url)) throw new Error('Update host rejected');
-      const response = await fetcher(url, { method: 'GET', redirect: 'manual', credentials: 'omit', signal, headers: { 'Cache-Control': 'no-cache', Accept: 'application/octet-stream, application/json' } });
+      const response = await fetcher(url, { method: 'GET', redirect: 'manual', credentials: 'omit', signal, headers: { 'Cache-Control': 'no-cache', Accept: new URL(url).hostname === 'api.github.com' ? 'application/vnd.github+json' : 'application/octet-stream' } });
       if ([301, 302, 303, 307, 308].includes(response.status)) {
         const location = response.headers.get('location'); await response.body?.cancel();
         if (!location) throw new Error('Missing update location'); url = new URL(location, url).href; continue;
       }
-      if (!response.ok || response.status !== 200 || !response.body) { await response.body?.cancel(); throw new Error('Update transport failed'); }
+      if (!response.ok || response.status !== 200 || !response.body) { await response.body?.cancel(); throw Object.assign(new Error('Update transport failed'), { code: 'UPDATE_HTTP', status: response.status }); }
       return response;
     }
     throw new Error('Too many update redirects');
