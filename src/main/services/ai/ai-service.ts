@@ -34,6 +34,7 @@ import { requestDiagnostic } from '../../utils/request-diagnostics';
  */
 class AIAnalysisCache {
   private cache = new Map<string, CachedAnalysis>();
+  private generation = 0;
   private readonly TTL = 5 * 60 * 1000; // 5分钟缓存
 
   /**
@@ -52,7 +53,9 @@ class AIAnalysisCache {
     }
 
     logger.log('[AI Cache] Miss, executing analysis');
+    const generation = this.generation;
     const data = await analyzeFunc();
+    if (generation !== this.generation) throw new Error('AI 配置或数据已变更，请重新分析');
 
     // 保存到缓存
     this.cache.set(key, {
@@ -67,6 +70,7 @@ class AIAnalysisCache {
    * 清除缓存
    */
   clear() {
+    this.generation++;
     this.cache.clear();
     logger.log('[AI Cache] Cleared');
   }
@@ -81,6 +85,7 @@ export class AIService {
   private defaultProvider: AIProvider = AIProvider.ANTHROPIC;
   private cache: AIAnalysisCache = new AIAnalysisCache();
   private conversationHistory: ChatMessage[] = [];
+  private conversationGeneration = 0;
 
   constructor() {
     logger.log('[AI Service] Initialized');
@@ -93,6 +98,7 @@ export class AIService {
     logger.log('[AI Service] Updating configuration');
 
     this.cache.clear();
+    this.conversationGeneration++;
     this.conversationHistory = [];
     this.defaultProvider = settings.defaultProvider;
 
@@ -218,6 +224,7 @@ export class AIService {
     providerName?: AIProvider
   ): Promise<string> {
     const provider = this.getProvider(providerName);
+    const generation = this.conversationGeneration;
 
     // 构建系统提示
     const systemPrompt = context
@@ -237,6 +244,7 @@ export class AIService {
       { role: 'system', content: systemPrompt },
       ...this.conversationHistory,
     ]);
+    if (generation !== this.conversationGeneration) throw new Error('AI 配置或对话已变更，请重新发起对话');
 
     // 保存AI响应
     this.conversationHistory.push({
@@ -276,6 +284,7 @@ export class AIService {
    * 清除对话历史
    */
   clearConversation() {
+    this.conversationGeneration++;
     this.conversationHistory = [];
     logger.log('[AI Service] Conversation history cleared');
   }

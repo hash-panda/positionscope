@@ -146,3 +146,35 @@ test('real configured adapter preserves explicit model, caps actual outbound max
   assert.equal(Object.hasOwn(adapter,'config'),false);assert.equal(JSON.stringify(adapter).includes('synthetic-key'),false);
   service.setConfig({enabled:false,useCustomKeys:true,defaultProvider:'deepseek',credentials:{}});assert.equal(adapter.isCurrent(),false);assert.throws(()=>service.getResearchProvider());
 });
+test('clearing cache or changing configuration rejects pending portfolio output and cannot overwrite fresh cached facts',async()=>{
+  const {AIService}=require('../dist/main/services/ai/ai-service');
+  const position={exchange:'binance',symbol:'BTCUSDT',positionAmt:'1',entryPrice:'90',markPrice:'100',unRealizedProfit:'10',marginType:'cross',isolatedMargin:'0',leverage:'5'};
+  const accounts=[{exchange:'binance',totalMarginBalance:100}];
+  for(const action of ['clear','config']){
+    const service=new AIService();let release,calls=0;
+    const provider={getProviderName:()=> 'synthetic',getModelName:()=> 'synthetic-model',chatJSON:()=>{
+      calls++;return calls===1?new Promise(resolve=>{release=()=>resolve({summary:'obsolete synthetic facts',warnings:[],suggestions:[]});}):Promise.resolve({summary:'fresh synthetic facts',warnings:[],suggestions:[]});
+    }};
+    service.providers.set('synthetic',provider);
+    const pending=service.analyzePortfolioHealth([position],accounts,'synthetic');
+    if(action==='clear')service.clearCache();else service.setConfig({enabled:false,useCustomKeys:true,defaultProvider:'deepseek',credentials:{}});
+    service.providers.set('synthetic',provider);
+    const fresh=await service.analyzePortfolioHealth([position],accounts,'synthetic');assert.equal(fresh.summary,'fresh synthetic facts');
+    release();await assert.rejects(pending,/配置或数据已变更/);
+    const cached=await service.analyzePortfolioHealth([position],accounts,'synthetic');assert.equal(cached.summary,'fresh synthetic facts');assert.equal(calls,2);
+    assert.equal(JSON.stringify([...service.cache.cache.values()]).includes('obsolete'),false);
+  }
+});
+test('clearing conversation or changing configuration rejects pending chat and cannot repopulate cleared history',async()=>{
+  const {AIService}=require('../dist/main/services/ai/ai-service');
+  for(const action of ['clear','config']){
+    const service=new AIService();let release,calls=0;
+    const provider={chat:()=>{calls++;return calls===1?new Promise(resolve=>{release=()=>resolve('obsolete synthetic response');}):Promise.resolve('fresh synthetic response');}};
+    service.providers.set('synthetic',provider);const pending=service.chat('obsolete synthetic prompt',undefined,'synthetic');
+    if(action==='clear')service.clearConversation();else service.setConfig({enabled:false,useCustomKeys:true,defaultProvider:'deepseek',credentials:{}});
+    assert.deepEqual(service.conversationHistory,[]);service.providers.set('synthetic',provider);
+    assert.equal(await service.chat('fresh synthetic prompt',undefined,'synthetic'),'fresh synthetic response');
+    release();await assert.rejects(pending,/配置或对话已变更/);
+    assert.deepEqual(service.conversationHistory.map(m=>m.content),['fresh synthetic prompt','fresh synthetic response']);
+  }
+});
