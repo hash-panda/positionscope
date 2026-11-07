@@ -15,6 +15,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 
 REQUIRED = ('APPLE_CERTIFICATE','APPLE_CERTIFICATE_PASSWORD','APPLE_SIGNING_IDENTITY','APPLE_ID','APPLE_PASSWORD','APPLE_TEAM_ID')
 
@@ -42,6 +43,21 @@ def notarize(artifact,profile,keychain):
     response=json.loads(run(['xcrun','notarytool','submit',str(artifact),'--keychain-profile',profile,'--keychain',str(keychain),'--wait','--output-format','json','--timeout','30m']))
     if response.get('status')!='Accepted': raise RuntimeError('Apple notarization did not return Accepted; no release will be published')
     return response['id']
+
+def staple_and_validate(artifact):
+    # Only retry stapling exit 68, observed after Accepted notarization. It can
+    # indicate ticket-service connectivity trouble, but is not proof of its cause.
+    # Three total attempts; other failures and validation still stop the release.
+    for attempt in range(1,4):
+        result=subprocess.run(['xcrun','stapler','staple',str(artifact)],capture_output=True,text=True)
+        if result.returncode==0:
+            run(['xcrun','stapler','validate',str(artifact)])
+            return
+        if result.returncode!=68 or attempt==3:
+            raise RuntimeError(f'stapler staple failed (exit {result.returncode}); secret-bearing output withheld')
+        delay=15*attempt
+        print(f'Stage: stapling returned exit 68; retry {attempt+1}/3 in {delay}s; command output withheld',flush=True)
+        time.sleep(delay)
 
 def verify_bundle_branding(resources,app_info,expected_icon,source_trays):
     icon_file=app_info.get('CFBundleIconFile')
@@ -98,7 +114,7 @@ def main():
             print('Stage: submit application for Apple notarization',flush=True)
             app_submission=notarize(upload,profile,keychain)
             print('Stage: application notarization accepted; staple and assess Gatekeeper',flush=True)
-            run(['xcrun','stapler','staple',str(app)]);run(['xcrun','stapler','validate',str(app)])
+            staple_and_validate(app)
             run(['spctl','--assess','--type','execute','--verbose=2',str(app)])
             output=root/'release'/'signed';output.mkdir(parents=True,exist_ok=True)
             stem=f'PositionScope-{version}-{args.arch}'
@@ -107,7 +123,7 @@ def main():
             dmg=output/f'{stem}.dmg';run(['hdiutil','create','-volname','PositionScope','-srcfolder',str(staging),'-format','UDZO','-ov',str(dmg)])
             run(['codesign','--timestamp','--sign',identity,'--keychain',str(keychain),str(dmg)])
             print('Stage: submit signed DMG for Apple notarization',flush=True)
-            dmg_submission=notarize(dmg,profile,keychain);run(['xcrun','stapler','staple',str(dmg)]);run(['xcrun','stapler','validate',str(dmg)])
+            dmg_submission=notarize(dmg,profile,keychain);staple_and_validate(dmg)
             evidence={'version':version,'architecture':args.arch,'app_notarization':app_submission,'dmg_notarization':dmg_submission,'signature_verified':True,'staple_validated':True,'gatekeeper_assessment':'accepted','artifacts':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in (zip_path,dmg)}}
             evidence.update(app_id=app_info['CFBundleIdentifier'],minimum_macos_version=app_info.get('LSMinimumSystemVersion'),settings_storage_smoke=storage)
             evidence.update(branding={**bundled_branding,'native_smoke':branding})
