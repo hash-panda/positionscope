@@ -1,5 +1,5 @@
 // Public release metadata and a small verification JSON only. No account/model APIs.
-const {app,session}=require('electron');
+const {app,session,net}=require('electron');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const {updateNetwork}=require('../dist/main/services/update-network');
 const {installTarget,verifyReleaseRecord}=require('../dist/main/services/update-install');
@@ -10,7 +10,7 @@ const timeout=setTimeout(()=>{console.error('Public Electron update transport ti
 app.whenReady().then(async()=>{
  let stage='metadata';
  try{
-  const isolated=session.fromPartition('positionscope-update-transport-smoke'),io=updateNetwork(isolated.fetch.bind(isolated));
+  const isolated=session.fromPartition('positionscope-update-transport-smoke'),io=updateNetwork(options=>net.request({...options,session:isolated}));
   const release=JSON.parse((await io.read(LATEST_RELEASE_URL,1024*1024)).toString('utf8'));
   stage='manifest';const target=installTarget('0.0.0',release,process.arch);
   stage='verification-record';const record=await io.read(target.verificationUrl,256*1024);stage='verify-record';verifyReleaseRecord(record,target,process.getSystemVersion());

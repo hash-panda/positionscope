@@ -2,7 +2,7 @@ import { requestDiagnostic } from './utils/request-diagnostics';
 import { validateAISettingsModels } from './utils/ai-model';
 import { buildRiskFacts } from './services/ai/risk-facts';
 import { publicMarketService } from './services/public-market';
-import { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell, autoUpdater, session } from 'electron';
+import { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell, autoUpdater, session, net } from 'electron';
 
 import * as path from 'path';
 import { ExchangeManager } from './services/exchangeManager';
@@ -422,7 +422,7 @@ function updateHandler(channel: string, action: (updates: UpdateInstaller) => un
     const owner = [window, workspaceWindow].find(w => w && !w.isDestroyed() && w.webContents === event.sender);
     if (!owner || event.senderFrame !== owner.webContents.mainFrame) throw new Error('Invalid update request');
     if (!installer) {
-      const network = updateNetwork(session.fromPartition('positionscope-updates').fetch.bind(session.fromPartition('positionscope-updates')));
+      const network = updateNetwork(options => net.request({ ...options, session: session.fromPartition('positionscope-updates') }));
       installer = new UpdateInstaller(app.getVersion(), process.arch,
         process.platform === 'darwin' && app.isPackaged && !app.getAppPath().includes('/AppTranslocation/') && !app.getAppPath().startsWith('/Volumes/'),
         app.getPath('temp'), autoUpdater, network, state => broadcast('app-update-state', state), process.getSystemVersion?.() || '0.0');
