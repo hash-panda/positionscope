@@ -67,7 +67,9 @@ app.on('window-all-closed',()=>{});
             shutil.rmtree(entry)
             plist = bundle / 'Contents/Info.plist'
             info = plistlib.loads(plist.read_bytes())
-            info.update(CFBundleIdentifier='app.funagent.positionscope.update-test',CFBundleName='PositionScope Update Test',CFBundleDisplayName='PositionScope Update Test',CFBundleShortVersionString=version,CFBundleVersion=version)
+            # Electron resolves renamed helper binaries from CFBundleName before JS starts.
+            # Preserve that executable identity; isolate the bundle ID, display name and profile.
+            info.update(CFBundleIdentifier='app.funagent.positionscope.update-test',CFBundleDisplayName='PositionScope Update Test',CFBundleShortVersionString=version,CFBundleVersion=version)
             info['ElectronAsarIntegrity']={'Resources/app.asar':{'algorithm':'SHA256','hash':hashlib.sha256(header['headerString'].encode()).hexdigest()}}
             plist.write_bytes(plistlib.dumps(info))
             if bootstrap_only:
