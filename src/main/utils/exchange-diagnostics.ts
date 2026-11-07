@@ -1,4 +1,5 @@
 import { requestDiagnostic } from './request-diagnostics';
+import { binanceDataFailure } from './binance-diagnostics';
 
 const accountFailures = {
   HYPERLIQUID_UNSUPPORTED_ACCOUNT: ['Hyperliquid 暂不支持此账户模式', 'Hyperliquid 暂仅支持标准账户（disabled）；统一、组合保证金及未知模式不生成汇总。应用不会更改账户模式。'],
@@ -9,6 +10,8 @@ const accountFailures = {
 /** Construct UI-safe diagnostics, never forward provider text, codes or objects.
  * Unknown failures include local mapping failures: do not label all as network. */
 export function exchangeFailure(error: unknown): { errorCode: string; errorMessage: string; suggestion: string } {
+  const binanceFailure = binanceDataFailure(error);
+  if (binanceFailure) return binanceFailure;
   const code = (error as { code?: unknown } | null)?.code;
   if (typeof code === 'string' && Object.prototype.hasOwnProperty.call(accountFailures, code)) {
     const [errorMessage, suggestion] = accountFailures[code as keyof typeof accountFailures];

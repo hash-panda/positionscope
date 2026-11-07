@@ -23,6 +23,7 @@ export interface ExchangeError {
   timestamp: number;            // 错误发生时间
   consecutiveFailures: number;  // 连续失败次数
   suggestion: string;           // 给用户的建议
+  retryPaused?: boolean;        // 本平台任一读取操作达到暂停阈值
 }
 
 /**
@@ -161,7 +162,7 @@ export class ExchangeManager {
       const previous = errors.get(error.exchange);
       if (!previous || previous.timestamp <= error.timestamp) errors.set(error.exchange, error);
     }
-    return [...errors.values()];
+    return [...errors.values()].map(error => ({...error, retryPaused: this.isInErrorState(error.exchange)}));
   }
 
   /**

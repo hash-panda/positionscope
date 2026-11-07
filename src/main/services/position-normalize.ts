@@ -1,5 +1,7 @@
 import { ExchangeType, Position } from '../types/exchange';
 import { nonnegative, numeric, optionalNumber } from '../utils/position-math';
+import { binanceUsdtBaseAsset } from '../utils/binance-symbol';
+import { BinanceDataError } from '../utils/binance-diagnostics';
 type RecordData = Record<string, any>;
 const text = (value: number | null) => value===null?null:String(value);
 const positiveOptional=(value:unknown)=>{const n=optionalNumber(value);return n!==null&&n>0?String(n):null;};
@@ -10,13 +12,19 @@ function core(exchange:ExchangeType,p:RecordData,quantity:number,mark:unknown,en
  return {exchange,symbol:p.symbol,positionAmt:String(quantity),markPrice:String(mark),entryPrice:String(entry),unRealizedProfit:String(pnl),marginType:'unknown',isolatedMargin:null,leverage:null,fetchedAt:Date.now(),sourceUpdatedAt:null,priceSource:'exchange_mark'};
 }
 export function normalizeBinancePosition(p:RecordData,config:RecordData|undefined):Position {
- const match=typeof p.symbol==='string'&&p.symbol.match(/^([A-Z0-9]{1,40})USDT(?:_\d{6})?$/);
- if(!match||p.marginAsset!=='USDT')throw new Error('Binance当前持仓分析仅支持USDT结算线性合约');
+ if(!p||typeof p!=='object'||Array.isArray(p))throw new BinanceDataError('BINANCE_INVALID_POSITION');
+ const baseAsset=binanceUsdtBaseAsset(p.symbol);
+ if(!baseAsset||p.marginAsset!=='USDT')throw new BinanceDataError('BINANCE_UNSUPPORTED_INSTRUMENT');
+ const mode=config?.marginType;
+ if(config!==undefined&&(!config||typeof config!=='object'||Array.isArray(config)||!['CROSSED','ISOLATED'].includes(mode)))throw new BinanceDataError('BINANCE_INVALID_CONFIG');
+ let leverage: string | null;
+ try {leverage=positiveOptional(config?.leverage);}catch{throw new BinanceDataError('BINANCE_INVALID_CONFIG');}
+ try {
  const quantity=numeric(p.positionAmt),side=p.positionSide;
  if(!['BOTH','LONG','SHORT'].includes(side)||(side==='LONG'&&quantity<0)||(side==='SHORT'&&quantity>0))throw new Error('Binance持仓方向无效');
  const result=core(ExchangeType.BINANCE,p,quantity,p.markPrice,p.entryPrice,p.unRealizedProfit);
- const mode=config?.marginType;
- return {...result,instrumentId:p.symbol,positionId:`${p.symbol}:${side}`,positionSide:side,baseAsset:match[1],settlementAsset:'USDT',rawQuantity:String(p.positionAmt),rawQuantityUnit:'base',marginType:mode==='CROSSED'?'cross':mode==='ISOLATED'?'isolated':'unknown',leverage:positiveOptional(config?.leverage),isolatedMargin:mode==='ISOLATED'?text(nonnegative(p.isolatedWallet)):null,liquidationPrice:positiveOptional(p.liquidationPrice),initialMargin:text(nonnegative(p.positionInitialMargin)),maintenanceMargin:text(nonnegative(p.maintMargin)),marginCurrency:p.marginAsset,sourceUpdatedAt:timestamp(p.updateTime)};
+ return {...result,instrumentId:p.symbol,positionId:`${p.symbol}:${side}`,positionSide:side,baseAsset,settlementAsset:'USDT',rawQuantity:String(p.positionAmt),rawQuantityUnit:'base',marginType:mode==='CROSSED'?'cross':mode==='ISOLATED'?'isolated':'unknown',leverage,isolatedMargin:mode==='ISOLATED'?text(nonnegative(p.isolatedWallet)):null,liquidationPrice:positiveOptional(p.liquidationPrice),initialMargin:text(nonnegative(p.positionInitialMargin)),maintenanceMargin:text(nonnegative(p.maintMargin)),marginCurrency:p.marginAsset,sourceUpdatedAt:timestamp(p.updateTime)};
+ }catch{throw new BinanceDataError('BINANCE_INVALID_POSITION');}
 }
 export function bybitMode(info:RecordData):Position['marginType'] {
  if(![3,4,5,6].includes(info.unifiedMarginStatus))throw new Error('Bybit当前只支持已确认的UNIFIED账户');

@@ -2,6 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import type { AssetContext, MarketRow, MarketSnapshot, FundingScenario } from '../types/market';
 import type { Position } from '../types/exchange';
 import { numeric, optionalNumber, positionNotional } from '../utils/position-math';
+import { isBinanceBaseAsset, isBinanceUsdtPerpetualSymbol, binanceUsdtBaseAsset } from '../utils/binance-symbol';
 const HOUR = 3_600_000;
 const FUNDING_MAX_AGE = 180_000;
 const CLOCK_SKEW = 60_000;
@@ -82,7 +83,7 @@ export class PublicMarketService {
     }
   }
   async snapshot(requested: string[]): Promise<MarketSnapshot> {
-    if(!Array.isArray(requested)||requested.length>500||requested.some(s=>typeof s!=='string'||! /^[A-Z0-9]{1,40}USDT$/.test(s)))throw new Error('市场交易对格式无效');
+    if(!Array.isArray(requested)||requested.length>500||requested.some(s=>!isBinanceUsdtPerpetualSymbol(s)))throw new Error('市场交易对格式无效');
     const unique=[...new Set(['BTCUSDT','ETHUSDT',...requested])];
     const symbols=unique.slice(0,12).sort();
     const key=symbols.join(',')+'|omitted:'+Math.max(0,unique.length-12);
@@ -100,7 +101,7 @@ export class PublicMarketService {
     try {
       if(this.specs&&Date.now()-this.specs.at<900_000)instruments=this.specs.rows;
       else {const info=await this.read('/fapi/v1/exchangeInfo');if(!Array.isArray(info.symbols))throw new Error();instruments=info.symbols;this.specs={at:Date.now(),rows:instruments};}
-      instruments=instruments.filter(s=>s.status==='TRADING'&&s.contractType==='PERPETUAL'&&s.quoteAsset==='USDT'&&s.marginAsset==='USDT'&&typeof s.baseAsset==='string'&&/^[A-Z0-9]{1,40}$/.test(s.baseAsset)&&/^[A-Z0-9]{1,40}USDT$/.test(s.symbol));
+      instruments=instruments.filter(s=>s&&s.status==='TRADING'&&s.contractType==='PERPETUAL'&&s.quoteAsset==='USDT'&&s.marginAsset==='USDT'&&isBinanceBaseAsset(s.baseAsset)&&isBinanceUsdtPerpetualSymbol(s.symbol)&&binanceUsdtBaseAsset(s.symbol,false)===s.baseAsset);
       const bySymbol=new Map(instruments.map(s=>[s.symbol,s]));
       const ticker=await this.read('/fapi/v1/ticker/24hr');if(!Array.isArray(ticker))throw new Error();
       const rows:MarketRow[]=[];

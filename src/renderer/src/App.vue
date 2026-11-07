@@ -294,7 +294,7 @@ onUnmounted(() => {
                   {{
                     app.positions.length || app.accounts.length
                       ? '保留上次数据，请以连接恢复后的数据为准。'
-                      : '请检查凭证或网络后重试。'
+                      : '尚未取得完整数据，请查看连接详情后重试。'
                   }}
                 </p>
                 <details v-if="app.exchangeErrors.length">
@@ -350,7 +350,7 @@ onUnmounted(() => {
                       v-else
                       :size="15"
                     /></button
-                  ><span v-if="app.stale" class="data-stale-label">含上次数据</span>
+                  ><span v-if="app.stale" class="data-stale-label">{{ app.accounts.length ? '含上次数据' : '尚未取得数据' }}</span>
                 </div>
                 <div class="asset-total numeric">
                   {{ app.accounts.length ? app.mask(amount(app.totals.totalAssets)) : '暂无'
@@ -464,7 +464,7 @@ onUnmounted(() => {
                 }}<ChevronRight v-if="!app.analyzing" :size="14" class="header-end" />
               </button>              <div class="section-heading positions-heading">
                 <h2>
-                  持仓<span class="count numeric">{{ app.sortedPositions.length }}</span>
+                  持仓<span class="count numeric">{{ app.stale ? (app.sortedPositions.length ? `${app.sortedPositions.length}（上次）` : '—') : app.sortedPositions.length }}</span>
                 </h2>
                 <button
                   class="text-button"
@@ -484,7 +484,7 @@ onUnmounted(() => {
                 <Inbox :size="26" />
                 <h2>{{ app.stale ? '持仓暂不可用' : '暂无持仓' }}</h2>
                 <p>
-                  {{ app.stale ? '连接恢复后会自动更新。' : '账户已连接，有持仓后会自动显示。' }}
+                  {{ app.retryPaused ? '连接检查已暂停，请点击“重新连接”重试。' : app.stale ? '正在重试读取，请查看连接详情。' : '账户已连接，有持仓后会自动显示。' }}
                 </p>
               </div>
 
@@ -496,7 +496,7 @@ onUnmounted(() => {
             class="icon-button small"
             aria-label="刷新数据"
             :disabled="!app.hasCredentials || app.loading || !app.ready"
-            @click="app.fetchData"
+            @click="app.retryPaused ? app.retry() : app.fetchData()"
           >
             <RefreshCw :size="14" :class="{ spinning: app.loading }" /></button
           ><span>{{
@@ -508,7 +508,7 @@ onUnmounted(() => {
                   ? `更新于 ${app.lastUpdated.toLocaleTimeString('zh-CN', { hour12: false })}`
                   : '等待连接'
           }}</span
-          ><span class="status-end">每 {{ app.preferences.refreshInterval }} 秒刷新</span>
+          ><span class="status-end">{{ app.retryPaused ? '部分连接已暂停' : app.hasCredentials ? `每 ${app.preferences.refreshInterval} 秒刷新` : '等待配置' }}</span>
         </footer>
       </section>
     </template>
