@@ -6,7 +6,7 @@ from unittest.mock import patch
 from types import SimpleNamespace
 import io
 import tempfile
-from contextlib import redirect_stderr
+from contextlib import redirect_stderr, redirect_stdout
 spec=importlib.util.spec_from_file_location('release_mac',Path(__file__).parents[1]/'scripts/release-signed-mac.py')
 module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
 class SigningInputs(unittest.TestCase):
@@ -27,6 +27,40 @@ class BuilderDiagnostics(unittest.TestCase):
   self.assertNotIn('fixture-private-value',output.getvalue())
   self.assertIn('[REDACTED]',output.getvalue())
   self.assertIn('build failed',output.getvalue())
+class StaplingFailurePolicy(unittest.TestCase):
+ def result(self, code):
+  return SimpleNamespace(returncode=code,stdout='synthetic-private-stdout',stderr='synthetic-private-stderr')
+ def test_stapling_recovers_from_68_then_requires_validation_without_output_disclosure(self):
+  output=io.StringIO()
+  with patch.object(module.subprocess,'run',side_effect=[self.result(68),self.result(68),self.result(0),self.result(0)]) as execute, patch.object(module.time,'sleep') as sleep, redirect_stdout(output), redirect_stderr(output):
+   module.staple_and_validate(Path('synthetic.app'))
+  self.assertEqual([call.args[0][1:3] for call in execute.call_args_list],[['stapler','staple']]*3+[['stapler','validate']])
+  self.assertEqual([call.args[0] for call in sleep.call_args_list],[15,30])
+  self.assertNotIn('synthetic-private',output.getvalue())
+  self.assertNotIn('synthetic.app',output.getvalue())
+ def test_stapling_exhausts_three_attempts_and_never_validates_or_discloses_output(self):
+  output=io.StringIO()
+  with patch.object(module.subprocess,'run',return_value=self.result(68)) as execute, patch.object(module.time,'sleep') as sleep, redirect_stdout(output), redirect_stderr(output):
+   with self.assertRaisesRegex(RuntimeError,'exit 68') as failure:module.staple_and_validate(Path('synthetic.app'))
+  self.assertEqual(execute.call_count,3)
+  self.assertEqual(sleep.call_count,2)
+  self.assertTrue(all(call.args[0][2]=='staple' for call in execute.call_args_list))
+  self.assertNotIn('synthetic-private',str(failure.exception)+output.getvalue())
+ def test_other_stapling_failures_stop_immediately(self):
+  for code in (1,65,66,73,77):
+   with self.subTest(code=code), patch.object(module.subprocess,'run',return_value=self.result(code)) as execute, patch.object(module.time,'sleep') as sleep:
+    with self.assertRaisesRegex(RuntimeError,f'exit {code}'):module.staple_and_validate(Path('synthetic.dmg'))
+    self.assertEqual(execute.call_count,1);sleep.assert_not_called()
+ def test_validation_failure_is_fatal_even_for_68(self):
+  with patch.object(module.subprocess,'run',side_effect=[self.result(0),self.result(68)]) as execute, patch.object(module.time,'sleep') as sleep:
+   with self.assertRaisesRegex(RuntimeError,'exit 68'):module.staple_and_validate(Path('synthetic.dmg'))
+  self.assertEqual([call.args[0][2] for call in execute.call_args_list],['staple','validate'])
+  sleep.assert_not_called()
+ def test_notarization_rejection_is_not_retried_or_stapled(self):
+  rejected=SimpleNamespace(returncode=0,stdout='{"status":"Invalid","id":"synthetic"}',stderr='')
+  with patch.object(module.subprocess,'run',return_value=rejected) as execute, patch.object(module.time,'sleep') as sleep:
+   with self.assertRaisesRegex(RuntimeError,'did not return Accepted'):module.notarize(Path('synthetic.zip'),'synthetic-profile',Path('synthetic-keychain'))
+  self.assertEqual(execute.call_count,1);sleep.assert_not_called()
 class BundleBranding(unittest.TestCase):
  def test_packaged_artwork_matches_and_rejects_default_or_changed_icons(self):
   with tempfile.TemporaryDirectory() as directory:
