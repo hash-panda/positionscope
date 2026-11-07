@@ -41,6 +41,7 @@ jobs:
             test-results/ui
             test-results/research-ui
             test-results/workspace-settings
+            test-results/paper-ui
           if-no-files-found: ignore
   storage-macos:
     runs-on: macos-15
