@@ -65,12 +65,13 @@
 
 ## 运行
 
-1. PR 的质量检查通过后合并 master。每个发布版本更新 package.json 和 release-notes，已有 Release 不覆盖。
-2. 在 [Signed macOS release](https://github.com/hash-panda/positionscope/actions/workflows/signed-release.yml) 选择 master → Run workflow。手动运行会检查密钥，不会降级成未签名发布。
-3. 两架构成功后检查 ZIP/DMG、SHA256SUMS 和各自 verification.json，再修改官网的版本与安装状态。
-4. 已在 [Variables](https://github.com/hash-panda/positionscope/settings/variables/actions) 配置 `APPLE_SIGNING_ENABLED=true`，以后影响二进制的 master 提交自动尝试发布；文档/官网改动不会触发签名。流水线先查询当前版本的 Release，已有版本直接跳过，不覆盖产物。新的二进制需先更新 package.json 版本。可删除变量关闭自动签名。
+1. PR 的质量检查与独立审查通过后合并仓库当前默认分支。目标默认分支为 main，切换期间工作流接收 main/master；签名前按 `github.event.repository.default_branch` 检查提交属于默认分支，不硬编码旧分支名。
+2. 新发布从 **0.2.1** 开始，只允许纯数字 `x.y.z`，Git tag 可有 `v` 前缀，Release 明确 `prerelease=false`。阶段功能PR保留当前已发布 beta.16 的 package 版本，直到最终发布PR才更新 package.json 和 release-notes；阶段顺序见 [实施计划](IMPLEMENTATION-PLAN.md)。
+3. 在 [Signed macOS release](https://github.com/hash-panda/positionscope/actions/workflows/signed-release.yml) 选择当前默认分支 → Run workflow。手动运行会检查密钥，不会降级成未签名发布。
+4. 两架构成功后检查 ZIP/DMG、SHA256SUMS 和各自 verification.json，再修改官网的版本与安装状态。数字发布不代表真实账户、模型或用户Mac已验收，证据范围仍分别记录。
+5. 已在 [Variables](https://github.com/hash-panda/positionscope/settings/variables/actions) 配置 `APPLE_SIGNING_ENABLED=true`，影响二进制的默认分支提交自动尝试发布；文档/官网改动不会触发签名。流水线**先查询当前版本是否已发布，再对不存在的新版本执行数字版本门禁**：已发布beta.16继续正常跳过，不重签/覆盖；不存在的beta/rc/build版本拒绝。查询失败不当作版本不存在，也不允许签名。正常Apple配置保持，无需重配。
 
-流水线要求构建提交属于 master；PR 不得到 Apple Secrets。签名 runner 使用临时钥匙串、最小 hardened runtime entitlement；验证 codesign 身份与团队，提交 notarytool，要求 Accepted，装订票据并验证 spctl，之后才上传和发布。DMG 单独签名、公证与装订。所有 action 固定提交 SHA；没有使用不受控第三方签名 action。日志不输出密钥、密码、私钥长度或密钥承载命令参数。临时钥匙串最后清除。
+流水线要求构建提交属于仓库当前默认分支；PR 不得到 Apple Secrets。签名 runner 使用临时钥匙串、最小 hardened runtime entitlement；验证 codesign 身份与团队，提交 notarytool，要求 Accepted，装订票据并验证 spctl，之后才上传和发布。DMG 单独签名、公证与装订。所有 action 固定提交 SHA；没有使用不受控第三方签名 action。日志不输出密钥、密码、私钥长度或密钥承载命令参数。临时钥匙串最后清除。
 
 `python3 scripts/release-signed-mac.py --arch arm64 --check` 只验证输入存在与结构，不证明证书有效。Linux 单元测试不等于 macOS 签名验收；真实签名仍需 macOS runner 和六个 Secret。arm64 与 Intel 的安装、启动、菜单栏、网络代理、全新配置与钥匙串权限及 Gatekeeper 在干净 Mac 上人工回归后才标记实机通过。当前未实现自动更新；Apple 签名也不会自动带来更新能力。
 
