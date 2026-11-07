@@ -28,9 +28,10 @@ export function updateNetwork(createRequest: (options: ClientRequestConstructorO
     outgoing.on('login', () => fail(new Error('Update authentication rejected')));
     outgoing.on('error', () => { cleanup(); reject(new Error('Update transport failed')); });
     outgoing.on('response', response => {
-      if (response.statusCode !== 200) { fail(Object.assign(new Error('Update transport failed'), { code: 'UPDATE_HTTP', status: response.statusCode })); return; }
       const stream = response as unknown as Readable;
-      stream.once('end', cleanup); stream.once('error', cleanup); stream.once('close', cleanup);
+      stream.once('end', cleanup); stream.once('error', cleanup);
+      stream.once('close', () => { cleanup(); outgoing.abort(); });
+      if (response.statusCode !== 200) { fail(Object.assign(new Error('Update transport failed'), { code: 'UPDATE_HTTP', status: response.statusCode })); stream.destroy(); return; }
       resolve(stream);
     });
     outgoing.end();
