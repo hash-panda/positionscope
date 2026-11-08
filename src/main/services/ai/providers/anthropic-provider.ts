@@ -46,7 +46,7 @@ export class AnthropicProvider extends BaseAIProvider {
    */
   async chat(messages: ChatMessage[], options?: ChatOptions): Promise<string> {
     try {
-      logger.log(`[Anthropic] Sending chat request with ${messages.length} messages`);
+      logger.log('[Anthropic] Sending chat request');
 
       // Claude API需要分离system message
       const systemMessage = messages.find(m => m.role === 'system')?.content || '';
@@ -67,7 +67,7 @@ export class AnthropicProvider extends BaseAIProvider {
         ? response.data.content[0].text
         : '';
 
-      logger.log(`[Anthropic] Response received, length: ${content.length}`);
+      logger.log('[Anthropic] Response received');
       return content;
     } catch (error: any) {
       logger.error('[Anthropic] Chat request failed:', requestDiagnostic(error));

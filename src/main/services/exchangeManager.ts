@@ -200,7 +200,7 @@ export class ExchangeManager {
     const allPositions: Position[] = [];
     const configuredExchanges = this.getConfiguredExchanges();
 
-    logger.log(`[ExchangeManager] Fetching positions from ${configuredExchanges.length} exchanges`);
+    logger.log('[ExchangeManager] Fetching positions');
 
     // 并行获取所有交易所的持仓
     const promises = configuredExchanges.map(async (exchangeType) => {
@@ -215,7 +215,7 @@ export class ExchangeManager {
 
       try {
         const positions = await exchange.getFuturesPositions();
-        logger.log(`[ExchangeManager] Got ${positions.length} positions from ${exchangeType}`);
+        logger.log(`[ExchangeManager] Position snapshot received from ${exchangeType}`);
 
         // 成功调用，清除错误状态
         this.clearError(exchangeType, 'positions');
@@ -236,7 +236,7 @@ export class ExchangeManager {
       allPositions.push(...positions);
     });
 
-    logger.log(`[ExchangeManager] Total positions: ${allPositions.length}`);
+    logger.log('[ExchangeManager] Position snapshots combined');
     return allPositions;
   }
 
@@ -247,7 +247,7 @@ export class ExchangeManager {
     const allAccountInfo: AccountInfo[] = [];
     const configuredExchanges = this.getConfiguredExchanges();
 
-    logger.log(`[ExchangeManager] Fetching account info from ${configuredExchanges.length} exchanges`);
+    logger.log('[ExchangeManager] Fetching account info');
 
     // 并行获取所有交易所的账户信息
     const promises = configuredExchanges.map(async (exchangeType) => {
@@ -285,7 +285,7 @@ export class ExchangeManager {
       }
     });
 
-    logger.log(`[ExchangeManager] Total accounts: ${allAccountInfo.length}`);
+    logger.log('[ExchangeManager] Account snapshots combined');
     return allAccountInfo;
   }
 
@@ -296,7 +296,7 @@ export class ExchangeManager {
     const allBalances: SpotBalance[] = [];
     const configuredExchanges = this.getConfiguredExchanges();
 
-    logger.log(`[ExchangeManager] Fetching spot balances from ${configuredExchanges.length} exchanges`);
+    logger.log('[ExchangeManager] Fetching spot balances');
 
     // 并行获取所有交易所的现货余额
     const promises = configuredExchanges.map(async (exchangeType) => {
@@ -305,7 +305,7 @@ export class ExchangeManager {
 
       try {
         const balances = await exchange.getSpotBalances();
-        logger.log(`[ExchangeManager] Got ${balances.length} balances from ${exchangeType}`);
+        logger.log(`[ExchangeManager] Spot snapshot received from ${exchangeType}`);
         return balances;
       } catch (error: any) {
         logger.error(`[ExchangeManager] Error fetching balances from ${exchangeType}:`, exchangeFailure(error));
@@ -318,7 +318,7 @@ export class ExchangeManager {
       allBalances.push(...balances);
     });
 
-    logger.log(`[ExchangeManager] Total balances: ${allBalances.length}`);
+    logger.log('[ExchangeManager] Spot snapshots combined');
     return allBalances;
   }
 }

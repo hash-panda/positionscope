@@ -38,7 +38,7 @@ export class OpenAIProvider extends BaseAIProvider {
    */
   async chat(messages: ChatMessage[], options?: ChatOptions): Promise<string> {
     try {
-      logger.log(`[OpenAI] Sending chat request with ${messages.length} messages`);
+      logger.log('[OpenAI] Sending chat request');
 
       const response = await this.client.post('/chat/completions', {
         model: this.config.model,
@@ -49,7 +49,7 @@ export class OpenAIProvider extends BaseAIProvider {
       });
 
       const content = response.data.choices[0]?.message?.content || '';
-      logger.log(`[OpenAI] Response received, length: ${content.length}`);
+      logger.log('[OpenAI] Response received');
 
       return content;
     } catch (error: any) {
