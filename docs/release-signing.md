@@ -1,12 +1,12 @@
 # macOS 签名与发布
 
-## 当前已发布版本（2026-11-08，0.2.8）
+## 当前已发布版本（2026-11-08，0.2.9）
 
-[PR #83](https://github.com/hash-panda/positionscope/pull/83) 移除主进程账户条目数量、AI 消息/响应长度、代理目的地和设置摘要日志，并加入 AST 防回归；[#84](https://github.com/hash-panda/positionscope/pull/84) 只提升数字版本和当前版本说明。产品功能、风险规则和模拟账本不变。
+[PR #86](https://github.com/hash-panda/positionscope/pull/86) 为公共研究账本增加“写入 → fsync → 关闭 → 原子重命名”提交顺序与失败回滚；[#87](https://github.com/hash-panda/positionscope/pull/87) 只提升数字版本并保留当前版本说明。筛选、风险规则、AI 提示、模拟成交和只读权限不变。
 
-来源 `a79eade3fa560824fbbf3e3e36739f420c4f3838`，[签名运行](https://github.com/hash-panda/positionscope/actions/runs/42437303606)重试后完成双架构签名、公证、装订、Gatekeeper、图标与隔离原生更新演练；首轮 arm64 装订 68 阻断记录保留。[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.8) 于 `2026-11-08T02:25:04Z` 发布七资产，见 [releases/v0.2.8](releases/v0.2.8/)。[CI 42436621196](https://github.com/hash-panda/positionscope/actions/runs/42436621196) 通过223 Node、25 Python、类型/构建、完整UI/axe及Mac原生检查。
+来源 `58ca9e19b4bc3dabfdc14b27a90e893a8bebf2b9`，[签名运行](https://github.com/hash-panda/positionscope/actions/runs/42441150445)重试后完成双架构签名、公证、装订、Gatekeeper、图标与隔离原生更新演练；首轮 arm64 在公证成功后创建 DMG 失败，publish 被阻断，重试未降低门禁。[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.9) 于 `2026-11-08T03:22:57Z` 发布七资产，见 [releases/v0.2.9](releases/v0.2.9/)。[PR CI 42440645314](https://github.com/hash-panda/positionscope/actions/runs/42440645314) 和 [版本 CI 42440997154](https://github.com/hash-panda/positionscope/actions/runs/42440997154) 通过225 Node、25 Python、类型/构建、完整UI/axe及Mac原生检查。
 
-当前证据与下载同步见 [本轮报告](ops/2026-11-08.md)。真实账户保持只读；模拟不证明现实盈利；用户Mac、真实模型/账单、连续七天与大账本容量仍未验证，跟踪 #3。不重配正常Apple凭证，不迁移旧预览版。
+当前证据与下载同步见 [账本耐久性报告](ops/2026-11-08-ledger-durability.md)。真实账户保持只读；模拟不证明现实盈利；用户Mac断电/原生UI/钥匙串弹窗、真实模型/账单、连续七天与大账本容量仍未验证，跟踪 #3。不重配正常Apple凭证，不迁移旧预览版。
 
 ## 历史已发布版本（2026-11-07，0.2.6）
 
