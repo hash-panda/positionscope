@@ -405,11 +405,7 @@ app.whenReady().then(async () => {
   const aiSettings = settingsManager.getAISettings();
   if (aiSettings && aiSettings.enabled) {
     aiService.setConfig(aiSettings);
-    console.log('[Main] AI service initialized with settings:', {
-      enabled: aiSettings.enabled,
-      provider: aiSettings.defaultProvider,
-      useCustomKeys: aiSettings.useCustomKeys,
-    });
+    console.log('[Main] AI service initialized');
   }
 
   await initializePaper();

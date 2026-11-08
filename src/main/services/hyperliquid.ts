@@ -185,7 +185,7 @@ export class HyperliquidService implements IExchangeService {
         });
       }
 
-      logger.log('[HyperliquidService] Active positions count:', positions.length);
+      logger.log('[HyperliquidService] Position snapshot received');
       return positions;
     } catch (error) {
       logger.error('[HyperliquidService] Error getting futures positions:');

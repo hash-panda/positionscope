@@ -150,16 +150,13 @@ export class BinanceService implements IExchangeService {
     const params = { timestamp };
     const signature = this.sign(params);
 
-    logger.log('[BinanceService] Request URL:', this.spotClient.defaults.baseURL + '/api/v3/account');
-
     try {
       const response = await this.spotClient.get('/api/v3/account', {
         params: { ...params, signature },
         headers: { 'X-MBX-APIKEY': this.apiKey },
       });
 
-      logger.log('[BinanceService] Spot balances response status:', response.status);
-      logger.log('[BinanceService] Spot balances count:', response.data.balances?.length);
+      logger.log('[BinanceService] Spot balances received');
 
       // 只返回余额大于 0 的资产
       const balances: SpotBalance[] = response.data.balances
@@ -171,8 +168,6 @@ export class BinanceService implements IExchangeService {
           locked: b.locked,
           total: parseFloat(b.free) + parseFloat(b.locked),
         }));
-
-      logger.log('[BinanceService] Filtered balances count:', balances.length);
 
       // 获取价格用于计算 USD 价值
       if (balances.length > 0) {

@@ -1,0 +1,80 @@
+{
+  "date": "2026-11-08",
+  "timezone": "Asia/Shanghai",
+  "observed_at": "2026-11-08T01:54:30.109Z",
+  "default_commit": "caf29c6688037aa4bb736795e4533695190e769a",
+  "repository": {
+    "stars": 0,
+    "forks": 0,
+    "watch": 0
+  },
+  "release": {
+    "tag": "v0.2.7",
+    "published_at": "2026-11-07T16:37:49Z",
+    "assets": [
+      {
+        "name": "PositionScope-0.2.7-arm64-verification.json",
+        "download_count": 4
+      },
+      {
+        "name": "PositionScope-0.2.7-arm64.dmg",
+        "download_count": 1
+      },
+      {
+        "name": "PositionScope-0.2.7-arm64.zip",
+        "download_count": 3
+      },
+      {
+        "name": "PositionScope-0.2.7-x64-verification.json",
+        "download_count": 2
+      },
+      {
+        "name": "PositionScope-0.2.7-x64.dmg",
+        "download_count": 1
+      },
+      {
+        "name": "PositionScope-0.2.7-x64.zip",
+        "download_count": 1
+      },
+      {
+        "name": "SHA256SUMS.txt",
+        "download_count": 2
+      }
+    ],
+    "download_count_scope": "Cumulative asset requests including CI and automated verification; not people or installs."
+  },
+  "site": {
+    "project_version": 19,
+    "status": "active",
+    "audience": "public",
+    "url": "https://positionscope.funagent.app/",
+    "expected_release": "v0.2.7",
+    "verified": true,
+    "checked_paths": [
+      "/",
+      "/download/",
+      "/guides/portfolio-risk/",
+      "/robots.txt",
+      "/sitemap.xml",
+      "/release.json",
+      "/manifest.webmanifest"
+    ],
+    "http_status": 200
+  },
+  "growth": {
+    "search_console": null,
+    "bing_webmaster": null,
+    "visits": null,
+    "confirmed_activation": null,
+    "w1_retention": null,
+    "paid_users": null,
+    "revenue": null,
+    "channel_cost": null,
+    "support_hours": null
+  },
+  "limitations": [
+    "One observation point is not proof of global availability or search indexing.",
+    "No user device, real account, model billing or installation data was read.",
+    "A public search query with no result is not proof that the site is not indexed."
+  ]
+}
