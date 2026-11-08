@@ -1,7 +1,7 @@
 {
   "name": "positionscope",
   "productName": "PositionScope",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "Local-first Binance position monitor and public-market AI research workspace for macOS",
   "main": "dist/main/main.js",
   "scripts": {
