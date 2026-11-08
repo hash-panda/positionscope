@@ -1,0 +1,78 @@
+{
+  "version": "0.2.9",
+  "architecture": "x64",
+  "app_notarization": "6aae6248-9404-427a-b3c7-37c390464c5c",
+  "dmg_notarization": "ed2981e3-6e81-43c7-8d17-0e80e6881367",
+  "signature_verified": true,
+  "staple_validated": true,
+  "gatekeeper_assessment": "accepted",
+  "artifacts": {
+    "PositionScope-0.2.9-x64.zip": "2fd0b3b0ed3f45fc3b833a34755aea6be106a25125343de865e1edfe3f66a8b1",
+    "PositionScope-0.2.9-x64.dmg": "ad31efdcc389df35e3d60abdf0fb131f18caade0077887d2e60ce00e12ffcf00"
+  },
+  "app_id": "app.funagent.positionscope",
+  "minimum_macos_version": "13.0",
+  "settings_storage_smoke": {
+    "platform": "darwin",
+    "electron": "45.0.0",
+    "asynchronous_system_encryption": true,
+    "cross_process_reload": true,
+    "reset_preserves_credentials": true,
+    "targeted_removal": true,
+    "deletion": true,
+    "synthetic_profile_only": true,
+    "packaged_app_keychain_prompt_tested": false
+  },
+  "branding": {
+    "app_icon_file": "icon.icns",
+    "app_icon_sha256": "d7974cb6a941820783775d1d77ade2dafb30aefc1f351beba9f6161e52bcfcb5",
+    "packaged_app_icon_matches": true,
+    "packaged_tray_icons_match": true,
+    "native_smoke": {
+      "platform": "darwin",
+      "electron": "45.0.0",
+      "icns_decoded": true,
+      "app_artwork_matches": true,
+      "template_image": true,
+      "retina_representation": true,
+      "native_ui_tested": false
+    }
+  },
+  "native_updater_smoke": {
+    "platform": "darwin",
+    "architecture": "x64",
+    "synthetic_profile_only": true,
+    "separate_test_identity": true,
+    "stream_hash_verified": true,
+    "native_signature_checked": true,
+    "installed_bundle_replaced": true,
+    "new_version_relaunched": true,
+    "real_user_profile_tested": false,
+    "stage_history": [
+      {
+        "stage": "bootstrap",
+        "elapsed_seconds": 68.5
+      },
+      {
+        "stage": "downloading",
+        "elapsed_seconds": 71.6
+      },
+      {
+        "stage": "verifying",
+        "elapsed_seconds": 79.3
+      },
+      {
+        "stage": "ready",
+        "elapsed_seconds": 91.2
+      },
+      {
+        "stage": "bootstrap",
+        "elapsed_seconds": 173.0
+      },
+      {
+        "stage": "restarted",
+        "elapsed_seconds": 175.2
+      }
+    ]
+  }
+}

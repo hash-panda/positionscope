@@ -1,6 +1,6 @@
 # PositionScope
 
-> Independent, read-only Binance research app for macOS. Current download metadata: v0.2.8. Native UI, packaged Keychain prompts, real accounts and model reasoning quality remain separately unverified.
+> Independent, read-only Binance research app for macOS. Current download metadata: v0.2.9. Native UI, packaged Keychain prompts, real accounts and model reasoning quality remain separately unverified.
 
 ## Product
 - [Overview](https://positionscope.funagent.app/): Compact portfolio popup and independent evidence workspace

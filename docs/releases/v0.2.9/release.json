@@ -1,0 +1,26 @@
+{
+  "version": "0.2.9",
+  "tag": "v0.2.9",
+  "source_commit": "58ca9e19b4bc3dabfdc14b27a90e893a8bebf2b9",
+  "ci_run_url": "https://github.com/hash-panda/positionscope/actions/runs/42441150445",
+  "published_at": "2026-11-08T03:22:57Z",
+  "app_id": "app.funagent.positionscope",
+  "minimum_macos_versions": { "arm64": "13.0", "x64": "13.0" },
+  "assets": [
+    { "name": "PositionScope-0.2.9-arm64-verification.json", "size": 2077, "url": "https://github.com/hash-panda/positionscope/releases/download/v0.2.9/PositionScope-0.2.9-arm64-verification.json", "sha256": "66bdc4795a8abac21d38edf484489b0490c5759a770efcc5f5ec6766ed51a07a" },
+    { "name": "PositionScope-0.2.9-arm64.dmg", "size": 144147533, "url": "https://github.com/hash-panda/positionscope/releases/download/v0.2.9/PositionScope-0.2.9-arm64.dmg", "sha256": "25598ba03beae03943ab6e790247b5d927e6d3ae0a1b433db7934217d87719de" },
+    { "name": "PositionScope-0.2.9-arm64.zip", "size": 131564057, "url": "https://github.com/hash-panda/positionscope/releases/download/v0.2.9/PositionScope-0.2.9-arm64.zip", "sha256": "a4410de02f9b8e66874db88260e4f18af45602b8acee13b3f4690a296e50bdbc" },
+    { "name": "PositionScope-0.2.9-x64-verification.json", "size": 2234, "url": "https://github.com/hash-panda/positionscope/releases/download/v0.2.9/PositionScope-0.2.9-x64-verification.json", "sha256": "5b5d3d14003ed667fe07e4a340264fd2996b6571b5ab570a4913e12d146b8ff1" },
+    { "name": "PositionScope-0.2.9-x64.dmg", "size": 151610112, "url": "https://github.com/hash-panda/positionscope/releases/download/v0.2.9/PositionScope-0.2.9-x64.dmg", "sha256": "ad31efdcc389df35e3d60abdf0fb131f18caade0077887d2e60ce00e12ffcf00" },
+    { "name": "PositionScope-0.2.9-x64.zip", "size": 137787005, "url": "https://github.com/hash-panda/positionscope/releases/download/v0.2.9/PositionScope-0.2.9-x64.zip", "sha256": "2fd0b3b0ed3f45fc3b833a34755aea6be106a25125343de865e1edfe3f66a8b1" },
+    { "name": "SHA256SUMS.txt", "size": 380, "url": "https://github.com/hash-panda/positionscope/releases/download/v0.2.9/SHA256SUMS.txt", "sha256": "0cdb7229a5f22a6b69ec5328529a9e8bd6232a0e4a0cb89d7f11e50366f978da" }
+  ],
+  "signed_and_notarized": true,
+  "native_storage_ci_tested": true,
+  "packaged_app_keychain_prompt_tested": false,
+  "native_ui_tested": false,
+  "real_accounts_tested": false,
+  "packaged_branding_verified": true,
+  "verification_scope": "Downloaded verification JSON and checksum files rehashed locally; four binary hashes compared with GitHub asset digests. Packaged icon hashes match source. No local installation, user-Mac UI, real-account or real-model test."
+}
+
