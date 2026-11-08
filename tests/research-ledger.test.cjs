@@ -113,6 +113,24 @@ test('atomic private persistence survives reopen, serializes mutations, and clea
  } finally {await fs.rm(dir,{recursive:true,force:true});}
 });
 
+test('flushes the private temporary ledger before the atomic rename',async()=>{
+ const dir=await fs.mkdtemp(path.join(os.tmpdir(),'positionscope-ledger-sync-'));const filePath=path.join(dir,'research.json');const order=[];
+ const fileSystem={...fs,
+  open:async(...args)=>{const file=await fs.open(...args);return{writeFile:async(...values)=>{order.push('write');return file.writeFile(...values);},sync:async()=>{order.push('sync');return file.sync();},close:async()=>{order.push('close');return file.close();}};},
+  rename:async(...args)=>{order.push('rename');return fs.rename(...args);}};
+ try {const {ledger}=await setup({filePath,fileSystem});await ledger.setWatched('BTCUSDT',true);assert.deepEqual(order,['write','sync','close','rename']);assert.deepEqual(JSON.parse(await fs.readFile(filePath,'utf8')).watchedSymbols,['BTCUSDT']);}
+ finally{await fs.rm(dir,{recursive:true,force:true});}
+});
+
+test('fsync failure keeps the committed ledger and memory unchanged, then permits retry',async()=>{
+ const dir=await fs.mkdtemp(path.join(os.tmpdir(),'positionscope-ledger-fsync-'));const filePath=path.join(dir,'research.json');let fail=false;
+ const fileSystem={...fs,open:async(...args)=>{const file=await fs.open(...args);return{writeFile:(...values)=>file.writeFile(...values),sync:()=>fail?Promise.reject(new Error('synthetic fsync failure')):file.sync(),close:()=>file.close()};}};
+ try {const {ledger}=await setup({filePath,fileSystem});await ledger.setWatched('BTCUSDT',true);const before=await fs.readFile(filePath,'utf8');fail=true;
+  await assert.rejects(ledger.setWatched('ETHUSDT',true),/could not be saved/);assert.deepEqual(ledger.snapshot().watchedSymbols,['BTCUSDT']);assert.equal(await fs.readFile(filePath,'utf8'),before);assert.deepEqual(await fs.readdir(dir),['research.json']);
+  fail=false;await ledger.setWatched('ETHUSDT',true);assert.deepEqual(ledger.snapshot().watchedSymbols,['BTCUSDT','ETHUSDT']);}
+ finally{await fs.rm(dir,{recursive:true,force:true});}
+});
+
 test('persistence failure rolls back memory, leaves the last atomic file intact and permits retry',async()=>{
  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'positionscope-ledger-test-'));const filePath=path.join(dir,'research.json');let fail=false;
  const fileSystem={...fs,rename:async(...args)=>{if(fail)throw new Error('synthetic storage error');return fs.rename(...args);}};

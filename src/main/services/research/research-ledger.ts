@@ -4,7 +4,7 @@ import { randomUUID, createHash } from 'crypto';
 import { isBinanceUsdtPerpetualSymbol } from '../../utils/binance-symbol';
 import type { LedgerObservation, PublicResearchSample, PublicSampleOutcome, ResearchAlert, ResearchAlertInput, ResearchJudgmentInput, ResearchLedgerSnapshot, ResearchRecord, ResearchShadow, ShadowRegistration } from '../../types/research-ledger';
 
-export type ResearchLedgerFileSystem = Pick<typeof fs, 'readFile' | 'writeFile' | 'mkdir' | 'rename' | 'unlink' | 'chmod'>;
+export type ResearchLedgerFileSystem = Pick<typeof fs, 'readFile' | 'open' | 'mkdir' | 'rename' | 'unlink' | 'chmod'>;
 export interface ResearchLedgerOptions { filePath?: string; fileSystem?: ResearchLedgerFileSystem; now?: () => number; maxRecords?: number; }
 interface StoredLedger extends ResearchLedgerSnapshot { latestSamples: PublicResearchSample[]; }
 export const MAX_ACTIVE_RESEARCH_SYMBOLS = 32;
@@ -153,7 +153,9 @@ export class ResearchLedger {
     const temporary = `${this.options.filePath}.${randomUUID()}.tmp`;
     try {
       await this.io.mkdir(dirname(this.options.filePath), { recursive: true, mode: 0o700 });
-      await this.io.writeFile(temporary, data, { encoding: 'utf8', mode: 0o600, flag: 'wx' });
+      const file = await this.io.open(temporary, 'wx', 0o600);
+      try { await file.writeFile(data, 'utf8'); await file.sync(); }
+      finally { await file.close(); }
       await this.io.rename(temporary, this.options.filePath);
     } catch { await this.io.unlink(temporary).catch(() => undefined); throw new Error('Research ledger could not be saved'); }
   }
