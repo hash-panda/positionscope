@@ -1,12 +1,12 @@
 # PositionScope 质量评审与迭代
 
-## 当前已发布版本（2026-11-07，0.2.7）
+## 当前已发布版本（2026-11-08，0.2.8）
 
-[PR #82](https://github.com/hash-panda/positionscope/pull/82) 修复首次从提醒打开工作台时误选模拟复盘页签，保持与已有窗口一样直接进入研究记录。0.2.6的冻结模拟复盘与候选前向对照能力保留，未改变成本、模型或风险规则。
+[PR #83](https://github.com/hash-panda/positionscope/pull/83) 移除主进程账户条目数量、AI 消息/响应长度、代理目的地和设置摘要日志，并加入 AST 防回归；[#84](https://github.com/hash-panda/positionscope/pull/84) 只提升数字版本和当前版本说明。产品功能、风险规则和模拟账本不变。
 
-来源 `a5a774bd896d8eb2043a8416d9332154ac552716`，[签名运行](https://github.com/hash-panda/positionscope/actions/runs/42390725972)完成双架构签名、公证、装订、Gatekeeper、图标与隔离原生更新演练；[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.7) 于 `2026-11-07T16:37:49Z` 发布，七资产见 [releases/v0.2.7](releases/v0.2.7/)。[CI42390531962](https://github.com/hash-panda/positionscope/actions/runs/42390531962) 通过221 Node、25 Python、类型/构建、完整UI/axe及Mac原生检查，新增首次窗口深链接场景。
+来源 `a79eade3fa560824fbbf3e3e36739f420c4f3838`，[签名运行](https://github.com/hash-panda/positionscope/actions/runs/42437303606)重试后完成双架构签名、公证、装订、Gatekeeper、图标与隔离原生更新演练；首轮 arm64 装订 68 阻断记录保留。[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.8) 于 `2026-11-08T02:25:04Z` 发布七资产，见 [releases/v0.2.8](releases/v0.2.8/)。[CI 42436621196](https://github.com/hash-panda/positionscope/actions/runs/42436621196) 通过223 Node、25 Python、类型/构建、完整UI/axe及Mac原生检查。
 
-当前官网与下载推广见 [本轮报告](ops/2026-11-07-paper-release.md) 和 PR #80。真实账户保持只读；模拟不证明现实盈利；用户Mac、真实模型/账单、连续七天与大账本容量仍未验证，跟踪 #3。不重配正常Apple凭证，不迁移旧预览版。
+当前证据与下载同步见 [本轮报告](ops/2026-11-08.md)。真实账户保持只读；模拟不证明现实盈利；用户Mac、真实模型/账单、连续七天与大账本容量仍未验证，跟踪 #3。不重配正常Apple凭证，不迁移旧预览版。
 
 ## 历史已发布版本（2026-11-07，0.2.6）
 
