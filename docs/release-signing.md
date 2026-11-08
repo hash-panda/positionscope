@@ -1,12 +1,12 @@
 # macOS 签名与发布
 
-## 当前已发布版本（2026-11-07，0.2.7）
+## 当前已发布版本（2026-11-08，0.2.8）
 
-[PR #82](https://github.com/hash-panda/positionscope/pull/82) 修复首次从提醒打开工作台时误选模拟复盘页签，保持与已有窗口一样直接进入研究记录。0.2.6的冻结模拟复盘与候选前向对照能力保留，未改变成本、模型或风险规则。
+[PR #83](https://github.com/hash-panda/positionscope/pull/83) 移除主进程账户条目数量、AI 消息/响应长度、代理目的地和设置摘要日志，并加入 AST 防回归；[#84](https://github.com/hash-panda/positionscope/pull/84) 只提升数字版本和当前版本说明。产品功能、风险规则和模拟账本不变。
 
-来源 `a5a774bd896d8eb2043a8416d9332154ac552716`，[签名运行](https://github.com/hash-panda/positionscope/actions/runs/42390725972)完成双架构签名、公证、装订、Gatekeeper、图标与隔离原生更新演练；[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.7) 于 `2026-11-07T16:37:49Z` 发布，七资产见 [releases/v0.2.7](releases/v0.2.7/)。[CI42390531962](https://github.com/hash-panda/positionscope/actions/runs/42390531962) 通过221 Node、25 Python、类型/构建、完整UI/axe及Mac原生检查，新增首次窗口深链接场景。
+来源 `a79eade3fa560824fbbf3e3e36739f420c4f3838`，[签名运行](https://github.com/hash-panda/positionscope/actions/runs/42437303606)重试后完成双架构签名、公证、装订、Gatekeeper、图标与隔离原生更新演练；首轮 arm64 装订 68 阻断记录保留。[Release](https://github.com/hash-panda/positionscope/releases/tag/v0.2.8) 于 `2026-11-08T02:25:04Z` 发布七资产，见 [releases/v0.2.8](releases/v0.2.8/)。[CI 42436621196](https://github.com/hash-panda/positionscope/actions/runs/42436621196) 通过223 Node、25 Python、类型/构建、完整UI/axe及Mac原生检查。
 
-当前官网与下载推广见 [本轮报告](ops/2026-11-07-paper-release.md) 和 PR #80。真实账户保持只读；模拟不证明现实盈利；用户Mac、真实模型/账单、连续七天与大账本容量仍未验证，跟踪 #3。不重配正常Apple凭证，不迁移旧预览版。
+当前证据与下载同步见 [本轮报告](ops/2026-11-08.md)。真实账户保持只读；模拟不证明现实盈利；用户Mac、真实模型/账单、连续七天与大账本容量仍未验证，跟踪 #3。不重配正常Apple凭证，不迁移旧预览版。
 
 ## 历史已发布版本（2026-11-07，0.2.6）
 
@@ -100,7 +100,7 @@
 ## 运行
 
 1. PR 的质量检查与独立审查通过后合并仓库当前默认分支。当前默认分支为 main，过渡期间工作流接收 main/master；签名前按 `github.event.repository.default_branch` 检查提交属于默认分支，不硬编码旧分支名。
-2. 新发布从 **0.2.1** 开始，只允许纯数字 `x.y.z`，Git tag 可有 `v` 前缀，Release 明确 `prerelease=false`。阶段功能 PR 保留当前已发布版本，直到最终发布 PR 才更新 package.json 和 release-notes；下一版使用 0.2.5，阶段顺序见 [实施计划](IMPLEMENTATION-PLAN.md)。
+2. 新发布从 **0.2.1** 开始，只允许纯数字 `x.y.z`，Git tag 可有 `v` 前缀，Release 明确 `prerelease=false`。阶段功能 PR 保留当前已发布版本，直到最终发布 PR 才更新 package.json 和 release-notes；下一版递增一个尚未发布的补丁版本，阶段顺序见 [实施计划](IMPLEMENTATION-PLAN.md)。
 3. 在 [Signed macOS release](https://github.com/hash-panda/positionscope/actions/workflows/signed-release.yml) 选择当前默认分支 → Run workflow。手动运行会检查密钥，不会降级成未签名发布。
 4. 两架构成功后检查 ZIP/DMG、SHA256SUMS 和各自 verification.json，再修改官网的版本与安装状态。数字发布不代表真实账户、模型或用户Mac已验收，证据范围仍分别记录。
 5. 已在 [Variables](https://github.com/hash-panda/positionscope/settings/variables/actions) 配置 `APPLE_SIGNING_ENABLED=true`，影响二进制的默认分支提交自动尝试发布；文档/官网改动不会触发签名。流水线**先查询当前版本是否已发布，再对不存在的新版本执行数字版本门禁**：已发布beta.16继续正常跳过，不重签/覆盖；不存在的beta/rc/build版本拒绝。查询失败不当作版本不存在，也不允许签名。正常Apple配置保持，无需重配。
