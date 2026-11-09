@@ -1,0 +1,59 @@
+{
+  "date": "2026-11-09",
+  "timezone": "Asia/Shanghai",
+  "observed_at": "2026-11-09T02:04:00Z",
+  "default_commit_before_run": "16771b49e30cfae608f87194af8d892b372918ee",
+  "release_source_commit": "f1319518832bd00f667f86deacbcf7d41548f6c3",
+  "repository": {
+    "stars": 0,
+    "forks": 0,
+    "watch": 0,
+    "subscribers": 0,
+    "open_issues": 3
+  },
+  "release": {
+    "tag": "v0.2.10",
+    "published_at": "2026-11-09T01:57:12Z",
+    "assets": [
+      { "name": "PositionScope-0.2.10-arm64-verification.json", "download_count": 0 },
+      { "name": "PositionScope-0.2.10-arm64.dmg", "download_count": 0 },
+      { "name": "PositionScope-0.2.10-arm64.zip", "download_count": 0 },
+      { "name": "PositionScope-0.2.10-x64-verification.json", "download_count": 0 },
+      { "name": "PositionScope-0.2.10-x64.dmg", "download_count": 0 },
+      { "name": "PositionScope-0.2.10-x64.zip", "download_count": 0 },
+      { "name": "SHA256SUMS.txt", "download_count": 0 }
+    ],
+    "download_count_scope": "Cumulative asset requests reported by GitHub at the observation time; not people, installs, activations or revenue."
+  },
+  "site": {
+    "project_version": 22,
+    "status": "active",
+    "audience": "public",
+    "url": "https://positionscope.funagent.app/",
+    "source_commit": "2e66de89447043a9d3f4b0eca402a51daf9e984c",
+    "deployment_status": "succeeded",
+    "custom_domain_status": "active",
+    "provider_status": "active",
+    "ssl_status": "active",
+    "expected_release": "v0.2.10",
+    "source_checks_verified": true,
+    "direct_http_verified": false,
+    "direct_http_limitation": "The executor and retrieval observer could not resolve/read the production URL; control-plane success is not a direct HTTP 200 observation."
+  },
+  "growth": {
+    "search_console": null,
+    "bing_webmaster": null,
+    "visits": null,
+    "confirmed_activation": null,
+    "w1_retention": null,
+    "paid_users": null,
+    "revenue": null,
+    "channel_cost": null,
+    "support_hours": null
+  },
+  "limitations": [
+    "No user device, real account, real holding, model response, model billing or installation data was read.",
+    "Signed synthetic macOS checks do not verify packaged Keychain prompts or native UI on the user's Mac.",
+    "Site control-plane and static-source checks do not prove global availability, crawler access or indexing."
+  ]
+}
