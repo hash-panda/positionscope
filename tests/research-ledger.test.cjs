@@ -116,9 +116,9 @@ test('atomic private persistence survives reopen, serializes mutations, and clea
 test('flushes the private temporary ledger before the atomic rename',async()=>{
  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'positionscope-ledger-sync-'));const filePath=path.join(dir,'research.json');const order=[];
  const fileSystem={...fs,
-  open:async(...args)=>{const file=await fs.open(...args);return{writeFile:async(...values)=>{order.push('write');return file.writeFile(...values);},sync:async()=>{order.push('sync');return file.sync();},close:async()=>{order.push('close');return file.close();}};},
+  open:async(target,...args)=>{const file=await fs.open(target,...args);const directory=target===dir;return{writeFile:async(...values)=>{order.push('write');return file.writeFile(...values);},sync:async()=>{order.push(directory?'directory-sync':'file-sync');return file.sync();},close:async()=>{order.push(directory?'directory-close':'file-close');return file.close();}};},
   rename:async(...args)=>{order.push('rename');return fs.rename(...args);}};
- try {const {ledger}=await setup({filePath,fileSystem});await ledger.setWatched('BTCUSDT',true);assert.deepEqual(order,['write','sync','close','rename']);assert.deepEqual(JSON.parse(await fs.readFile(filePath,'utf8')).watchedSymbols,['BTCUSDT']);}
+ try {const {ledger}=await setup({filePath,fileSystem});await ledger.setWatched('BTCUSDT',true);assert.deepEqual(order,['write','file-sync','file-close','rename','directory-sync','directory-close']);assert.deepEqual(JSON.parse(await fs.readFile(filePath,'utf8')).watchedSymbols,['BTCUSDT']);}
  finally{await fs.rm(dir,{recursive:true,force:true});}
 });
 

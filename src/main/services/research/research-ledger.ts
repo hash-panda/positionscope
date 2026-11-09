@@ -157,6 +157,11 @@ export class ResearchLedger {
       try { await file.writeFile(data, 'utf8'); await file.sync(); }
       finally { await file.close(); }
       await this.io.rename(temporary, this.options.filePath);
+      // The file sync commits its bytes; syncing the parent directory also
+      // commits the rename before the new in-memory snapshot is published.
+      const directory = await this.io.open(dirname(this.options.filePath), 'r');
+      try { await directory.sync(); }
+      finally { await directory.close(); }
     } catch { await this.io.unlink(temporary).catch(() => undefined); throw new Error('Research ledger could not be saved'); }
   }
   private change<T>(operation: (next: StoredLedger, now: number) => T): Promise<T> {
