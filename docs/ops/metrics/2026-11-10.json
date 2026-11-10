@@ -1,0 +1,90 @@
+{
+  "date": "2026-11-10",
+  "timezone": "Asia/Shanghai",
+  "observed_at": "2026-11-10T01:14:31Z",
+  "default_commit_before_run": "51b6ea160d181443262a830bcc43bc23e06240a4",
+  "repository": {
+    "stars": 0,
+    "forks": 0,
+    "watch": 0,
+    "subscribers": 0,
+    "open_issues_after_scope_issue": 4,
+    "open_pull_requests_before_run": 0
+  },
+  "release": {
+    "tag": "v0.2.10",
+    "source_commit": "f1319518832bd00f667f86deacbcf7d41548f6c3",
+    "published_at": "2026-11-09T01:57:12Z",
+    "assets": [
+      { "name": "PositionScope-0.2.10-arm64-verification.json", "download_count": 6 },
+      { "name": "PositionScope-0.2.10-arm64.dmg", "download_count": 4 },
+      { "name": "PositionScope-0.2.10-arm64.zip", "download_count": 5 },
+      { "name": "PositionScope-0.2.10-x64-verification.json", "download_count": 2 },
+      { "name": "PositionScope-0.2.10-x64.dmg", "download_count": 1 },
+      { "name": "PositionScope-0.2.10-x64.zip", "download_count": 1 },
+      { "name": "SHA256SUMS.txt", "download_count": 3 }
+    ],
+    "download_count_scope": "Cumulative GitHub asset requests; not people, installs, activations or revenue."
+  },
+  "site": {
+    "project_version": 22,
+    "status": "active",
+    "audience": "public",
+    "url": "https://positionscope.funagent.app/",
+    "expected_release": "v0.2.10",
+    "direct_http": {
+      "homepage": 200,
+      "robots": 200,
+      "sitemap": 200,
+      "release_manifest": 200
+    },
+    "source_checks_verified": true,
+    "search_indexing": null
+  },
+  "verification_before_pr": {
+    "node_tests": { "passed": 226, "failed": 0 },
+    "python_tests": { "passed": 25, "failed": 0 },
+    "typecheck": "passed",
+    "build": "passed",
+    "static_site": "passed",
+    "local_ui_axe": "not_verified_playwright_browser_download_failed"
+  },
+  "quality_score": {
+    "total": 84,
+    "data_accuracy_freshness": 19,
+    "ai_traceability_uncertainty_validation": 21,
+    "ui_information_accessibility_states": 17,
+    "privacy_credentials": 13,
+    "build_release": 9,
+    "website_onboarding": 5,
+    "scope": "Engineering quality, not profitability."
+  },
+  "forward_evaluation": {
+    "continuous_runtime": false,
+    "observation_days": null,
+    "independent_samples": null,
+    "net_pnl_after_all_costs": null,
+    "maximum_drawdown": null,
+    "cash_benchmark_difference": null,
+    "simple_rule_benchmark_difference": null,
+    "model_cost": null,
+    "profitability_conclusion": "unknown"
+  },
+  "growth": {
+    "search_console": null,
+    "bing_webmaster": null,
+    "visits": null,
+    "confirmed_activation": null,
+    "w1_retention": null,
+    "paid_users": null,
+    "revenue": null,
+    "channel_cost": null,
+    "support_hours": null
+  },
+  "limitations": [
+    "No user device, real account, real holding, API key, model response or model billing data was read.",
+    "The daily run did not operate the app continuously and produced no forward paper sample.",
+    "Paper and research ledgers are private-permission JSON but are not encrypted.",
+    "Parent-directory fsync reduces persistence risk but does not validate real power-loss recovery or profitability."
+  ]
+}

@@ -69,6 +69,19 @@ test('private journal survives restart, corrupt history remains untouched and co
  await fs.writeFile(filePath,'{broken');await assert.rejects(PaperLedger.open({filePath,now:h.now}));assert.equal(await fs.readFile(filePath,'utf8'),'{broken');
  } finally {await fs.rm(directory,{recursive:true,force:true});}
 });
+test('flushes the paper journal and parent directory before publishing memory',async()=>{
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'paper-ledger-fsync-')),filePath=path.join(directory,'paper.json'),order=[];
+ const fileSystem={...fs,
+  open:async(target,...args)=>{const file=await fs.open(target,...args),isDirectory=target===directory;return{
+   writeFile:async(...values)=>{order.push('write');return file.writeFile(...values);},
+   sync:async()=>{order.push(isDirectory?'directory-sync':'file-sync');return file.sync();},
+   close:async()=>{order.push(isDirectory?'directory-close':'file-close');return file.close();}};},
+  rename:async(...args)=>{order.push('rename');return fs.rename(...args);}};
+ try {const h=await harness({filePath,fileSystem});await h.start();
+  assert.deepEqual(order,['write','file-sync','file-close','rename','directory-sync','directory-close']);
+  assert.equal(JSON.parse(await fs.readFile(filePath,'utf8')).events.length,1);assert.equal(h.cycle().capital,'1000');
+ } finally {await fs.rm(directory,{recursive:true,force:true});}
+});
 test('abstention never opens positions and hard risk constraints reject oversized policy',async()=>{
  const h=await harness();await assert.rejects(h.ledger.append({kind:'start',capital:'1000',policy:{...policy,allocationBps:10000}}));await h.start();h.tick();await h.decision({direction:'abstain',evidenceIds:[]});h.tick();await h.book(book(h.now()));assert.equal(h.cycle().trades.length,0);
 });
