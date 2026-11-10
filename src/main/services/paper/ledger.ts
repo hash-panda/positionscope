@@ -5,22 +5,31 @@ import type { PaperCommand, PaperEvent, PaperState } from '../../types/paper';
 import { applyPaperEvent, emptyPaperState } from './engine';
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
 const MAX_BYTES = 128 * 1024 * 1024;
+export type PaperLedgerFileSystem = Pick<typeof fs, 'stat' | 'readFile' | 'open' | 'mkdir' | 'rename' | 'unlink' | 'chmod'>;
+export interface PaperLedgerOptions { filePath?: string; fileSystem?: PaperLedgerFileSystem; now?: () => number; }
 /** Per-installation local paper ledger. No credentials, exchange account balances or order endpoints. */
 export class PaperLedger {
   private state = emptyPaperState();
   private events: PaperEvent[] = [];
   private closed = false;
+  private readonly io: PaperLedgerFileSystem;
+  private readonly filePath?: string;
+  private readonly now: () => number;
   async close() { this.closed = true; await this.queue; }
   private queue: Promise<unknown> = Promise.resolve();
-  private constructor(private filePath?: string, private now: () => number = Date.now) {}
-  static async open(options: { filePath?: string; now?: () => number } = {}): Promise<PaperLedger> {
-    const ledger = new PaperLedger(options.filePath, options.now);
+  private constructor(options: PaperLedgerOptions) {
+    this.filePath = options.filePath;
+    this.io = options.fileSystem ?? fs;
+    this.now = options.now ?? Date.now;
+  }
+  static async open(options: PaperLedgerOptions = {}): Promise<PaperLedger> {
+    const ledger = new PaperLedger(options);
     if (!options.filePath) return ledger;
     let data: string;
     try {
-      const stat = await fs.stat(options.filePath);
+      const stat = await ledger.io.stat(options.filePath);
       if (stat.size > MAX_BYTES) throw new Error('Paper ledger size limit');
-      data = await fs.readFile(options.filePath, 'utf8');
+      data = await ledger.io.readFile(options.filePath, 'utf8');
     } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return ledger; throw new Error('模拟历史无法读取，原文件保留'); }
     try {
       const stored = JSON.parse(data);
@@ -31,7 +40,7 @@ export class PaperLedger {
         ledger.state = applyPaperEvent(ledger.state, event); ids.add(event.id); lastTime = event.at;
       }
       ledger.events = stored.events;
-      await fs.chmod(options.filePath, 0o600);
+      await ledger.io.chmod(options.filePath, 0o600);
     } catch { throw new Error('模拟历史校验失败，原文件保留；未重置本金或交易记录'); }
     return ledger;
   }
@@ -55,11 +64,15 @@ export class PaperLedger {
         if (Buffer.byteLength(data) > MAX_BYTES) throw new Error('模拟历史达到本地容量限制；停止运行并保留历史');
         const temporary = `${this.filePath}.${randomUUID()}.tmp`;
         try {
-          await fs.mkdir(dirname(this.filePath), { recursive: true, mode: 0o700 });
-          const file = await fs.open(temporary, 'wx', 0o600);
+          await this.io.mkdir(dirname(this.filePath), { recursive: true, mode: 0o700 });
+          const file = await this.io.open(temporary, 'wx', 0o600);
           try { await file.writeFile(data, 'utf8'); await file.sync(); } finally { await file.close(); }
-          await fs.rename(temporary, this.filePath);
-        } catch { await fs.unlink(temporary).catch(() => undefined); throw new Error('模拟账本保存失败，本次事件未应用'); }
+          await this.io.rename(temporary, this.filePath);
+          // The file sync commits its bytes; syncing the parent directory also
+          // commits the rename before the new in-memory event is published.
+          const directory = await this.io.open(dirname(this.filePath), 'r');
+          try { await directory.sync(); } finally { await directory.close(); }
+        } catch { await this.io.unlink(temporary).catch(() => undefined); throw new Error('模拟账本保存失败，本次事件未应用'); }
       }
       this.events = events; this.state = next; return this.snapshot();
     });
