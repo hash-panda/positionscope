@@ -3,6 +3,15 @@
   "timezone": "Asia/Shanghai",
   "observed_at": "2026-11-10T01:14:31Z",
   "default_commit_before_run": "51b6ea160d181443262a830bcc43bc23e06240a4",
+  "default_commit_after_improvement": "2423f62fb7a98bd07ed4deb544a27a318dfd9792",
+  "delivery": {
+    "issue": "https://github.com/hash-panda/positionscope/issues/93",
+    "pull_request": "https://github.com/hash-panda/positionscope/pull/94",
+    "pull_request_head_run": "https://github.com/hash-panda/positionscope/actions/runs/42734804025",
+    "main_run": "https://github.com/hash-panda/positionscope/actions/runs/42736183373",
+    "signed_release_workflow": "https://github.com/hash-panda/positionscope/actions/runs/42736183169",
+    "release_created": false
+  },
   "repository": {
     "stars": 0,
     "forks": 0,
@@ -49,13 +58,25 @@
     "static_site": "passed",
     "local_ui_axe": "not_verified_playwright_browser_download_failed"
   },
+  "verification_after_merge": {
+    "node_tests": { "passed": 226, "failed": 0 },
+    "python_tests": { "passed": 25, "failed": 0 },
+    "typecheck": "passed",
+    "build": "passed",
+    "site_demo": "passed",
+    "ui_axe": "passed_in_github_actions",
+    "macos_synthetic": "passed",
+    "initial_external_failures": ["public update metadata HTTP 403", "CJK font installation timeout"],
+    "retry_scope": "failed jobs only",
+    "retry_result": "passed"
+  },
   "quality_score": {
-    "total": 84,
+    "total": 85,
     "data_accuracy_freshness": 19,
     "ai_traceability_uncertainty_validation": 21,
     "ui_information_accessibility_states": 17,
     "privacy_credentials": 13,
-    "build_release": 9,
+    "build_release": 10,
     "website_onboarding": 5,
     "scope": "Engineering quality, not profitability."
   },
