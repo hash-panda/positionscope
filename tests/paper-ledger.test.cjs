@@ -85,6 +85,49 @@ test('flushes the paper journal and parent directory before publishing memory',a
 test('abstention never opens positions and hard risk constraints reject oversized policy',async()=>{
  const h=await harness();await assert.rejects(h.ledger.append({kind:'start',capital:'1000',policy:{...policy,allocationBps:10000}}));await h.start();h.tick();await h.decision({direction:'abstain',evidenceIds:[]});h.tick();await h.book(book(h.now()));assert.equal(h.cycle().trades.length,0);
 });
+test('a temporary file sync failure preserves history and permits an explicit retry',async()=>{
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'paper-before-rename-')),filePath=path.join(directory,'paper.json');
+ let fail=false;
+ const fileSystem={...fs,open:async(target,...args)=>{
+  const file=await fs.open(target,...args);
+  if(target===directory)return file;
+  return {writeFile:(...values)=>file.writeFile(...values),sync:async()=>{if(fail)throw new Error('synthetic sync failure');await file.sync();},close:()=>file.close()};
+ }};
+ try {
+  const h=await harness({filePath,fileSystem});await h.start();const before=h.ledger.snapshot(),bytes=await fs.readFile(filePath,'utf8');
+  const command={kind:'gap',reason:'explicit retry'};fail=true;
+  await assert.rejects(h.ledger.append(command,'retry'));assert.deepEqual(h.ledger.snapshot(),before);
+  assert.equal(await fs.readFile(filePath,'utf8'),bytes);assert.deepEqual(await fs.readdir(directory),['paper.json']);
+  fail=false;await h.ledger.append(command,'retry');assert.equal(h.cycle().gaps.length,1);
+ } finally {await fs.rm(directory,{recursive:true,force:true});}
+});
+test('uncertain directory commit blocks queued writes until reopen, preserving the renamed event',async()=>{
+ for(const failure of ['sync','close']) {
+  const directory=await fs.mkdtemp(path.join(os.tmpdir(),'paper-uncertain-')),filePath=path.join(directory,'paper.json');
+  let fail=false;
+  const fileSystem={...fs,open:async(target,...args)=>{
+   const file=await fs.open(target,...args);
+   if(target!==directory)return file;
+   return {sync:async()=>{if(fail&&failure==='sync')throw new Error('synthetic directory failure');await file.sync();},
+    close:async()=>{await file.close();if(fail&&failure==='close')throw new Error('synthetic directory failure');}};
+  }};
+  try {
+   const h=await harness({filePath,fileSystem});await h.start();const before=h.ledger.snapshot();
+   fail=true;const command={kind:'gap',reason:'retained on disk'};
+   const results=await Promise.allSettled([h.ledger.append(command,'uncertain'),h.ledger.append({kind:'gap',reason:'must not overwrite'},'queued')]);
+   assert(results.every(result=>result.status==='rejected'));
+   assert.deepEqual(h.ledger.snapshot(),before);
+   const bytes=await fs.readFile(filePath,'utf8');
+   assert.deepEqual(JSON.parse(bytes).events.map(event=>event.id),['cycle-100000','uncertain']);
+   fail=false;await assert.rejects(h.ledger.append({kind:'gap',reason:'later'},'later'),/重新打开/);
+   assert.equal(await fs.readFile(filePath,'utf8'),bytes);
+   const reopened=await PaperLedger.open({filePath,now:h.now});
+   await reopened.append(command,'uncertain');assert.equal(reopened.snapshot().cycles[0].gaps.length,1);
+   await reopened.append({kind:'gap',reason:'recovered'},'recovered');
+   assert.equal(reopened.snapshot().cycles[0].gaps.length,2);
+  } finally {await fs.rm(directory,{recursive:true,force:true});}
+ }
+});
 test('paper market adapter uses contract filters and bounded public GET only; no account key',async()=>{
  const {BinanceResearchService}=require('../dist/main/services/research/market-scanner');const now=1000000,calls=[];
  const transport={get:async(route,config)=>{calls.push({route,config});
