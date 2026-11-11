@@ -12,6 +12,7 @@ export class PaperLedger {
   private state = emptyPaperState();
   private events: PaperEvent[] = [];
   private closed = false;
+  private commitUncertain = false;
   private readonly io: PaperLedgerFileSystem;
   private readonly filePath?: string;
   private readonly now: () => number;
@@ -50,6 +51,7 @@ export class PaperLedger {
     if (this.closed) return Promise.reject(new Error("模拟账本已关闭"));
     const frozen = clone(command);
     const run = this.queue.then(async () => {
+      if (this.commitUncertain) throw new Error('模拟账本提交状态待核对，请重新打开应用校验历史');
       const previous = this.events.find(e => e.id === id);
       if (previous) {
         if (JSON.stringify(previous.command) !== JSON.stringify(frozen)) throw new Error('模拟事件身份冲突');
@@ -63,16 +65,27 @@ export class PaperLedger {
         const data = JSON.stringify({ version: 'paper-journal-v1', events });
         if (Buffer.byteLength(data) > MAX_BYTES) throw new Error('模拟历史达到本地容量限制；停止运行并保留历史');
         const temporary = `${this.filePath}.${randomUUID()}.tmp`;
+        let renameAttempted = false;
         try {
           await this.io.mkdir(dirname(this.filePath), { recursive: true, mode: 0o700 });
           const file = await this.io.open(temporary, 'wx', 0o600);
           try { await file.writeFile(data, 'utf8'); await file.sync(); } finally { await file.close(); }
+          renameAttempted = true;
           await this.io.rename(temporary, this.filePath);
           // The file sync commits its bytes; syncing the parent directory also
           // commits the rename before the new in-memory event is published.
           const directory = await this.io.open(dirname(this.filePath), 'r');
           try { await directory.sync(); } finally { await directory.close(); }
-        } catch { await this.io.unlink(temporary).catch(() => undefined); throw new Error('模拟账本保存失败，本次事件未应用'); }
+        } catch {
+          await this.io.unlink(temporary).catch(() => undefined);
+          if (renameAttempted) {
+            // The target may already contain this event. An old memory snapshot
+            // must not overwrite it, including through writes already queued.
+            this.commitUncertain = true;
+            throw new Error('模拟账本提交状态待核对，请重新打开应用校验历史');
+          }
+          throw new Error('模拟账本保存失败，本次事件未应用');
+        }
       }
       this.events = events; this.state = next; return this.snapshot();
     });
