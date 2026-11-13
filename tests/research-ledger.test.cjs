@@ -140,6 +140,54 @@ test('persistence failure rolls back memory, leaves the last atomic file intact 
  }finally{await fs.rm(dir,{recursive:true,force:true});}
 });
 
+test('directory failure after rename preserves the research judgment through queued writes and reopen', async () => {
+ for (const failure of ['sync', 'close']) {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'positionscope-research-commit-'));
+  const filePath = path.join(dir, 'research.json');
+  let fail = false;
+  const fileSystem = { ...fs, open: async (target, ...args) => {
+   const file = await fs.open(target, ...args);
+   if (target !== dir) return file;
+   return {
+    sync: async () => {
+     if (fail && failure === 'sync') throw new Error('synthetic directory sync failure');
+     await file.sync();
+    },
+    close: async () => {
+     await file.close();
+     if (fail && failure === 'close') throw new Error('synthetic directory close failure');
+    },
+   };
+  }};
+  try {
+   const { ledger } = await setup({ filePath, fileSystem });
+   await ledger.setWatched('BTCUSDT', true);
+   const before = ledger.snapshot();
+   const input = judgment();
+   fail = true;
+   const results = await Promise.allSettled([
+    ledger.recordJudgment(input),
+    ledger.setWatched('ETHUSDT', true),
+   ]);
+   assert.deepEqual(results.map(result => result.status), ['rejected', 'rejected']);
+   const bytes = await fs.readFile(filePath, 'utf8');
+   assert.equal(JSON.parse(bytes).records.length, 1);
+   assert.deepEqual(JSON.parse(bytes).watchedSymbols, ['BTCUSDT']);
+   assert.deepEqual(ledger.snapshot(), before);
+   fail = false;
+   await assert.rejects(ledger.clearAll(), /restart/i);
+   assert.equal(await fs.readFile(filePath, 'utf8'), bytes);
+   const reopened = await ResearchLedger.open({ filePath, now: () => START });
+   await reopened.recordJudgment(input);
+   await reopened.setWatched('ETHUSDT', true);
+   assert.equal(reopened.snapshot().records.length, 1);
+   assert.deepEqual(reopened.snapshot().watchedSymbols, ['BTCUSDT', 'ETHUSDT']);
+  } finally {
+   await fs.rm(dir, { recursive: true, force: true });
+  }
+ }
+});
+
 test('invalid persisted data fails closed without replacing the file or echoing its content',async()=>{
  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'positionscope-ledger-test-'));const filePath=path.join(dir,'research.json');
  try{await fs.writeFile(filePath,'DO_NOT_ECHO_PRIVATE_CONTENT');await assert.rejects(ResearchLedger.open({filePath}),e=>e.message.includes('invalid')&&!e.message.includes('PRIVATE_CONTENT'));assert.equal(await fs.readFile(filePath,'utf8'),'DO_NOT_ECHO_PRIVATE_CONTENT');}
