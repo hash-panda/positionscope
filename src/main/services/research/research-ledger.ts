@@ -114,6 +114,7 @@ function parseState(input: unknown, maxRecords: number): StoredLedger {
 /** Public-only, transactional append ledger. The host supplies the application directory. */
 export class ResearchLedger {
   private state: StoredLedger;
+  private commitUncertain = false;
   private queue: Promise<unknown> = Promise.resolve();
   private readonly now: () => number;
   private readonly io: ResearchLedgerFileSystem;
@@ -151,21 +152,39 @@ export class ResearchLedger {
     const data = JSON.stringify(next);
     if (Buffer.byteLength(data, 'utf8') > MAX_FILE_BYTES) throw new Error('Research ledger storage limit reached');
     const temporary = `${this.options.filePath}.${randomUUID()}.tmp`;
+    let renamed = false;
     try {
       await this.io.mkdir(dirname(this.options.filePath), { recursive: true, mode: 0o700 });
       const file = await this.io.open(temporary, 'wx', 0o600);
       try { await file.writeFile(data, 'utf8'); await file.sync(); }
       finally { await file.close(); }
       await this.io.rename(temporary, this.options.filePath);
+      renamed = true;
       // The file sync commits its bytes; syncing the parent directory also
       // commits the rename before the new in-memory snapshot is published.
       const directory = await this.io.open(dirname(this.options.filePath), 'r');
       try { await directory.sync(); }
       finally { await directory.close(); }
-    } catch { await this.io.unlink(temporary).catch(() => undefined); throw new Error('Research ledger could not be saved'); }
+    } catch {
+      if (renamed) {
+        // A queued mutation would otherwise write from an older snapshot.
+        this.commitUncertain = true;
+        throw new Error('Research ledger commit is uncertain; restart the app to verify history');
+      }
+      await this.io.unlink(temporary).catch(() => undefined);
+      throw new Error('Research ledger could not be saved');
+    }
   }
   private change<T>(operation: (next: StoredLedger, now: number) => T): Promise<T> {
-    const run = this.queue.then(async () => { const next = clone(this.state), result = operation(next, time(this.now())); assertActiveCapacity(next); await this.save(next); this.state = next; return clone(result); });
+    const run = this.queue.then(async () => {
+      if (this.commitUncertain) throw new Error('Research ledger commit is uncertain; restart the app to verify history');
+      const next = clone(this.state);
+      const result = operation(next, time(this.now()));
+      assertActiveCapacity(next);
+      await this.save(next);
+      this.state = next;
+      return clone(result);
+    });
     this.queue = run.catch(() => undefined); return run;
   }
   recordJudgment(input: ResearchJudgmentInput): Promise<ResearchRecord> {
