@@ -59,14 +59,23 @@ export class PaperController {
     this.polling = true;
     try {
       const at = this.now();
-      if (this.lastPoll && at - this.lastPoll > 60000) { this.generation++; await this.deps.ledger.append({kind:'gap',reason:'行情观察中断，未补造离线成交'}); }
+      const interrupted = this.lastPoll && at - this.lastPoll > 60000;
+      if (interrupted) this.generation++;
+      const generation = this.generation;
+      const isCurrent = () => this.enabled && generation === this.generation;
+      if (interrupted) await this.deps.ledger.append({kind:'gap',reason:'行情观察中断，未补造离线成交'});
+      if (!isCurrent()) return;
       this.lastPoll = at;
       if(this.deps.ledger.snapshot().trials.some(t=>['observing','settling'].includes(t.status))) await this.deps.ledger.append({kind:'trial-check'});
+      if (!isCurrent()) return;
       const state = this.deps.ledger.snapshot();
       const portfolios = [...state.cycles,...state.trials.filter(t=>['observing','settling'].includes(t.status)).flatMap(t=>[t.baseline,t.challenger])];
       const symbols = [...new Set(portfolios.filter(c => c.status !== 'archived').flatMap(c => [...c.trades.filter(t => !t.exit).map(t => t.symbol), ...c.decisions.filter(d => d.status === 'pending').map(d => d.plan.symbol)]))];
-      const quotes = await Promise.allSettled(symbols.slice(0, 12).map(async symbol => { const book = await this.deps.market.getPaperBook(symbol); if(this.enabled)await this.deps.ledger.append({kind:'book',book}); }));
-      if (!this.enabled) return;
+      const quotes = await Promise.allSettled(symbols.slice(0, 12).map(async symbol => {
+        const book = await this.deps.market.getPaperBook(symbol);
+        if (isCurrent()) await this.deps.ledger.append({kind:'book',book});
+      }));
+      if (!isCurrent()) return;
       let failed = false;
       for (const quote of quotes) {
         if (quote.status === 'rejected') failed = true;
@@ -79,9 +88,11 @@ export class PaperController {
         const start = Math.min(...wanted.map(t => t.fundingThrough));
         const end = Math.min(at - 300000, start + 7 * 86400000);
         if (end < start) continue;
-        try { const window = await this.deps.market.getPaperFunding(symbol,start,end); if (this.enabled) await this.deps.ledger.append({kind:'funding',window}); } catch { failed = true; }
+        try { const window = await this.deps.market.getPaperFunding(symbol,start,end); if (isCurrent()) await this.deps.ledger.append({kind:'funding',window}); } catch { failed = true; }
+        if (!isCurrent()) return;
       }
       if(state.trials.some(t=>['observing','settling'].includes(t.status)))await this.deps.ledger.append({kind:'trial-check'});
+      if (!isCurrent()) return;
       this.note = failed ? '部分盘口或资金费暂不可用，缺口保留；没有补造成交。' : '本地模拟；盘口有时间戳，净值与资金费完整性分开显示。';
     } catch { this.note = '模拟读取或账本校验未通过，原历史保留；本次未确认新成交。'; }
     finally { this.polling = false; this.deps.changed(); }

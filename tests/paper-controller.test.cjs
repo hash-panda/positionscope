@@ -37,3 +37,27 @@ test('restart/configuration change pauses autonomous calls and cancels pending e
 test('shutdown rejects late model results and a closed ledger cannot resurrect deleted history',async()=>{
  const f=await fixture({hold:true});await f.start();await flush(f.ready);f.controller.stop();await f.ledger.close();f.release();await flush(()=>!f.controller.snapshot().thinking);assert.equal(f.ledger.snapshot().cycles[0].decisions.length,0);await assert.rejects(f.ledger.append({kind:'gap',reason:'late'}));
 });
+test('invalidation discards an in-flight book and a fresh poll can still settle the position', async () => {
+ const f = await fixture();
+ await f.start();
+ await flush(() => !f.controller.snapshot().thinking);
+ f.advance(1);
+ await f.controller.poll();
+ assert.equal(f.ledger.snapshot().cycles[0].trades.length, 1);
+ const readBook = f.market.getPaperBook;
+ f.advance(1);
+ const exitBook = {...await readBook(), bids:[['106','1000']], asks:[['107','1000']]};
+ let release;
+ f.market.getPaperBook = () => new Promise(resolve => { release = resolve; });
+ const pending = f.controller.poll();
+ await flush(() => Boolean(release));
+ await f.controller.invalidate('synthetic configuration change');
+ release(exitBook);
+ await pending;
+ assert.equal(f.ledger.snapshot().cycles[0].trades[0].exit, null);
+ assert.deepEqual(f.ledger.snapshot().books, {});
+ f.advance(1);
+ f.market.getPaperBook = async () => ({...await readBook(), bids:exitBook.bids, asks:exitBook.asks});
+ await f.controller.poll();
+ assert.equal(f.ledger.snapshot().cycles[0].trades[0].exit.reason, 'target');
+});
