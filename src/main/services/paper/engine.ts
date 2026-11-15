@@ -93,6 +93,11 @@ function execute(c: PaperCycle, s: PaperState, b: PaperBook, at: number) {
   for (const p of c.decisions.filter(p => p.status === 'pending')) {
     if (at - p.at > PLAN_TTL) { p.status = 'expired'; p.note = '未在有效窗口获得后续报价'; continue; }
     if (c.status !== 'running' || p.plan.symbol !== b.symbol || b.observedAt <= p.at || b.fetchedAt <= p.at) continue;
+    if (p.plan.expiresAt !== undefined && Math.max(at, b.observedAt) >= p.plan.expiresAt) {
+      p.status = 'expired';
+      p.note = '研究证据已过期，未开仓';
+      continue;
+    }
     if (c.trades.some(t => t.symbol === b.symbol && t.exit?.quoteId === b.updateId)) continue;
     const reject = (note: string) => { p.status = 'rejected'; p.note = note; };
     const open = c.trades.filter(t => !t.exit);
@@ -139,6 +144,7 @@ export function applyPaperEvent(previous: PaperState, event: PaperEvent): PaperS
   } else if (command.kind === 'decision') {
     const c = s.cycles.find(c => c.id === command.cycleId); check(c && c.status === 'running');
     const p = command.plan; check(p && typeof p === 'object'); symbol(p.symbol); check(['long', 'short', 'abstain'].includes(p.direction));
+    if (p.expiresAt !== undefined) { time(p.expiresAt); check(p.expiresAt > at); }
     text(p.reason, 1000); text(p.snapshotId, 160); text(p.provider, 80); text(p.model, 120);
     check(Array.isArray(p.evidenceIds) && p.evidenceIds.length <= 16); p.evidenceIds.forEach(x => text(x, 160));
     if (p.direction !== 'abstain') check(p.evidenceIds.length > 0);

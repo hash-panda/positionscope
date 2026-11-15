@@ -152,6 +152,7 @@ export class PaperController {
       const invalid = result.invalidationConditionIds.some(id => !result.conditions.some(c => c.id === id && c.state === 'not-met'));
       const direction = triggers && !invalid && result.status !== 'observation' ? result.status === 'conditional-long' ? 'long' : 'short' : 'abstain';
       await this.deps.ledger.append({kind:'decision',cycleId:cycle.id,plan:{symbol:event.symbol,direction,
+        expiresAt:result.expiresAt,
         reason:direction === 'abstain' ? '未满足完整触发条件，保持观察。' : result.summary,
         evidence:result.facts,conditions:result.conditions,evidenceIds:[...result.supportFactIds,...result.counterFactIds],snapshotId:result.snapshotId,provider:result.provider,model:result.model}});
       await this.deps.ledger.append({kind:'call-result',callId,status:'complete',note:'已校验研究条件，结果已冻结；实际模型费用未知'}); callId = undefined;
