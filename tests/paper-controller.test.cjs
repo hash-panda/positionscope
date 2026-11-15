@@ -16,6 +16,18 @@ test('no background paid work before explicit start; configured model and consen
  const f=await fixture();await f.controller.think();assert.equal(f.calls(),0);await assert.rejects(f.controller.start({capital:'1000',callsPerDay:4,consent:false}));assert.equal(f.ledger.snapshot().cycles.length,0);
  const unavailable=await fixture({noModel:true});await assert.rejects(unavailable.start());assert.equal(unavailable.calls(),0);
 });
+test('an entry can fill just before the research expires but not at the deadline', async () => {
+ for (const offset of [59999, 60000]) {
+  const f = await fixture();
+  await f.start();
+  await flush(() => !f.controller.snapshot().thinking);
+  f.advance(offset);
+  await f.controller.poll();
+  const cycle = f.ledger.snapshot().cycles[0];
+  assert.equal(cycle.trades.length, offset === 59999 ? 1 : 0);
+  assert.equal(cycle.decisions[0].status, offset === 59999 ? 'filled' : 'expired');
+ }
+});
 test('model allowance is durably reserved before response; cycle reset cannot reset rolling budget',async()=>{
  const f=await fixture({hold:true,abstain:true});await f.start();await flush(f.ready);assert.equal(f.ledger.snapshot().calls[0].status,'reserved');assert.equal(f.controller.snapshot().callsReserved24h,2);
  await f.start();assert.equal(f.calls(),1);f.release();await flush(()=>!f.controller.snapshot().thinking);assert.equal(f.ledger.snapshot().calls[0].status,'failed');assert.equal(f.ledger.snapshot().cycles[0].decisions.length,0);

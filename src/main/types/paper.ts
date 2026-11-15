@@ -16,6 +16,7 @@ export interface PaperBook {
 }
 export interface PaperPlan {
   symbol: string; direction: 'long' | 'short' | 'abstain';
+  expiresAt?: number; // Absent in historical journal events.
   reason: string; evidence: ResearchFact[]; conditions: ResearchCondition[]; evidenceIds: string[]; snapshotId: string; provider: string; model: string;
 }
 export interface PaperDecision {
