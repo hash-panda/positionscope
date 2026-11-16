@@ -1,0 +1,162 @@
+{
+  "date": "2026-11-16",
+  "timezone": "Asia/Shanghai",
+  "period_start": "2026-11-09T02:35:52Z",
+  "observed_at": "2026-11-16T02:14:45Z",
+  "observation_note": "Repository and release values are point-in-time GitHub API observations. Asset counts are cumulative requests and may include automated verification or repeated downloads; they are not unique people, installs, activations or revenue.",
+  "repository": {
+    "default_branch": "main",
+    "main_commit": "3b7bf4e44e2a5972430fcd6e3984cbb834694b27",
+    "stars": 0,
+    "forks": 0,
+    "watch": 0,
+    "watchers_api": 0,
+    "subscribers": 0,
+    "open_issues": 4,
+    "open_pull_requests": 0
+  },
+  "delivery": {
+    "merged_pull_requests_after_previous_observation": 9,
+    "merged_pull_request_numbers": [
+      92,
+      94,
+      95,
+      96,
+      97,
+      98,
+      99,
+      100,
+      101
+    ],
+    "node_tests": 235,
+    "python_tests": 25,
+    "latest_main_quality_run": {
+      "url": "https://github.com/hash-panda/positionscope/actions/runs/43786398106",
+      "attempt": 2,
+      "conclusion": "success",
+      "note": "Attempt 1 failed while checking public update metadata with an HTTP 403; the failed jobs passed on rerun."
+    },
+    "latest_signed_workflow": {
+      "url": "https://github.com/hash-panda/positionscope/actions/runs/43786398085",
+      "conclusion": "success",
+      "signing_and_publish_skipped": true,
+      "reason": "The version remained 0.2.10, which was already published."
+    },
+    "latest_release": {
+      "tag": "v0.2.10",
+      "published_at": "2026-11-09T01:57:12Z",
+      "source_commit": "f1319518832bd00f667f86deacbcf7d41548f6c3",
+      "assets": [
+        {
+          "name": "PositionScope-0.2.10-arm64-verification.json",
+          "requests": 18
+        },
+        {
+          "name": "PositionScope-0.2.10-arm64.dmg",
+          "requests": 4
+        },
+        {
+          "name": "PositionScope-0.2.10-arm64.zip",
+          "requests": 17
+        },
+        {
+          "name": "PositionScope-0.2.10-x64-verification.json",
+          "requests": 2
+        },
+        {
+          "name": "PositionScope-0.2.10-x64.dmg",
+          "requests": 1
+        },
+        {
+          "name": "PositionScope-0.2.10-x64.zip",
+          "requests": 1
+        },
+        {
+          "name": "SHA256SUMS.txt",
+          "requests": 3
+        }
+      ],
+      "dmg_requests": 5,
+      "zip_requests": 18,
+      "verification_requests": 20,
+      "checksum_requests": 3,
+      "total_asset_requests": 46,
+      "delta_since_2026_11_09": {
+        "dmg_requests": 3,
+        "zip_requests": 14,
+        "verification_requests": 14,
+        "checksum_requests": 0,
+        "total_asset_requests": 31
+      },
+      "signed": true,
+      "notarized": true,
+      "stapled": true,
+      "gatekeeper_verified": true,
+      "release_run": "https://github.com/hash-panda/positionscope/actions/runs/42546703521"
+    },
+    "unreleased_main_changes": true
+  },
+  "site": {
+    "project_version": 22,
+    "source_commit": "2e66de89447043a9d3f4b0eca402a51daf9e984c",
+    "status": "active",
+    "audience": "public",
+    "url": "https://positionscope.funagent.app",
+    "updated_at": "2026-11-09T02:03:36Z",
+    "custom_domain_status": "active",
+    "provider_status": "active",
+    "ssl_status": "active",
+    "direct_http_observed_at": "2026-11-16T02:14:00Z",
+    "direct_http_verified": true,
+    "http_200_paths": [
+      "/",
+      "/download/",
+      "/guides/portfolio-risk/",
+      "/robots.txt",
+      "/sitemap.xml",
+      "/release.json"
+    ],
+    "canonical": "https://positionscope.funagent.app/",
+    "download_version": "0.2.10",
+    "limitation": "Point-in-time HTTP and control-plane success do not prove global uptime, crawling, indexing or conversion."
+  },
+  "growth": {
+    "search_console": null,
+    "bing_webmaster": null,
+    "visits": null,
+    "confirmed_activation": null,
+    "w1_retention": null,
+    "paid_users": null,
+    "revenue": null,
+    "refunds": null,
+    "channel_cost": null,
+    "total_cost": null,
+    "support_hours": null
+  },
+  "feedback": {
+    "external_testers": null,
+    "external_feedback_count": null,
+    "maintainer_input": "Asked whether DeepSeek and Binance credentials are required for verifiable iteration. Public/synthetic work needs neither; real model and real-account acceptance remain opt-in, local and budget-bounded."
+  },
+  "profitability_evidence": {
+    "continuous_forward_days": null,
+    "independent_decision_samples": null,
+    "net_pnl_after_estimated_costs": null,
+    "max_drawdown": null,
+    "cash_benchmark_delta": null,
+    "simple_rule_benchmark_delta": null,
+    "conclusion": "No evidence this period establishes a repeatable profitable edge."
+  },
+  "decisions": {
+    "positioning": "Keep Binance USDⓈ-M read-only evidence, AI research and local paper experimentation. Do not claim autonomous or stable profit.",
+    "pricing": "Keep free open-source core; price points remain interview hypotheses only.",
+    "channels": "Keep website and GitHub only until Search Console/Bing and one authorized brand channel are available.",
+    "investment": "Continue bounded research, but do not add paid acquisition, complex payment or data spend without activation and retention evidence."
+  },
+  "boundaries": [
+    "No user device, real account, real holding, API key, model response, model billing or installation data was read.",
+    "The current public binary is v0.2.10; main changes after that release are not signed release artifacts.",
+    "Synthetic macOS checks and signed-package automation do not verify the Keychain prompt or native UI on the user's Mac.",
+    "Paper and research outcomes do not prove real trading profitability."
+  ]
+}
