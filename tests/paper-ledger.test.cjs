@@ -143,3 +143,30 @@ test('entry budgets round down to exchange quantity step and reject depth exhaus
  const h=await harness();await h.start();h.tick();await h.decision();h.tick();await h.book(book(h.now(),undefined,'99','100','0.001'));assert.equal(h.cycle().decisions[0].status,'rejected');assert.equal(h.cycle().trades.length,0);
  const h2=await harness();await h2.start();h2.tick();await h2.decision();h2.tick();await h2.book(book(h2.now()));const t=h2.cycle().trades[0];assert.equal(decimal(t.entry.quantity)%decimal('0.001'),0n);assert.ok(decimal(t.entry.notional)<=decimal('200'));
 });
+
+test('reopened journal rejects a previously seen depth snapshot after a gap', async () => {
+ const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'paper-depth-replay-'));
+ const filePath = path.join(directory, 'paper.json');
+ try {
+  const h = await harness({ filePath });
+  await h.start();
+  h.tick(); await h.decision();
+  h.tick(); await h.book(book(h.now(), '42'));
+  assert.equal(h.cycle().trades.length, 1);
+  h.tick(); await h.start('10000');
+  h.tick(); await h.ledger.append({ kind: 'gap', reason: 'synthetic restart' });
+
+  const reopened = await harness({ filePath });
+  reopened.set(h.now());
+  assert.deepEqual(reopened.ledger.snapshot().books, {});
+  reopened.tick();
+  await reopened.ledger.append({ kind: 'book', book: book(reopened.now(), '42'), requireNewSequence: true });
+  assert.deepEqual(reopened.ledger.snapshot().books, {});
+  assert.equal(reopened.cycle().trades[0].exit, null);
+  reopened.tick();
+  await reopened.ledger.append({ kind: 'book', book: book(reopened.now(), '43'), requireNewSequence: true });
+  assert.equal(reopened.cycle().trades[0].exit.quoteId, '43');
+ } finally {
+  await fs.rm(directory, { recursive: true, force: true });
+ }
+});

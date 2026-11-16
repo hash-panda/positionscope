@@ -45,7 +45,7 @@ export interface PaperReview { id:string; cycleId:string; at:number; sourcePolic
   status:'insufficient'|'awaiting-model'|'kept'|'trial'|'failed'; choice:ReviewChoice; provider:string|null; model:string|null; support:string[]; counter:string[]; }
 export interface PaperTrial { id:string; cycleId:string; reviewId:string; startedAt:number; endAt:number; sourceVersion:string;
   rulesVersion:'forward-paired-v1'; baseline:PaperCycle; challenger:PaperCycle; status:'observing'|'settling'|'promoted'|'rejected'|'cancelled'; reasons:string[]; paired:number; advantageBps:number|null; }
-export interface PaperState { version: 'paper-ledger-v1'; cycles: PaperCycle[]; books: Record<string, PaperBook>; calls: PaperCall[]; reviews: PaperReview[]; trials: PaperTrial[]; }
+export interface PaperState { version: 'paper-ledger-v1'; cycles: PaperCycle[]; books: Record<string, PaperBook>; bookWatermarks: Record<string, Pick<PaperBook, 'updateId' | 'observedAt'>>; calls: PaperCall[]; reviews: PaperReview[]; trials: PaperTrial[]; }
 export interface PaperFundingWindow {
   symbol: string; start: number; end: number;
   rows: { time: number; rate: string; markPrice: string }[];
@@ -54,7 +54,7 @@ export type PaperCommand =
   | { kind: 'start'; capital: string; policy: PaperPolicy }
   | { kind: 'mode'; cycleId: string; mode: 'running' | 'paused' | 'settling' }
   | { kind: 'decision'; cycleId: string; plan: PaperPlan }
-  | { kind: 'book'; book: PaperBook }
+  | { kind: 'book'; book: PaperBook; requireNewSequence?: true }
   | { kind: 'funding'; window: PaperFundingWindow }
   | { kind:'review'; cycleId:string }
   | { kind:'review-result'; reviewId:string; callId:string; choice:ReviewChoice; support:string[]; counter:string[] }
