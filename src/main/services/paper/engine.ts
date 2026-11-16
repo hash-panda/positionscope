@@ -126,7 +126,7 @@ function execute(c: PaperCycle, s: PaperState, b: PaperBook, at: number) {
   }
   observe(c, s, at);
 }
-export const emptyPaperState = (): PaperState => ({ version: 'paper-ledger-v1', cycles: [], books: {}, calls: [], reviews: [], trials: [] });
+export const emptyPaperState = (): PaperState => ({ version: 'paper-ledger-v1', cycles: [], books: {}, bookWatermarks: {}, calls: [], reviews: [], trials: [] });
 /** Pure deterministic reducer. The journal is the only persisted source of truth. */
 export function applyPaperEvent(previous: PaperState, event: PaperEvent): PaperState {
   const s = clone(previous); text(event.id, 80); time(event.at); const at = event.at, command = event.command;
@@ -164,8 +164,16 @@ export function applyPaperEvent(previous: PaperState, event: PaperEvent): PaperS
     c.decisions.push({ id: event.id, at, plan: clone(p), policy: clone(c.policy), status: p.direction === 'abstain' ? 'abstained' : 'pending', note: p.direction === 'abstain' ? '模型弃权，不创建模拟委托' : '等待决策之后的新鲜盘口' });
     for(const trial of s.trials.filter(t=>t.cycleId===c.id&&t.status==='observing'&&at>t.startedAt&&at<t.endAt)) for(const target of [trial.baseline,trial.challenger]) target.decisions.push({...clone(c.decisions[c.decisions.length-1]),policy:clone(target.policy)});
   } else if (command.kind === 'book') {
-    const b = command.book; validateBook(b, at); const last = s.books[b.symbol];
+    const b = command.book; validateBook(b, at);
+    const watermark = s.bookWatermarks[b.symbol];
+    // New events retain sequence checks across gaps. Legacy journal events
+    // replay their original outcomes while rebuilding the watermark.
+    const last = command.requireNewSequence ? watermark : s.books[b.symbol];
     if (last && (BigInt(b.updateId) <= BigInt(last.updateId) || b.observedAt < last.observedAt)) return s;
+    s.bookWatermarks[b.symbol] = {
+      updateId: watermark && BigInt(watermark.updateId) > BigInt(b.updateId) ? watermark.updateId : b.updateId,
+      observedAt: Math.max(watermark?.observedAt ?? b.observedAt, b.observedAt),
+    };
     s.books[b.symbol] = clone(b);
     for (const c of s.cycles.filter(c => c.status !== 'archived')) execute(c, s, b, at);
     for (const trial of s.trials.filter(t => ['observing','settling'].includes(t.status))) for (const c of [trial.baseline,trial.challenger]) execute(c,s,b,at);
