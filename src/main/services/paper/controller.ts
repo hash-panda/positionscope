@@ -73,7 +73,7 @@ export class PaperController {
       const symbols = [...new Set(portfolios.filter(c => c.status !== 'archived').flatMap(c => [...c.trades.filter(t => !t.exit).map(t => t.symbol), ...c.decisions.filter(d => d.status === 'pending').map(d => d.plan.symbol)]))];
       const quotes = await Promise.allSettled(symbols.slice(0, 12).map(async symbol => {
         const book = await this.deps.market.getPaperBook(symbol);
-        if (isCurrent()) await this.deps.ledger.append({kind:'book',book,requireNewSequence:true});
+        if (isCurrent()) await this.deps.ledger.append({kind:'book',book,requireNewSequence:true,sharedDepth:true});
       }));
       if (!isCurrent()) return;
       let failed = false;

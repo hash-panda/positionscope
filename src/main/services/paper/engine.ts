@@ -36,19 +36,31 @@ export function validateBook(b: PaperBook, at: number): void {
   check(d(b.bids[0][0]) < d(b.asks[0][0]));
 }
 /** All-or-none local market fill, limited to visible depth. Never treats a price touch as a fill. */
-export function fillBook(book: PaperBook, buy: boolean, quantity: bigint, policy: PaperPolicy): { price: bigint; notional: bigint; fee: bigint } | null {
+export function fillBook(book: PaperBook, buy: boolean, quantity: bigint, policy: PaperPolicy) {
   let remaining = quantity, notional = 0n;
-  for (const [price, volume] of buy ? book.asks : book.bids) {
-    const q = d(volume) < remaining ? d(volume) : remaining;
+  const side = buy ? 'asks' : 'bids';
+  const levels = book[side];
+  let consumedLevels = 0, residual = 0n;
+  for (const [price, volume] of levels) {
+    const available = d(volume);
+    const q = available < remaining ? available : remaining;
     // Buy amounts round upward, sell amounts downward, at the fixed-point boundary.
     const raw = d(price) * q;
     notional += buy ? (raw + SCALE - 1n) / SCALE : raw / SCALE;
-    remaining -= q; if (remaining === 0n) break;
+    consumedLevels++;
+    residual = available - q;
+    remaining -= q;
+    if (remaining === 0n) break;
   }
   if (remaining > 0n || notional <= 0n) return null;
   notional += buy ? cost(notional, policy.slippageBps) : -cost(notional, policy.slippageBps);
   if (notional <= 0n) return null;
-  return { price: div(notional, quantity), notional, fee: cost(notional, policy.feeBps) };
+  return {
+    price: div(notional, quantity), notional, fee: cost(notional, policy.feeBps),
+    remainingLevels: () => residual > 0n
+      ? [[levels[consumedLevels - 1][0], f(residual)] as [string, string], ...levels.slice(consumedLevels)]
+      : levels.slice(consumedLevels),
+  };
 }
 function direction(t: PaperTrade) { return t.direction === 'long' ? 1n : -1n; }
 export function cycleMetrics(c: PaperCycle, books: Record<string, PaperBook>, at: number) {
@@ -76,7 +88,7 @@ function observe(c: PaperCycle, s: PaperState, at: number) {
   if (c.status === 'settling' && c.trades.every(t => t.exit && t.fundingThrough >= t.exit.quoteAt)) { c.status = 'archived'; c.endedAt = at; }
 }
 function cancel(c: PaperCycle, note: string) { for (const p of c.decisions) if (p.status === 'pending') { p.status = 'cancelled'; p.note = note; } }
-function execute(c: PaperCycle, s: PaperState, b: PaperBook, at: number) {
+function execute(c: PaperCycle, s: PaperState, b: PaperBook, at: number, availableDepth?: PaperBook) {
   for (const t of c.trades) {
     if (t.symbol !== b.symbol || t.exit || b.observedAt <= t.entry.quoteAt) continue;
     const price = d(t.direction === 'long' ? b.bids[0][0] : b.asks[0][0]);
@@ -85,8 +97,10 @@ function execute(c: PaperCycle, s: PaperState, b: PaperBook, at: number) {
     if (!reason && (t.direction === 'long' ? price >= d(t.target) : price <= d(t.target))) reason = 'target';
     if (!reason && b.observedAt >= t.dueAt) reason = 'time';
     if (!reason) continue;
-    const quote = fillBook(b, t.direction === 'short', d(t.entry.quantity), t.policy);
+    const buy = t.direction === 'short';
+    const quote = fillBook(availableDepth ?? b, buy, d(t.entry.quantity), t.policy);
     if (!quote) continue; // Still open; insufficient visible depth cannot be fabricated into a settlement.
+    if (availableDepth) availableDepth[buy ? 'asks' : 'bids'] = quote.remainingLevels();
     t.exit = { at, quoteId: b.updateId, quoteAt: b.observedAt, quantity: t.entry.quantity, price: f(quote.price), notional: f(quote.notional), fee: f(quote.fee), reason };
     t.grossPnl = f((quote.notional - d(t.entry.notional)) * direction(t)); t.fees = f(d(t.fees) + quote.fee);
   }
@@ -111,11 +125,12 @@ function execute(c: PaperCycle, s: PaperState, b: PaperBook, at: number) {
     const buy = p.plan.direction === 'long', top = d(buy ? b.asks[0][0] : b.bids[0][0]);
     const step = d(b.stepSize), quantity = div(budget, top + cost(top, p.policy.slippageBps)) / step * step;
     if (quantity < d(b.minQty) || quantity > d(b.maxQty) || quantity <= 0n) { reject('不满足合约数量规则'); continue; }
-    const quote = fillBook(b, buy, quantity, p.policy);
+    const quote = fillBook(availableDepth ?? b, buy, quantity, p.policy);
     if (!quote || quote.notional < d(b.minNotional)) { reject('可见深度不足或低于最小名义金额'); continue; }
     // Slippage may consume the allocation headroom. Reject, never silently expand risk.
     if (quote.notional > allocation || quote.notional + quote.fee + d(m.grossNotional) > equity ||
         cost(quote.notional, p.policy.stopBps + 2 * (p.policy.feeBps + p.policy.slippageBps)) > riskBudget) { reject('名义敞口或预设损失预算超限'); continue; }
+    if (availableDepth) availableDepth[buy ? 'asks' : 'bids'] = quote.remainingLevels();
     const entry: PaperFill = { at, quoteId: b.updateId, quoteAt: b.observedAt, quantity: f(quantity), price: f(quote.price), notional: f(quote.notional), fee: f(quote.fee), reason: 'entry' };
     const sign = buy ? 1n : -1n;
     c.trades.push({ id: p.id, symbol: b.symbol, direction: buy ? 'long' : 'short', policyVersion: p.policy.version, entry, exit: null,
@@ -175,8 +190,13 @@ export function applyPaperEvent(previous: PaperState, event: PaperEvent): PaperS
       observedAt: Math.max(watermark?.observedAt ?? b.observedAt, b.observedAt),
     };
     s.books[b.symbol] = clone(b);
-    for (const c of s.cycles.filter(c => c.status !== 'archived')) execute(c, s, b, at);
-    for (const trial of s.trials.filter(t => ['observing','settling'].includes(t.status))) for (const c of [trial.baseline,trial.challenger]) execute(c,s,b,at);
+    // Replay older events under the original rule. Actual paper cycles share one
+    // budget per new snapshot; each counterfactual arm starts with equal depth.
+    const availableDepth = command.sharedDepth ? { ...b } : undefined;
+    for (const c of s.cycles.filter(c => c.status !== 'archived')) execute(c, s, b, at, availableDepth);
+    for (const trial of s.trials.filter(t => ['observing','settling'].includes(t.status))) {
+      for (const c of [trial.baseline, trial.challenger]) execute(c, s, b, at, command.sharedDepth ? { ...b } : undefined);
+    }
   } else if (command.kind === 'funding') {
     const w = command.window; check(w && typeof w === 'object'); symbol(w.symbol); time(w.start); time(w.end);
     check(w.start <= w.end && w.end <= at && Array.isArray(w.rows) && w.rows.length <= 1000);
