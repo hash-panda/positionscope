@@ -1,7 +1,7 @@
 const test = require('node:test'), assert = require('node:assert/strict');
 const fs = require('node:fs/promises'), os = require('node:os'), path = require('node:path');
 const { PaperLedger } = require('../dist/main/services/paper/ledger');
-const { cycleMetrics } = require('../dist/main/services/paper/engine');
+const { applyPaperEvent, cycleMetrics } = require('../dist/main/services/paper/engine');
 const { decimal, format, multiply } = require('../dist/main/services/paper/decimal');
 const { DEFAULT_PAPER_POLICY: policy } = require('../dist/main/types/paper');
 function book(at, id = String(at), bid = '99', ask = '100', depth = '1000') { return {symbol:'BTCUSDT',updateId:id,observedAt:at,fetchedAt:at,bids:[[bid,depth]],asks:[[ask,depth]],stepSize:'0.001',minQty:'0.001',maxQty:'1000',minNotional:'5'}; }
@@ -50,6 +50,36 @@ test('new capital creates a separate cycle preserving old history, deferred sett
  h.tick();await h.book(book(h.now()));assert.equal(h.cycle().trades[0].exit.reason,'cycle-end');assert.equal(h.cycle().status,'settling');
  const t=h.cycle().trades[0];await h.ledger.append({kind:'funding',window:{symbol:'BTCUSDT',start:t.entry.quoteAt,end:t.exit.quoteAt,rows:[]}});assert.equal(h.cycle().status,'archived');
  await assert.rejects(h.ledger.append({kind:'mode',cycleId:h.cycle().id,mode:'running'}));
+});
+test('a settling cycle and a new cycle cannot sell into the same bid quantity', async () => {
+ const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'paper-shared-depth-'));
+ const filePath = path.join(directory, 'paper.json');
+ try {
+  const h = await harness({ filePath });
+  await h.start();
+  h.tick(); await h.decision();
+  h.tick(); await h.book(book(h.now()));
+  const quantity = h.cycle().trades[0].entry.quantity;
+  h.tick(); await h.start();
+  const nextId = 'cycle-' + h.now();
+  h.tick();
+  await h.ledger.append({ kind:'decision', cycleId:nextId, plan:plan({ direction:'short' }) });
+  h.tick();
+  const quote = book(h.now(), '999999', '100', '101', quantity);
+  const legacy = applyPaperEvent(h.ledger.snapshot(), {
+   id:'legacy-book', at:h.now(), command:{ kind:'book', book:quote, requireNewSequence:true },
+  });
+  assert.equal(legacy.cycles[0].trades[0].exit.quantity, quantity);
+  assert.equal(legacy.cycles[1].trades[0].entry.quantity, quantity);
+  await h.ledger.append({ kind:'book', book:quote, requireNewSequence:true, sharedDepth:true });
+  const state = h.ledger.snapshot();
+  assert.equal(state.cycles[0].trades[0].exit.quantity, quantity);
+  assert.equal(state.cycles[1].trades.length, 0);
+  assert.match(state.cycles[1].decisions[0].note, /可见深度不足/);
+  assert.deepEqual(state.books.BTCUSDT, quote);
+  const reopened = await PaperLedger.open({ filePath, now:h.now });
+  assert.deepEqual(reopened.snapshot(), state);
+ } finally { await fs.rm(directory, { recursive:true, force:true }); }
 });
 test('invalid, crossed, stale and future books do not mutate state; expired plans never backfill',async()=>{
  const h=await harness();await h.start();h.tick();await h.decision();const before=h.ledger.snapshot();

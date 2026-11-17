@@ -54,7 +54,7 @@ export type PaperCommand =
   | { kind: 'start'; capital: string; policy: PaperPolicy }
   | { kind: 'mode'; cycleId: string; mode: 'running' | 'paused' | 'settling' }
   | { kind: 'decision'; cycleId: string; plan: PaperPlan }
-  | { kind: 'book'; book: PaperBook; requireNewSequence?: true }
+  | { kind: 'book'; book: PaperBook; requireNewSequence?: true; sharedDepth?: true }
   | { kind: 'funding'; window: PaperFundingWindow }
   | { kind:'review'; cycleId:string }
   | { kind:'review-result'; reviewId:string; callId:string; choice:ReviewChoice; support:string[]; counter:string[] }
