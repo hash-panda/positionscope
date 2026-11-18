@@ -27,7 +27,38 @@ test('candidate starts empty after review, old trades stay frozen, future hypoth
  const original=structuredClone(state.cycles[0].trades);const reviewId=apply({kind:'review',cycleId});assert.equal(state.reviews[0].status,'awaiting-model');const callId=apply({kind:'call',cycleId,provider:'synthetic',model:'fixture'});
  apply({kind:'review-result',reviewId,callId,choice:'reduce-allocation',support:['fees'],counter:['knownClosedNetPnl']});assert.equal(state.trials.length,1);assert.equal(state.trials[0].baseline.trades.length,0);assert.deepEqual(state.cycles[0].trades,original);assert.equal(state.cycles[0].policy.version,policy.version);
  apply({kind:'decision',cycleId,plan:plan(4)});assert.equal(state.trials[0].baseline.decisions.length,1);assert.equal(state.trials[0].challenger.decisions.length,1);
+ const cutoff=state.trials[0].endAt;
+ for (const [commitAt, observedAt, shouldFill] of [
+  [cutoff-1,cutoff-1,true],
+  [cutoff-1,cutoff,false],
+  [cutoff,cutoff-1,false],
+  [cutoff,cutoff,false],
+ ]) {
+  // A pending signal enters immediately before the cutoff. Its fetch may be
+  // in flight when the controller's pre-fetch trial check passes.
+  const nearEnd=structuredClone(state);
+  for (const c of [...nearEnd.cycles,nearEnd.trials[0].baseline,nearEnd.trials[0].challenger]) {
+   c.decisions.at(-1).at=cutoff-2;
+  }
+  const event={id:'cutoff-book',at:commitAt,command:{kind:'book',
+   book:{...book('99','100'),observedAt,fetchedAt:commitAt},enforceTrialDeadline:true}};
+  const next=applyPaperEvent(nearEnd,event);
+  for (const arm of [next.trials[0].baseline,next.trials[0].challenger]) {
+   assert.equal(arm.trades.length,shouldFill?1:0);
+   assert.equal(arm.decisions[0].status,shouldFill?'filled':'cancelled');
+  }
+  assert.equal(next.cycles[0].decisions.at(-1).status,'filled','parent is outside experiment deadline');
+  if (!shouldFill) {
+   delete event.command.enforceTrialDeadline;
+   assert.equal(applyPaperEvent(nearEnd,event).trials[0].baseline.trades.length,1,'legacy events retain their historical result');
+  }
+ }
  apply({kind:'book',book:book('99','100')});assert.equal(state.trials[0].baseline.trades.length,1);assert.equal(state.trials[0].challenger.trades.length,1);assert.notEqual(state.trials[0].baseline.trades[0].entry.quantity,state.trials[0].challenger.trades[0].entry.quantity);
+ const after=applyPaperEvent(state,{id:'cutoff-exit',at:cutoff,command:{
+  kind:'book',book:{...book('106','107'),observedAt:cutoff,fetchedAt:cutoff},enforceTrialDeadline:true}});
+ for (const arm of [after.trials[0].baseline,after.trials[0].challenger]) {
+  assert.equal(arm.trades[0].exit.reason,'target');
+ }
  assert.equal(state.cycles[0].policy.version,policy.version,'one positive result cannot promote a strategy');
 });
 

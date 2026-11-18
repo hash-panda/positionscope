@@ -195,7 +195,14 @@ export function applyPaperEvent(previous: PaperState, event: PaperEvent): PaperS
     const availableDepth = command.sharedDepth ? { ...b } : undefined;
     for (const c of s.cycles.filter(c => c.status !== 'archived')) execute(c, s, b, at, availableDepth);
     for (const trial of s.trials.filter(t => ['observing','settling'].includes(t.status))) {
-      for (const c of [trial.baseline, trial.challenger]) execute(c, s, b, at, command.sharedDepth ? { ...b } : undefined);
+      for (const c of [trial.baseline, trial.challenger]) {
+        // A fetch started before the cutoff can be committed afterward.
+        // Cancel entries here as well as in trial-check; exits still run.
+        if (command.enforceTrialDeadline && Math.max(at, b.observedAt) >= trial.endAt) {
+          cancel(c, '已到前向观察截止时间，未开仓');
+        }
+        execute(c, s, b, at, command.sharedDepth ? { ...b } : undefined);
+      }
     }
   } else if (command.kind === 'funding') {
     const w = command.window; check(w && typeof w === 'object'); symbol(w.symbol); time(w.start); time(w.end);
