@@ -123,7 +123,7 @@ export class PaperController {
       const raw=await Promise.race([work,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Review deadline')),75000);})]).finally(()=>{if(timer)clearTimeout(timer);});
       if(!this.enabled||generation!==this.generation||!provider.isCurrent())throw Error('Changed');
       const result=validateReviewChoice(raw);
-      await this.deps.ledger.append({kind:'review-result',reviewId,callId,...result});
+      await this.deps.ledger.append({kind:'review-result',reviewId,callId,...result,preserveDirection:true});
       await this.deps.ledger.append({kind:'call-result',callId,status:'complete',note:'模拟复盘已冻结；候选需后续对照，不代表盈利验证'});callId=undefined;reviewId=undefined;
     } catch {
       if(this.enabled){if(reviewId)await this.deps.ledger.append({kind:'review-failed',reviewId}).catch(()=>undefined);

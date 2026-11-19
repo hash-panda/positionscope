@@ -13,12 +13,16 @@ export function reviewFacts(cycle: PaperCycle) {
     rejected:cycle.decisions.filter(p=>['rejected','cancelled','expired'].includes(p.status)).length,abstentions:cycle.decisions.filter(p=>p.status==='abstained').length};
 }
 export type PaperReviewFacts = ReturnType<typeof reviewFacts>;
-export function candidatePolicy(base: PaperPolicy, choice: ReviewChoice, version: string): PaperPolicy {
+export function candidatePolicy(base: PaperPolicy, choice: ReviewChoice, version: string, preserveDirection = true): PaperPolicy {
   const next={...base,version};
   if(choice==='reduce-allocation')next.allocationBps=Math.max(500,base.allocationBps-500);
   if(choice==='shorter-hold')next.maxHoldMinutes=Math.max(5,Math.floor(base.maxHoldMinutes/2));
   if(choice==='tighter-stop')next.stopBps=Math.max(50,Math.floor(base.stopBps*.8));
   if(choice==='further-target')next.targetBps=Math.min(1000,base.targetBps+100);
+  if (preserveDirection) {
+    next.allocationBps = Math.min(base.allocationBps, next.allocationBps);
+    next.targetBps = Math.max(base.targetBps, next.targetBps);
+  }
   return next;
 }
 export function validateReviewChoice(raw: unknown): {choice:ReviewChoice;support:string[];counter:string[]} {
