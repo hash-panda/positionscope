@@ -57,7 +57,7 @@ export type PaperCommand =
   | { kind: 'book'; book: PaperBook; requireNewSequence?: true; sharedDepth?: true; enforceTrialDeadline?: true }
   | { kind: 'funding'; window: PaperFundingWindow }
   | { kind:'review'; cycleId:string }
-  | { kind:'review-result'; reviewId:string; callId:string; choice:ReviewChoice; support:string[]; counter:string[] }
+  | { kind:'review-result'; reviewId:string; callId:string; choice:ReviewChoice; support:string[]; counter:string[]; preserveDirection?:true }
   | { kind:'review-failed'; reviewId:string }
   | { kind:'trial-check' }
   | { kind: 'call'; cycleId: string; provider: string; model: string }

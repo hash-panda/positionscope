@@ -13,6 +13,16 @@ test('time, samples, missing funding, observation gaps and worse drawdowns indep
  const unequal=cycle(2);unequal.trades[0].id='other';assert.equal(evaluateTrial(a,unequal,0,8*86400000).eligible,false);
 });
 test('model can only nominate bounded policy variants with explicit counterevidence, never modify risk or results',()=>{
+ for (const allocationBps of [100,499,500,501,1000,2500]) {
+  const base={...policy,allocationBps};
+  const candidate=candidatePolicy(base,'reduce-allocation','candidate');
+  assert.ok(candidate.allocationBps<=base.allocationBps,'reducing allocation cannot increase it');
+ }
+ for (const targetBps of [50,999,1000,1001,3000]) {
+  const base={...policy,targetBps};
+  const candidate=candidatePolicy(base,'further-target','candidate');
+  assert.ok(candidate.targetBps>=base.targetBps,'a further target cannot be closer');
+ }
  for(const choice of ['reduce-allocation','shorter-hold','tighter-stop','further-target']){const p=candidatePolicy(policy,choice,'candidate');assert.equal(p.riskBps,policy.riskBps);assert.equal(p.maxPositions,policy.maxPositions);assert.equal(p.feeBps,policy.feeBps);assert.equal(p.callsPerDay,policy.callsPerDay);assert.ok(p.allocationBps<=policy.allocationBps);}
  for(const raw of [{choice:'buy',support:[],counter:[]},{choice:'tighter-stop',support:['grossPnl'],counter:[]},{choice:'tighter-stop',support:['grossPnl'],counter:['grossPnl']},{choice:'keep',support:[],counter:[],profit:'100'}])assert.throws(()=>validateReviewChoice(raw));
  assert.deepEqual(validateReviewChoice({choice:'keep',support:[],counter:[]}),{choice:'keep',support:[],counter:[]});
@@ -25,6 +35,24 @@ test('candidate starts empty after review, old trades stay frozen, future hypoth
  for(let i=0;i<3;i++){apply({kind:'decision',cycleId,plan:plan(i)});apply({kind:'book',book:book('99','100')});apply({kind:'book',book:book('106','107')});}
  apply({kind:'funding',window:{symbol:'BTCUSDT',start:100000,end:at,rows:[]}});
  const original=structuredClone(state.cycles[0].trades);const reviewId=apply({kind:'review',cycleId});assert.equal(state.reviews[0].status,'awaiting-model');const callId=apply({kind:'call',cycleId,provider:'synthetic',model:'fixture'});
+ for (const [field,value,choice] of [
+  ['allocationBps',100,'reduce-allocation'], ['targetBps',3000,'further-target'],
+ ]) {
+  const source=structuredClone(state);
+  source.cycles[0].policy[field]=value;
+  source.reviews[0].sourcePolicy[field]=value;
+  const event={id:'bounded-review',at:at+1,command:{
+   kind:'review-result',reviewId,callId,choice,support:['fees'],counter:['knownClosedNetPnl'],
+   preserveDirection:true,
+  }};
+  const bounded=applyPaperEvent(source,event);
+  assert.equal(bounded.trials.length,0,'no trial for a saturated adjustment');
+  assert.equal(bounded.reviews[0].status,'kept');
+  delete event.command.preserveDirection;
+  const legacy=applyPaperEvent(source,event);
+  assert.equal(legacy.trials.length,1,'old events reproduce their original candidate');
+  assert.notEqual(legacy.trials[0].challenger.policy[field],value);
+ }
  apply({kind:'review-result',reviewId,callId,choice:'reduce-allocation',support:['fees'],counter:['knownClosedNetPnl']});assert.equal(state.trials.length,1);assert.equal(state.trials[0].baseline.trades.length,0);assert.deepEqual(state.cycles[0].trades,original);assert.equal(state.cycles[0].policy.version,policy.version);
  apply({kind:'decision',cycleId,plan:plan(4)});assert.equal(state.trials[0].baseline.decisions.length,1);assert.equal(state.trials[0].challenger.decisions.length,1);
  const cutoff=state.trials[0].endAt;

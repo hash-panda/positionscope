@@ -235,7 +235,7 @@ export function applyPaperEvent(previous: PaperState, event: PaperEvent): PaperS
     const result=validateReviewChoice({choice:command.choice,support:command.support,counter:command.counter});
     review.choice=result.choice;review.support=result.support;review.counter=result.counter;review.provider=call.provider;review.model=call.model;review.status='kept';
     if(result.choice!=='keep'&&!s.trials.some(t=>['observing','settling'].includes(t.status))) {
-      const policy=candidatePolicy(c.policy,result.choice,`paper-${event.id.slice(0,12)}`);validatePolicy(policy);
+      const policy=candidatePolicy(c.policy,result.choice,`paper-${event.id.slice(0,12)}`,command.preserveDirection===true);validatePolicy(policy);
       const changed=Object.keys(policy).some(k=>k!=='version'&&policy[k as keyof typeof policy]!==c.policy[k as keyof typeof policy]);
       if(changed){
         const account=(policy:typeof c.policy,side:string):PaperCycle=>({id:event.id+'-'+side,startedAt:at,endedAt:null,settleRequestedAt:null,capital:c.capital,status:'running',policy:clone(policy),decisions:[],trades:[],curve:[{at,equity:c.capital,knownNetPnl:'0',fundingComplete:true}],gaps:[]});
