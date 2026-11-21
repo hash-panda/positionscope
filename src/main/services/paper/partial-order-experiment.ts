@@ -9,7 +9,8 @@ export interface PartialOrder {
   at: number;
   expiresAt: number;
 }
-export interface PartialBookEvent { id: string; at: number; book: PaperBook }
+export interface PartialBookEvent { kind?: 'book'; id: string; at: number; book: PaperBook }
+export interface PartialCancelEvent { kind: 'cancel'; id: string; at: number; orderId: string }
 
 /**
  * Isolated replay experiment for one symbol and one side.
@@ -19,7 +20,7 @@ export function replayPartialOrders(
   symbol: string,
   buy: boolean,
   orders: readonly PartialOrder[],
-  events: readonly PartialBookEvent[],
+  events: readonly (PartialBookEvent | PartialCancelEvent)[],
   policy: Pick<PaperPolicy, 'feeBps' | 'slippageBps'>,
 ) {
   const ids = new Set<string>();
@@ -32,7 +33,8 @@ export function replayPartialOrders(
     ids.add(order.id);
     return {
       ...order,
-      status: 'pending' as 'pending' | 'partial' | 'filled' | 'expired',
+      status: 'pending' as 'pending' | 'partial' | 'filled' | 'expired' | 'cancelled',
+      cancelledAt: null as number | null,
       remaining: order.quantity,
       notional: '0',
       fees: '0',
@@ -53,20 +55,32 @@ export function replayPartialOrders(
       if (previous !== encoded) throw new Error('Conflicting experiment event ID');
       continue;
     }
-    if (!Number.isSafeInteger(event.at) || event.at < lastAt || event.book.symbol !== symbol) {
+    if (!Number.isSafeInteger(event.at) || event.at < lastAt) {
       throw new Error('Invalid experiment event sequence');
-    }
-    validateBook(event.book, event.at);
-    const step = d(event.book.stepSize);
-    if ([...event.book.bids, ...event.book.asks].some(([, quantity]) => d(quantity) % step !== 0n)) {
-      throw new Error('Experiment depth quantity is off contract step');
     }
     seen.set(event.id, encoded);
     lastAt = event.at;
     for (const order of results) {
-      if (order.status !== 'filled' && event.at >= order.expiresAt) order.status = 'expired';
+      if ((order.status === 'pending' || order.status === 'partial') && event.at >= order.expiresAt) {
+        order.status = 'expired';
+      }
+    }
+    if (event.kind === 'cancel') {
+      const order = results.find(order => order.id === event.orderId);
+      if (!order || event.at < order.at) throw new Error('Invalid experiment cancellation');
+      if (order.status === 'pending' || order.status === 'partial') {
+        order.status = 'cancelled';
+        order.cancelledAt = event.at;
+      }
+      continue;
     }
     const book = event.book;
+    if (book.symbol !== symbol) throw new Error('Invalid experiment symbol');
+    validateBook(book, event.at);
+    const step = d(book.stepSize);
+    if ([...book.bids, ...book.asks].some(([, quantity]) => d(quantity) % step !== 0n)) {
+      throw new Error('Experiment depth quantity is off contract step');
+    }
     const updateId = BigInt(book.updateId);
     if (watermark && (updateId <= watermark.updateId || book.observedAt < watermark.observedAt)) continue;
     watermark = { updateId, observedAt: book.observedAt };
