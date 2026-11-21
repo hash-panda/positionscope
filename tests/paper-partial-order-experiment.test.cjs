@@ -43,3 +43,24 @@ test('expiry preserves the executed part, rejects replay conflicts and never bac
  const sameTime=replayPartialOrders('BTCUSDT',true,orders,[event('early',1000,'41')],policy);
  assert(sameTime.every(order=>order.fills.length===0));
 });
+test('cancellation retains partial fills and costs through replay and later quotes', () => {
+ const run=events=>replayPartialOrders('BTCUSDT',true,orders,events,policy);
+ const book=event('one',2000,'42');
+ const cancel={kind:'cancel',id:'cancel-second',at:3000,orderId:'second'};
+ const before=run([book]);
+ const events=[book,cancel,cancel,{...cancel,id:'cancel-again',at:4000},event('two',5000,'43'),event('late',11000,'44')];
+ const result=run(events);
+ assert.deepEqual(result[1],{...before[1],status:'cancelled',cancelledAt:3000});
+ assert.deepEqual(run(JSON.parse(JSON.stringify(events))),result);
+ assert.equal(result[0].status,'filled');
+ assert.throws(()=>run([book,cancel,{...cancel,orderId:'first'}]),/Conflicting/);
+ assert.throws(()=>run([{...cancel,orderId:'unknown'}]));
+ assert.throws(()=>run([{...cancel,at:999}]));
+ const pending=run([{...cancel,at:1000},event('later',2000,'42')]);
+ assert.equal(pending[1].fills.length,0);
+ assert.equal(pending[1].remaining,'1.5');
+ const expired=run([{...cancel,at:10000}]);
+ assert.equal(expired[1].status,'expired');
+ const filled=run([event('full',2000,'42','3'),cancel]);
+ assert.equal(filled[1].status,'filled');
+});
