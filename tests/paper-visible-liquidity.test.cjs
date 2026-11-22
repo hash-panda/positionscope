@@ -39,6 +39,9 @@ test('sell-side consumption is deterministic and costs remain explicit', () => {
 });
 
 test('invalid quantities and cost policy fail closed', () => {
+  assert.throws(() => consumeVisibleLiquidity(book, true, [{ id:'zero-remainder', quantity:0n, isRemainder:true }], policy));
+  assert.throws(() => consumeVisibleLiquidity(book, true, [{ id:'bad-remainder', quantity:decimal('0.0005'), isRemainder:true }], policy));
+  assert.throws(() => consumeVisibleLiquidity(book, true, [{ id:'large-remainder', quantity:decimal('1001'), isRemainder:true }], policy));
   assert.throws(() => consumeVisibleLiquidity(book, true, [{ id: 'zero', quantity: 0n }], policy));
   assert.throws(() => consumeVisibleLiquidity(book, true, [{ id: '', quantity: decimal('1') }], policy));
   assert.throws(() => consumeVisibleLiquidity(book, true, [{ id: 'duplicate', quantity: decimal('1') }, { id: 'duplicate', quantity: decimal('1') }], policy));

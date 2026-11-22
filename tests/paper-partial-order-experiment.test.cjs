@@ -64,3 +64,22 @@ test('cancellation retains partial fills and costs through replay and later quot
  const filled=run([event('full',2000,'42','3'),cancel]);
  assert.equal(filled[1].status,'filled');
 });
+test('a valid order can complete a step-aligned remainder below the minimum order quantity', () => {
+ const order=[{id:'parent',quantity:'0.3',at:1000,expiresAt:10000}];
+ const quote=(id,at,seq,depth)=> {
+  const e=event(id,at,seq,depth);
+  e.book.stepSize='0.01'; e.book.minQty='0.1';
+  return e;
+ };
+ const first=quote('one',2000,'42','0.25');
+ const second=quote('two',3000,'43','0.05');
+ const run=events=>replayPartialOrders('BTCUSDT',true,order,events,policy);
+ const partial=run([first]);
+ assert.equal(partial[0].remaining,'0.05');
+ const completed=run([first,second]);
+ assert.equal(completed[0].status,'filled');
+ assert.equal(completed[0].remaining,'0');
+ assert.equal(completed[0].fills.reduce((sum,f)=>sum+d(f.quantity),0n),d('0.3'));
+ assert.deepEqual(run(JSON.parse(JSON.stringify([first,second]))),completed);
+ assert.throws(()=>replayPartialOrders('BTCUSDT',true,[{...order[0],quantity:'0.05'}],[first],policy));
+});

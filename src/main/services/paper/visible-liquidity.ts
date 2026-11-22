@@ -4,6 +4,8 @@ import { SCALE, cost, decimal as d, divide as div, format as f } from './decimal
 export interface VisibleLiquidityOrder {
   id: string;
   quantity: bigint;
+  /** Caller has validated the parent order and already recorded a partial fill. */
+  isRemainder?: boolean;
 }
 
 export interface VisibleLiquidityFill {
@@ -46,7 +48,9 @@ export function consumeVisibleLiquidity(
   let levelIndex = 0;
 
   return orders.map(order => {
-    if (!order.id || ids.has(order.id) || order.quantity < minimum || order.quantity > maximum || order.quantity % step !== 0n) {
+    if (!order.id || ids.has(order.id) || order.quantity <= 0n ||
+        (!order.isRemainder && order.quantity < minimum) ||
+        order.quantity > maximum || order.quantity % step !== 0n) {
       throw new Error('Invalid visible-liquidity order');
     }
     ids.add(order.id);
