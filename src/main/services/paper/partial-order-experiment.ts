@@ -87,11 +87,10 @@ export function replayPartialOrders(
     const eligible = results.filter(order =>
       (order.status === 'pending' || order.status === 'partial') &&
       book.observedAt > order.at && book.fetchedAt > order.at &&
-      book.observedAt < order.expiresAt &&
-      d(order.remaining) >= d(book.minQty),
+      book.observedAt < order.expiresAt,
     );
     const fills = consumeVisibleLiquidity(book, buy, eligible.map(order => ({
-      id: order.id, quantity: d(order.remaining),
+      id: order.id, quantity: d(order.remaining), isRemainder: order.fills.length > 0,
     })), policy);
     fills.forEach((fill, index) => {
       if (fill.status === 'unfilled') return;
