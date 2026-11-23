@@ -4,6 +4,18 @@
   "period_start": "2026-11-16T02:14:45Z",
   "observed_at": "2026-11-23T02:55:47Z",
   "observation_note": "Repository and release values are point-in-time GitHub API observations. Asset counts are cumulative requests and may include automated verification, updater traffic or repeated downloads; they are not unique people, installs, activations or revenue.",
+  "report_completion": {
+    "observed_at": "2026-11-23T03:02:24Z",
+    "pull_request_109": "merged",
+    "merge_commit": "ce5ebea634f8142a94181e8a0bc4d2d4cdd9ac0c",
+    "quality_run": "https://github.com/hash-panda/positionscope/actions/runs/45103313401",
+    "checks_job": "success",
+    "storage_macos_job": "success",
+    "quality_job": "success",
+    "release_created": false,
+    "public_version": "0.2.10",
+    "note": "This records the post-observation review result without changing the 02:55:47Z snapshot below."
+  },
   "repository": {
     "default_branch": "main",
     "main_commit": "de23f203b7aeeeccaf5b09f430dcbb8f23f9b595",
