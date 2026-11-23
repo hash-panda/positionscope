@@ -1,7 +1,7 @@
 import type { PaperBook, PaperPolicy } from '../../types/paper';
-import { validateBook } from './engine';
+import { BOOK_TTL, validateBook } from './engine';
 import { consumeVisibleLiquidity } from './visible-liquidity';
-import { decimal as d, format as f } from './decimal';
+import { SCALE, decimal as d, format as f } from './decimal';
 
 export interface PartialOrder {
   id: string;
@@ -9,8 +9,24 @@ export interface PartialOrder {
   at: number;
   expiresAt: number;
 }
-export interface PartialBookEvent { kind?: 'book'; id: string; at: number; book: PaperBook }
+export interface ExperimentMark {
+  symbol: string;
+  price: string;
+  observedAt: number;
+  fetchedAt: number;
+  source: '/fapi/v1/premiumIndex';
+}
+export interface PartialBookEvent { kind?: 'book'; id: string; at: number; book: PaperBook; mark?: ExperimentMark }
 export interface PartialCancelEvent { kind: 'cancel'; id: string; at: number; orderId: string }
+
+function validMark(mark: ExperimentMark | undefined, symbol: string, at: number): mark is ExperimentMark {
+  if (!mark || mark.symbol !== symbol || mark.source !== '/fapi/v1/premiumIndex' ||
+      !Number.isSafeInteger(mark.observedAt) || !Number.isSafeInteger(mark.fetchedAt) ||
+      mark.observedAt < 0 || mark.fetchedAt < 0 || mark.fetchedAt > at ||
+      mark.observedAt > at + 2000 || mark.observedAt > mark.fetchedAt + 2000 ||
+      at - mark.observedAt > BOOK_TTL || at - mark.fetchedAt > BOOK_TTL) return false;
+  try { return d(mark.price) > 0n; } catch { return false; }
+}
 
 /**
  * Isolated replay experiment for one symbol and one side.
@@ -22,6 +38,7 @@ export function replayPartialOrders(
   orders: readonly PartialOrder[],
   events: readonly (PartialBookEvent | PartialCancelEvent)[],
   policy: Pick<PaperPolicy, 'feeBps' | 'slippageBps'>,
+  requireMinimumNotional = false,
 ) {
   const ids = new Set<string>();
   const results = orders.map(order => {
@@ -33,7 +50,9 @@ export function replayPartialOrders(
     ids.add(order.id);
     return {
       ...order,
-      status: 'pending' as 'pending' | 'partial' | 'filled' | 'expired' | 'cancelled',
+      status: 'pending' as 'pending' | 'partial' | 'filled' | 'expired' | 'cancelled' | 'rejected',
+      admission: (requireMinimumNotional ? 'unverified' : 'unchecked') as 'unverified' | 'unchecked' | 'admitted' | 'rejected',
+      minimumNotionalEvidence: null as (ExperimentMark & { quantity: string; minimum: string }) | null,
       cancelledAt: null as number | null,
       remaining: order.quantity,
       notional: '0',
@@ -84,11 +103,25 @@ export function replayPartialOrders(
     const updateId = BigInt(book.updateId);
     if (watermark && (updateId <= watermark.updateId || book.observedAt < watermark.observedAt)) continue;
     watermark = { updateId, observedAt: book.observedAt };
-    const eligible = results.filter(order =>
+    let eligible = results.filter(order =>
       (order.status === 'pending' || order.status === 'partial') &&
       book.observedAt > order.at && book.fetchedAt > order.at &&
       book.observedAt < order.expiresAt,
     );
+    if (requireMinimumNotional) {
+      eligible = eligible.filter(order => {
+        if (order.admission === 'admitted') return true;
+        if (!validMark(event.mark, symbol, event.at)) return false;
+        order.minimumNotionalEvidence = { ...event.mark, quantity: order.quantity, minimum: book.minNotional };
+        if (d(order.quantity) * d(event.mark.price) < d(book.minNotional) * SCALE) {
+          order.status = 'rejected';
+          order.admission = 'rejected';
+          return false;
+        }
+        order.admission = 'admitted';
+        return true;
+      });
+    }
     const fills = consumeVisibleLiquidity(book, buy, eligible.map(order => ({
       id: order.id, quantity: d(order.remaining), isRemainder: order.fills.length > 0,
     })), policy);
