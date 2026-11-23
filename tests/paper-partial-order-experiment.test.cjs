@@ -83,3 +83,31 @@ test('a valid order can complete a step-aligned remainder below the minimum orde
  assert.deepEqual(run(JSON.parse(JSON.stringify([first,second]))),completed);
  assert.throws(()=>replayPartialOrders('BTCUSDT',true,[{...order[0],quantity:'0.05'}],[first],policy));
 });
+test('market minimum notional uses fresh mark evidence and retains parent admission across partial fills', () => {
+ const order=[{id:'market',quantity:'1',at:1000,expiresAt:50000}];
+ const mark=price=>({symbol:'BTCUSDT',price,observedAt:2000,fetchedAt:2000,source:'/fapi/v1/premiumIndex'});
+ const quote={...event('one',2000,'42','0.5'),mark:mark('5')};
+ const run=events=>replayPartialOrders('BTCUSDT',true,order,events,policy,true);
+ assert.equal(run([{...quote,mark:mark('4')}])[0].status,'rejected','bid/ask=99/100 cannot replace mark=4');
+ for (const evidence of [undefined,{...mark('5'),symbol:'ETHUSDT'},
+  {...mark('5'),price:'0'},{...mark('5'),price:'NaN'},
+  {...mark('5'),observedAt:5001},{...mark('5'),fetchedAt:2001},
+  {...mark('5'),source:'/fapi/v1/ticker/price'}]) {
+  const unknown=run([{...quote,mark:evidence}])[0];
+  assert.equal(unknown.status,'pending');
+  assert.equal(unknown.fills.length,0);
+  assert.equal(unknown.admission,'unverified');
+ }
+ const stale=run([{...event('old',20000,'42'),mark:mark('5')}])[0];
+ assert.equal(stale.admission,'unverified');
+ const result=run([quote,event('two',3000,'43','0.5')])[0];
+ assert.equal(result.status,'filled');
+ assert.equal(result.minimumNotionalEvidence.price,'5');
+ assert.equal(result.fills.length,2,'admitted parent remainder needs no new admission');
+ const pack=JSON.parse(JSON.stringify({order,events:[quote,event('two',3000,'43','0.5')]}));
+ assert.deepEqual(replayPartialOrders('BTCUSDT',true,pack.order,pack.events,policy,true)[0],result);
+ const below=run([{...quote,mark:mark('4.999999999999')}])[0];
+ assert.equal(below.status,'rejected');
+ const recovered=run([{...quote,mark:undefined},{...event('fresh',3000,'43'),mark:{...mark('5'),observedAt:3000,fetchedAt:3000}}])[0];
+ assert.equal(recovered.status,'filled');
+});
