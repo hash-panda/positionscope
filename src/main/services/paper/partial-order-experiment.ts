@@ -31,6 +31,8 @@ function validMark(mark: ExperimentMark | undefined, symbol: string, at: number)
 /**
  * Isolated replay experiment for one symbol and one side.
  * Its JSON inputs are the journal; it does not write the production paper ledger.
+ * Scarce depth follows decision time, with input order breaking equal-time ties.
+ * This local scheduling rule does not model exchange queue position.
  */
 export function replayPartialOrders(
   symbol: string,
@@ -122,6 +124,8 @@ export function replayPartialOrders(
         return true;
       });
     }
+    // Sort a filtered copy; preserve caller/return order and original parent priority.
+    eligible.sort((a, b) => a.at - b.at);
     const fills = consumeVisibleLiquidity(book, buy, eligible.map(order => ({
       id: order.id, quantity: d(order.remaining), isRemainder: order.fills.length > 0,
     })), policy);
