@@ -2,6 +2,26 @@ const test = require('node:test'), assert = require('node:assert/strict');
 const { replayPartialOrders } = require('../dist/main/services/paper/partial-order-experiment');
 const { decimal:d } = require('../dist/main/services/paper/decimal');
 const policy = {feeBps:5,slippageBps:2};
+test('scarce depth follows decision time and preserves input order only for ties', () => {
+ const input=[
+  {id:'newer',quantity:'1',at:1500,expiresAt:10000},
+  {id:'older',quantity:'1',at:1000,expiresAt:10000},
+  {id:'tie',quantity:'1',at:1000,expiresAt:10000},
+ ];
+ for (const buy of [true,false]) {
+  const journal=[event('one',2000,'42','1.5'),event('two',3000,'43','1.5')];
+  const before=JSON.stringify({input,journal});
+  const partial=replayPartialOrders('BTCUSDT',buy,input,journal.slice(0,1),policy);
+  assert.deepEqual(partial.map(o=>o.id),['newer','older','tie'],'return order remains unchanged');
+  assert.deepEqual(partial.map(o=>o.remaining),['1','0','0.5']);
+  const result=replayPartialOrders('BTCUSDT',buy,input,journal,policy);
+  assert(result.every(o=>o.status==='filled'));
+  assert.equal(result[2].fills[1].quantity,'0.5','older remainder precedes newer order');
+  const restored=JSON.parse(before);
+  assert.deepEqual(replayPartialOrders('BTCUSDT',buy,restored.input,restored.journal,policy),result);
+  assert.equal(JSON.stringify({input,journal}),before);
+ }
+});
 const orders = [
  {id:'first',quantity:'1',at:1000,expiresAt:10000},
  {id:'second',quantity:'1.5',at:1000,expiresAt:10000},
