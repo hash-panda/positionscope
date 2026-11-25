@@ -64,7 +64,7 @@ export function fillBook(book: PaperBook, buy: boolean, quantity: bigint, policy
 }
 function direction(t: PaperTrade) { return t.direction === 'long' ? 1n : -1n; }
 export function cycleMetrics(c: PaperCycle, books: Record<string, PaperBook>, at: number) {
-  let balance = d(c.capital), unrealized = 0n, notional = 0n, available = true;
+  let balance = d(c.capital), unrealized = 0n, notional = 0n, estimatedExitFees = 0n, available = true;
   for (const trade of c.trades) {
     balance += d(trade.grossPnl) - d(trade.fees) + d(trade.funding);
     if (!trade.exit) {
@@ -74,12 +74,16 @@ export function cycleMetrics(c: PaperCycle, books: Record<string, PaperBook>, at
       if (!quote) { available = false; continue; }
       unrealized += (quote.notional - d(trade.entry.notional)) * direction(trade);
       notional += quote.notional;
+      estimatedExitFees += quote.fee;
     }
   }
   const fundingComplete = c.trades.every(t => t.fundingThrough >= (t.exit?.quoteAt ?? at));
   const equity = available ? balance + unrealized : null;
   return { balance: f(balance), equity: equity === null ? null : f(equity), unrealized: available ? f(unrealized) : null,
     knownNetPnl: equity === null ? null : f(equity - d(c.capital)), grossNotional: available ? f(notional) : null, fundingComplete,
+    // Display-only estimate: never book an unexecuted fee or alter journal replay.
+    estimatedExitFees: available ? f(estimatedExitFees) : null,
+    netAfterEstimatedExitFees: equity === null ? null : f(equity - d(c.capital) - estimatedExitFees),
     closed: c.trades.filter(t => t.exit).length, open: c.trades.filter(t => !t.exit).length };
 }
 function observe(c: PaperCycle, s: PaperState, at: number) {

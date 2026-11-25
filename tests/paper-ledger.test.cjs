@@ -19,6 +19,25 @@ test('fixed point preserves small prices and signed funding without binary float
   assert.equal(format(decimal('-0.000000000001')),'-0.000000000001');
   for(const value of ['',null,'NaN','1e3','0.1234567890123','+1']) assert.throws(()=>decimal(value));
 });
+test('exit-cost estimate covers longs and shorts without booking fees or rewriting history',async()=>{
+ for(const direction of ['long','short']) {
+  const h=await harness();await h.start();h.tick();await h.decision({direction});h.tick();await h.book(book(h.now()));
+  const state=h.ledger.snapshot(),c=h.cycle(),before=JSON.stringify(c);
+  const m=cycleMetrics(c,state.books,h.now());
+  assert.ok(decimal(m.estimatedExitFees)>0n);
+  assert.equal(decimal(m.netAfterEstimatedExitFees),decimal(m.knownNetPnl)-decimal(m.estimatedExitFees));
+  assert.equal(JSON.stringify(c),before);
+  for(const quotes of [{},{BTCUSDT:book(h.now(),undefined,'99','100','0.001')}]) {
+   const missing=cycleMetrics(c,quotes,h.now());
+   assert.equal(missing.estimatedExitFees,null);assert.equal(missing.netAfterEstimatedExitFees,null);
+  }
+  assert.equal(cycleMetrics(c,state.books,h.now()+16000).netAfterEstimatedExitFees,null);
+  h.tick();await h.book(book(h.now(),undefined,direction==='long'?'106':'93',direction==='long'?'107':'94'));
+  const closed=cycleMetrics(h.cycle(),h.ledger.snapshot().books,h.now());
+  assert.equal(closed.estimatedExitFees,'0');
+  assert.equal(closed.netAfterEstimatedExitFees,closed.knownNetPnl,'closed trade fees are not charged twice');
+ }
+});
 test('only quotes strictly after frozen decision fill, repeated quote/event cannot double charge',async()=>{
  const h=await harness(); await h.start();h.tick();await h.decision();await h.book(book(h.now()));assert.equal(h.cycle().trades.length,0);
  h.tick(); const b=book(h.now());await h.book(b);const c=h.cycle();assert.equal(c.trades.length,1);assert.equal(c.decisions[0].status,'filled');assert.ok(decimal(c.trades[0].fees)>0n);
