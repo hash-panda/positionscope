@@ -3,6 +3,7 @@ import { dirname } from 'path';
 import { randomUUID } from 'crypto';
 import type { PaperCommand, PaperEvent, PaperState } from '../../types/paper';
 import { applyPaperEvent, emptyPaperState } from './engine';
+import { decimal } from './decimal';
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
 const MAX_BYTES = 128 * 1024 * 1024;
 export type PaperLedgerFileSystem = Pick<typeof fs, 'stat' | 'readFile' | 'open' | 'mkdir' | 'rename' | 'unlink' | 'chmod'>;
@@ -61,6 +62,21 @@ export class PaperLedger {
       if (this.events.length && at < this.events[this.events.length - 1].at) throw new Error('系统时钟回退，模拟暂缓');
       const event = { id, at, command: frozen };
       const next = applyPaperEvent(this.state, event), events = [...this.events, event];
+      if (frozen.kind === 'funding') {
+        // Validate new evidence against the journal, including records for closed
+        // cycles. Historical events retain their original replay semantics.
+        const incoming = new Map(frozen.window.rows.map(row => [row.time, row]));
+        for (const prior of this.events) {
+          if (prior.command.kind !== 'funding' || prior.command.window.symbol !== frozen.window.symbol) continue;
+          for (const row of prior.command.window.rows) {
+            const candidate = incoming.get(row.time);
+            if (candidate && (decimal(candidate.rate) !== decimal(row.rate) ||
+                decimal(candidate.markPrice) !== decimal(row.markPrice))) {
+              throw new Error('资金费证据冲突，历史保留；请核对来源后重试');
+            }
+          }
+        }
+      }
       if (this.filePath) {
         const data = JSON.stringify({ version: 'paper-journal-v1', events });
         if (Buffer.byteLength(data) > MAX_BYTES) throw new Error('模拟历史达到本地容量限制；停止运行并保留历史');

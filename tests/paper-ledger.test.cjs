@@ -110,6 +110,27 @@ test('funding gaps are explicit and cannot be filled by a later disjoint interva
  await h.ledger.append({kind:'funding',window:{symbol:'BTCUSDT',start:150000,end:200000,rows:[]}});assert.equal(h.cycle().trades[0].fundingThrough,t.entry.quoteAt);
  await h.ledger.append({kind:'gap',reason:'resume after sleep'});assert.equal(cycleMetrics(h.cycle(),h.ledger.snapshot().books,h.now()).equity,null);assert.equal(h.cycle().trades[0].exit,null);
 });
+test('conflicting funding evidence cannot advance coverage or change disk, including after restart',async()=>{
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'paper-funding-evidence-')),filePath=path.join(directory,'paper.json');
+ try {
+  const h=await harness({filePath});await h.start();h.tick();await h.decision();h.tick();await h.book(book(h.now()));
+  const start=h.cycle().trades[0].entry.quoteAt;h.tick();
+  const row={time:h.now(),rate:'0.001',markPrice:'100'};
+  await h.ledger.append({kind:'funding',window:{symbol:'BTCUSDT',start,end:h.now(),rows:[row]}});
+  h.set(h.now()+1000);
+  for(const reopen of [false,true]) {
+   const ledger=reopen?await PaperLedger.open({filePath,now:h.now}):h.ledger;
+   const state=ledger.snapshot(),bytes=await fs.readFile(filePath,'utf8');
+   for(const change of [{rate:'-0.001'},{markPrice:'101'}]) {
+    await assert.rejects(ledger.append({kind:'funding',window:{symbol:'BTCUSDT',start,end:h.now(),rows:[{...row,...change}]}}),/资金费证据冲突/);
+    assert.deepEqual(ledger.snapshot(),state);assert.equal(await fs.readFile(filePath,'utf8'),bytes);
+   }
+   await ledger.append({kind:'funding',window:{symbol:'BTCUSDT',start,end:h.now(),rows:[{...row,rate:'0.0010',markPrice:'100.0'}]}});
+   assert.equal(ledger.snapshot().cycles[0].trades[0].funding,state.cycles[0].trades[0].funding);
+   await ledger.append({kind:'funding',window:{symbol:'ETHUSDT',start,end:h.now(),rows:[{...row,rate:'-0.001'}]}});
+  }
+ } finally {await fs.rm(directory,{recursive:true,force:true});}
+});
 test('private journal survives restart, corrupt history remains untouched and concurrent actions serialize',async()=>{
  const directory=await fs.mkdtemp(path.join(os.tmpdir(),'paper-ledger-'));const filePath=path.join(directory,'paper.json');
  try {const h=await harness({filePath});await h.start();h.tick();await h.decision();h.tick();await h.book(book(h.now()));
