@@ -70,6 +70,9 @@ export class PaperLedger {
           if (prior.command.kind !== 'funding' || prior.command.window.symbol !== frozen.window.symbol) continue;
           for (const row of prior.command.window.rows) {
             const candidate = incoming.get(row.time);
+            if (!candidate && row.time >= frozen.window.start && row.time <= frozen.window.end) {
+              throw new Error('查询区间内已知资金费记录缺失，历史保留；请核对来源后重试');
+            }
             if (candidate && (decimal(candidate.rate) !== decimal(row.rate) ||
                 decimal(candidate.markPrice) !== decimal(row.markPrice))) {
               throw new Error('资金费证据冲突，历史保留；请核对来源后重试');
