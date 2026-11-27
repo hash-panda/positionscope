@@ -139,6 +139,30 @@ test('private journal survives restart, corrupt history remains untouched and co
  await fs.writeFile(filePath,'{broken');await assert.rejects(PaperLedger.open({filePath,now:h.now}));assert.equal(await fs.readFile(filePath,'utf8'),'{broken');
  } finally {await fs.rm(directory,{recursive:true,force:true});}
 });
+test('funding windows cannot omit a known settlement at either inclusive boundary or after restart',async()=>{
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'paper-funding-omission-')),filePath=path.join(directory,'paper.json');
+ try {
+  const h=await harness({filePath});await h.start();h.tick();await h.decision();h.tick();await h.book(book(h.now()));
+  const start=h.cycle().trades[0].entry.quoteAt;h.tick();
+  const row={time:h.now(),rate:'0.001',markPrice:'100'};
+  await h.ledger.append({kind:'funding',window:{symbol:'BTCUSDT',start,end:row.time,rows:[row]}});
+  h.set(h.now()+1000);
+  for(const reopen of [false,true]) {
+   const ledger=reopen?await PaperLedger.open({filePath,now:h.now}):h.ledger;
+   const state=ledger.snapshot(),bytes=await fs.readFile(filePath,'utf8');
+   for(const [from,to] of [[start,h.now()],[row.time,h.now()],[start,row.time]]) {
+    await assert.rejects(ledger.append({kind:'funding',window:{symbol:'BTCUSDT',start:from,end:to,rows:[]}}),/资金费记录缺失/);
+    assert.deepEqual(ledger.snapshot(),state);assert.equal(await fs.readFile(filePath,'utf8'),bytes);
+   }
+   await ledger.append({kind:'funding',window:{symbol:'BTCUSDT',start,end:start,rows:[]}});
+   await ledger.append({kind:'funding',window:{symbol:'ETHUSDT',start,end:h.now(),rows:[]}});
+   await ledger.append({kind:'funding',window:{symbol:'BTCUSDT',start,end:h.now(),rows:[row]}});
+   assert.equal(ledger.snapshot().cycles[0].trades[0].funding,state.cycles[0].trades[0].funding);
+   assert.equal(ledger.snapshot().cycles[0].trades[0].fundingThrough,h.now());
+   h.tick();await ledger.append({kind:'funding',window:{symbol:'BTCUSDT',start:row.time+1,end:h.now(),rows:[]}});
+  }
+ } finally {await fs.rm(directory,{recursive:true,force:true});}
+});
 test('flushes the paper journal and parent directory before publishing memory',async()=>{
  const directory=await fs.mkdtemp(path.join(os.tmpdir(),'paper-ledger-fsync-')),filePath=path.join(directory,'paper.json'),order=[];
  const fileSystem={...fs,
